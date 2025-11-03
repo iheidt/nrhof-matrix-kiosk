@@ -67,8 +67,13 @@ def _init_microphone():
         # Use fallback if no USB device found
         if input_device is None:
             input_device = fallback_device
-            if input_device is not None:
-                print(f"Audio: Using device {i}: {devices[input_device]['name']}")
+        
+        # Print which device we're using
+        if input_device is not None:
+            print(f"Audio: Using device {input_device}: {devices[input_device]['name']}")
+        else:
+            print("Audio: No input devices found!")
+            return False
         
         _audio_buffer = np.zeros(_buffer_size, dtype=np.float32)
         _audio_stream = sd.InputStream(
