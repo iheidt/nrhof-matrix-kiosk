@@ -4,6 +4,7 @@ from pathlib import Path
 from scene_manager import Scene, register_scene
 from utils import get_font, draw_scanlines, draw_footer, render_text, load_icon, launch_command, ROOT
 from intent_router import Intents
+from renderers import FrameState, Shape, Text, Image
 
 
 @register_scene("MenuScene")
@@ -125,40 +126,116 @@ class MenuScene(Scene):
         pass
     
     def draw(self, screen: pygame.Surface):
-        """Draw the menu."""
-        screen.fill(self.bg)
+        """Draw the menu using renderer abstraction."""
+        # Build frame state
+        frame = FrameState(clear_color=self.bg)
+        
         w, h = screen.get_size()
         
-        # Draw title
-        title_surface = render_text(self.title, self.title_font_size, mono=True, color=self.color)
-        screen.blit(title_surface, (self.margin, int(h * 0.12)))
+        # Title text
+        frame.add_text(Text.create(
+            content=self.title,
+            x=self.margin,
+            y=int(h * 0.12),
+            color=self.color,
+            font_size=self.title_font_size,
+            mono=True
+        ))
         
         # Draw menu cards
         for i, e in enumerate(self.entries):
             x = self.margin + i * (self.card_w + self.gutter)
-            rect = pygame.Rect(x, self.top, self.card_w, self.card_h)
-            border_c = (40, 100, 40)  # Default border color
             
-            # Card background and border
-            pygame.draw.rect(screen, (5, 5, 5), rect)
-            pygame.draw.rect(screen, border_c, rect, 2)
+            # Card background
+            frame.add_shape(Shape.rect(
+                x=x,
+                y=self.top,
+                w=self.card_w,
+                h=self.card_h,
+                color=(5, 5, 5),
+                thickness=0
+            ))
+            
+            # Card border
+            frame.add_shape(Shape.rect(
+                x=x,
+                y=self.top,
+                w=self.card_w,
+                h=self.card_h,
+                color=(40, 100, 40),
+                thickness=2
+            ))
             
             # Icon area
             icon = self.icons[i] if i < len(self.icons) else None
-            icon_rect = pygame.Rect(rect.left + self.icon_pad, rect.top + self.icon_pad, 
-                                   *self.icon_size)
+            icon_x = x + self.icon_pad
+            icon_y = self.top + self.icon_pad
+            
             if icon:
-                screen.blit(icon, icon_rect)
+                frame.add_image(Image.create(
+                    surface=icon,
+                    x=icon_x,
+                    y=icon_y
+                ))
             else:
                 # Placeholder frame
-                pygame.draw.rect(screen, (20, 60, 20), icon_rect, 2)
-                placeholder_text = render_text(e.get("label", f"Option {i+1}"), self.item_font_size, mono=True, color=self.color)
-                screen.blit(placeholder_text, (icon_rect.left + 8, icon_rect.centery - 12))
+                frame.add_shape(Shape.rect(
+                    x=icon_x,
+                    y=icon_y,
+                    w=self.icon_size[0],
+                    h=self.icon_size[1],
+                    color=(20, 60, 20),
+                    thickness=2
+                ))
+                # Placeholder text
+                frame.add_text(Text.create(
+                    content=e.get("label", f"Option {i+1}"),
+                    x=icon_x + 8,
+                    y=icon_y + self.icon_size[1] // 2 - 12,
+                    color=self.color,
+                    font_size=self.item_font_size,
+                    mono=True
+                ))
             
             # Label at bottom
             label = e.get("label", f"Option {i+1}")
-            label_surface = render_text(label, self.item_font_size, mono=True, color=self.color)
-            screen.blit(label_surface, (rect.left + self.icon_pad, rect.bottom - self.icon_pad - self.item_font_size))
+            frame.add_text(Text.create(
+                content=label,
+                x=x + self.icon_pad,
+                y=self.top + self.card_h - self.icon_pad - self.item_font_size,
+                color=self.color,
+                font_size=self.item_font_size,
+                mono=True
+            ))
         
+        # Render frame state (backward compat)
+        self._render_frame_compat(screen, frame)
+        
+        # Draw scanlines and footer (still using utils for now)
         draw_scanlines(screen)
         draw_footer(screen, self.color)
+    
+    def _render_frame_compat(self, screen, frame):
+        """Temporary: render frame state using pygame (backward compat)."""
+        from renderers.frame_state import ShapeType
+        
+        screen.fill(frame.clear_color)
+        
+        # Render shapes
+        for shape in frame.shapes:
+            color = shape.color[:3]
+            if shape.shape_type == ShapeType.RECT:
+                x, y = shape.position
+                w, h = shape.size
+                pygame.draw.rect(screen, color, (int(x), int(y), int(w), int(h)), shape.thickness)
+        
+        # Render images
+        for image in frame.images:
+            screen.blit(image.surface, (int(image.position[0]), int(image.position[1])))
+        
+        # Render text
+        for text in frame.texts:
+            font = get_font(text.font_size, mono=(text.font_family == "monospace"))
+            color = text.color[:3]
+            surface = font.render(text.content, True, color)
+            screen.blit(surface, (int(text.position[0]), int(text.position[1])))

@@ -4,6 +4,7 @@ import numpy as np
 import math
 from .base import Visualizer
 from utils import MARGIN_TOP, MARGIN_LEFT, MARGIN_RIGHT, MARGIN_BOTTOM
+from renderers import FrameState, Shape
 
 
 class LissajousVisualizer(Visualizer):

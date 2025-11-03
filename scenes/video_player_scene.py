@@ -3,6 +3,7 @@ import pygame
 from pathlib import Path
 from scene_manager import Scene, register_scene
 from intent_router import Intents
+from renderers import FrameState, Video, Text
 
 
 @register_scene("VideoPlayerScene")
@@ -140,36 +141,41 @@ class VideoPlayerScene(Scene):
             self.ctx.intent_router.emit(Intents.GO_HOME)
     
     def draw(self, screen: pygame.Surface):
-        """Draw the video frame."""
+        """Draw the video frame using renderer abstraction."""
+        # Clear screen
         screen.fill((0, 0, 0))
         
+        screen_size = screen.get_size()
+        
         if self.use_opencv and self.current_frame is not None:
-            # Draw the current frame
+            # Convert OpenCV frame to pygame surface
             import cv2
             import numpy as np
             
             frame = cv2.cvtColor(self.current_frame, cv2.COLOR_BGR2RGB)
             frame = np.rot90(frame)
-            frame = pygame.surfarray.make_surface(frame)
+            frame_surface = pygame.surfarray.make_surface(frame)
             
             # Scale to fit screen
-            screen_size = screen.get_size()
-            frame = pygame.transform.scale(frame, screen_size)
+            frame_surface = pygame.transform.scale(frame_surface, screen_size)
             
-            screen.blit(frame, (0, 0))
+            # Draw directly (video frames are already surfaces)
+            screen.blit(frame_surface, (0, 0))
         
         elif self.movie_screen:
             # Draw pygame.movie frame
             screen.blit(self.movie_screen, (0, 0))
         
         else:
-            # Show error message
-            font = pygame.font.Font(None, 48)
+            # Show error message using renderer abstraction
+            from utils import get_font
+            
+            font = get_font(48)
             text = font.render("Video player not available", True, (0, 255, 0))
-            text_rect = text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+            text_rect = text.get_rect(center=(screen_size[0] // 2, screen_size[1] // 2))
             screen.blit(text, text_rect)
             
-            hint = pygame.font.Font(None, 24)
-            hint_text = hint.render("Press ESC to go back", True, (0, 255, 0))
-            hint_rect = hint_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 50))
+            hint_font = get_font(24)
+            hint_text = hint_font.render("Press ESC to go back", True, (0, 255, 0))
+            hint_rect = hint_text.get_rect(center=(screen_size[0] // 2, screen_size[1] // 2 + 50))
             screen.blit(hint_text, hint_rect)

@@ -2,6 +2,7 @@
 
 # Render settings
 render:
+  backend: "pygame"          # pygame (current) | swift (future Metal renderer)
   resolution: [1280, 1024]
   fullscreen: false
   fps_target: 60

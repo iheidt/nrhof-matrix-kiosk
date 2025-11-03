@@ -5,7 +5,6 @@ import argparse
 import importlib
 import threading
 from pathlib import Path
-
 import pygame
 
 # Load environment variables from .env if python-dotenv is available
@@ -27,6 +26,7 @@ from app_state import AppState, get_app_state, SceneProfile
 from workers.audio_worker import AudioWorker
 from workers.recognition_worker import RecognitionWorker
 from logger import get_logger
+from renderers import create_renderer
 
 ROOT = Path(__file__).resolve().parent
 
@@ -78,17 +78,10 @@ def register_intents(intent_router: IntentRouter, scene_manager: SceneManager, a
     intent_router.register(Intents.SELECT_SUB_EXPERIENCE, select_sub_experience_handler)
 
 
-def init_pygame(cfg: dict):
+def init_pygame_env():
+    """Initialize pygame environment variables."""
     os.environ.setdefault("SDL_VIDEO_ALLOW_SCREENSAVER", "0")
     os.environ.setdefault("SDL_VIDEO_WINDOW_POS", "0,0")
-    pygame.init()
-    flags = 0
-    if cfg.get("fullscreen", False):
-        flags |= pygame.FULLSCREEN
-    res = cfg.get("resolution", [1280, 1024])
-    screen = pygame.display.set_mode(res, flags)
-    pygame.display.set_caption(cfg.get("title", "NRHOF Kiosk"))
-    return screen
 
 
 
@@ -122,8 +115,15 @@ def main():
     logger = get_logger('kiosk', cfg.to_dict())
     logger.info("Starting NRHOF Matrix Kiosk", version="1.0.0")
     
-    screen = init_pygame(cfg.to_dict())  # Convert to dict for pygame init
-    logger.info("Pygame initialized", resolution=cfg.get('render.resolution'))
+    # Initialize pygame environment
+    init_pygame_env()
+    
+    # Create renderer
+    renderer = create_renderer(cfg.to_dict())
+    renderer.initialize()
+    screen = renderer.get_surface()  # Get pygame surface for backward compatibility
+    logger.info("Renderer initialized", backend=cfg.get('render.backend', 'pygame'), 
+                resolution=cfg.get('render.resolution'))
     
     # Create and configure voice router
     voice_router = VoiceRouter()
@@ -291,7 +291,8 @@ def main():
     bus_metrics = event_bus.get_metrics()
     print(f"Final metrics: FPS={metrics['fps']}, Events processed={bus_metrics['events_processed']}")
     
-    pygame.quit()
+    # Shutdown renderer (handles pygame.quit internally)
+    renderer.shutdown()
 
 
 if __name__ == "__main__":

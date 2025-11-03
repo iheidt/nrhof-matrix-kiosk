@@ -5,6 +5,7 @@ from scene_manager import BaseAudioScene, register_scene
 from utils import draw_scanlines, draw_footer, draw_back_arrow, get_matrix_green
 from intent_router import Intents
 from visualizers import SpectrumBarsVisualizer
+from renderers import FrameState
 
 
 @register_scene("Experience1SpectrumBarsScene")
@@ -23,8 +24,9 @@ class Experience1SpectrumBarsScene(BaseAudioScene):
         """Initialize audio visualization."""
         self.color = get_matrix_green(self.manager.config)
         
-        # Create visualizer
-        self.visualizer = SpectrumBarsVisualizer(self.manager.config)
+        # Create visualizer - pass visualizers config section
+        viz_config = self.manager.config.get('visualizers', {}).get('spectrum_bars', {})
+        self.visualizer = SpectrumBarsVisualizer(viz_config)
         
         # Start audio stream (from BaseAudioScene)
         self.start_audio_stream()
@@ -59,14 +61,15 @@ class Experience1SpectrumBarsScene(BaseAudioScene):
             self.visualizer.update(audio_data, dt)
     
     def draw(self, screen: pygame.Surface):
-        """Draw the scene."""
+        """Draw the scene using renderer abstraction."""
+        # Always clear screen first
         screen.fill(self.bg)
         
         # Draw visualizer
         if self.visualizer:
             self.visualizer.draw(screen)
         
-        # Draw UI overlays
+        # Draw UI overlays (still using utils for now)
         self.back_arrow_rect = draw_back_arrow(screen, self.color)
         draw_scanlines(screen)
         draw_footer(screen, self.color)

@@ -3,6 +3,7 @@ import pygame
 import numpy as np
 from .base import Visualizer
 from utils import MARGIN_TOP, MARGIN_LEFT, MARGIN_RIGHT, MARGIN_BOTTOM
+from renderers import FrameState, Shape
 
 
 class SpectrumBarsVisualizer(Visualizer):
@@ -38,7 +39,7 @@ class SpectrumBarsVisualizer(Visualizer):
                 self.bar_heights[i] += (target - self.bar_heights[i]) * (1.0 - self.decay_rate)
     
     def draw(self, surface: pygame.Surface):
-        """Draw spectrum bars."""
+        """Draw spectrum bars using renderer abstraction."""
         w, h = surface.get_size()
         
         # Calculate usable area
@@ -48,7 +49,7 @@ class SpectrumBarsVisualizer(Visualizer):
         total_width = w - MARGIN_LEFT - MARGIN_RIGHT
         self.bar_width = max(2, total_width // self.num_bins - self.bar_spacing)
         
-        # Draw bars
+        # Draw bars directly (backward compat)
         for i, height in enumerate(self.bar_heights):
             bar_height = int(height * usable_height * 0.8)
             x = MARGIN_LEFT + i * (self.bar_width + self.bar_spacing)
@@ -56,3 +57,39 @@ class SpectrumBarsVisualizer(Visualizer):
             
             pygame.draw.rect(surface, self.color, 
                            (x, y, self.bar_width, bar_height))
+    
+    def build_frame_state(self, w: int, h: int) -> FrameState:
+        """Build frame state for renderer (future use).
+        
+        Args:
+            w: Screen width
+            h: Screen height
+            
+        Returns:
+            FrameState with spectrum bars
+        """
+        frame = FrameState()
+        
+        # Calculate usable area
+        usable_height = h - MARGIN_TOP - MARGIN_BOTTOM
+        
+        # Calculate bar dimensions
+        total_width = w - MARGIN_LEFT - MARGIN_RIGHT
+        bar_width = max(2, total_width // self.num_bins - self.bar_spacing)
+        
+        # Add bars to frame state
+        for i, height in enumerate(self.bar_heights):
+            bar_height = int(height * usable_height * 0.8)
+            x = MARGIN_LEFT + i * (bar_width + self.bar_spacing)
+            y = h - MARGIN_BOTTOM - bar_height
+            
+            frame.add_shape(Shape.rect(
+                x=x,
+                y=y,
+                w=bar_width,
+                h=bar_height,
+                color=self.color,
+                thickness=0
+            ))
+        
+        return frame

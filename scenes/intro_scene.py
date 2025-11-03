@@ -3,6 +3,7 @@ import time
 import pygame
 from scene_manager import Scene, register_scene
 from utils import get_font, draw_scanlines, draw_footer
+from renderers import FrameState, Text
 
 
 @register_scene("IntroScene")
@@ -113,14 +114,15 @@ class IntroScene(Scene):
     
     def draw(self, screen: pygame.Surface):
         """Draw the terminal-style typewriter text."""
+        # Clear screen
         screen.fill(self.bg)
         
-        font = get_font(self.base_font_size)
         y_pos = self.margin_y
         
         # Draw all completed lines
         for line in self.completed_lines:
             text_with_prompt = f"> {line}"
+            font = get_font(self.base_font_size)
             img = font.render(text_with_prompt, True, self.color)
             screen.blit(img, (self.margin_x, y_pos))
             y_pos += self.line_height
@@ -128,6 +130,7 @@ class IntroScene(Scene):
         # Draw current line being typed
         if self.shown_text:
             text_with_prompt = f"> {self.shown_text}"
+            font = get_font(self.base_font_size)
             img = font.render(text_with_prompt, True, self.color)
             screen.blit(img, (self.margin_x, y_pos))
             
@@ -137,5 +140,6 @@ class IntroScene(Scene):
                 cursor = font.render("_", True, self.color)
                 screen.blit(cursor, (cursor_x, y_pos))
         
+        # Draw overlays
         draw_scanlines(screen)
         draw_footer(screen, self.color)
