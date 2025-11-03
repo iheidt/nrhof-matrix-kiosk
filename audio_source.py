@@ -80,9 +80,13 @@ def _init_microphone():
         )
         _audio_stream.start()
         print(f"Audio: Microphone initialized ({_sample_rate}Hz, {_buffer_size} samples)")
+        print(f"Audio: Device {input_device}, Channels: 1, Sample rate: {_sample_rate}")
         return True
     except Exception as e:
+        import traceback
         print(f"Audio: Failed to initialize microphone: {e}")
+        print(f"Audio: Full traceback:")
+        traceback.print_exc()
         return False
 
 
