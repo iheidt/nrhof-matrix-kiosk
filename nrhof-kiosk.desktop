@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=NRHOF Matrix Kiosk
+Comment=National Rock & Roll Hall of Fame Interactive Kiosk
+Exec=/home/iheidt/nrhof-matrix-kiosk/.venv/bin/python /home/iheidt/nrhof-matrix-kiosk/app.py
+Icon=/home/iheidt/nrhof-matrix-kiosk/assets/kiosk-icon.svg
+Path=/home/iheidt/nrhof-matrix-kiosk
+Terminal=false
+Categories=AudioVideo;Audio;Music;
+Keywords=kiosk;music;visualizer;nrhof;

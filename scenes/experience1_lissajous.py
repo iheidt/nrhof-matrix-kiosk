@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+import pygame
+from scene_manager import Scene, register_scene
+from utils import draw_scanlines, draw_footer, draw_back_arrow, get_matrix_green
+from intent_router import Intents
+from visualizers import LissajousVisualizer
+
+
+@register_scene("Experience1LissajousScene")
+class Experience1LissajousScene(Scene):
+    """Lissajous parametric curve visualizer scene."""
+    
+    def __init__(self, ctx):
+        super().__init__(ctx)
+        self.color = (140, 255, 140)
+        self.bg = (0, 0, 0)
+        self.visualizer = None
+        self.back_arrow_rect = None
+    
+    def on_enter(self):
+        """Initialize Lissajous scene."""
+        self.color = get_matrix_green(self.manager.config)
+        
+        # Create visualizer with config
+        self.visualizer = LissajousVisualizer(self.manager.config)
+    
+    def on_exit(self):
+        """Clean up scene."""
+        self.visualizer = None
+    
+    def handle_event(self, event: pygame.event.Event):
+        """Handle input events."""
+        return self.handle_common_events(event, Intents.GO_TO_EXPERIENCE1_HUB, self.back_arrow_rect)
+    
+    def update(self, dt: float):
+        """Update visualization."""
+        if self.visualizer:
+            # Get FFT data from audio system
+            audio_data = {}
+            if hasattr(self.ctx, 'audio') and self.ctx.audio:
+                audio_data['fft'] = self.ctx.audio.get_fft_bins()
+            
+            self.visualizer.update(audio_data, dt)
+    
+    def draw(self, screen: pygame.Surface):
+        """Draw the scene."""
+        screen.fill(self.bg)
+        
+        # Draw visualizer
+        if self.visualizer:
+            self.visualizer.draw(screen)
+        
+        # Draw UI overlays
+        self.back_arrow_rect = draw_back_arrow(screen, self.color)
+        draw_scanlines(screen)
+        draw_footer(screen, self.color)

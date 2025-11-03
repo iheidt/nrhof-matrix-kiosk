@@ -1,0 +1,91 @@
+# NRHOF Matrix Kiosk Configuration
+
+# Render settings
+render:
+  resolution: [1280, 1024]
+  fullscreen: false
+  fps_target: 60
+  matrix_green: [0, 255, 0]
+  scanline_alpha: 30
+
+# Audio settings
+audio:
+  sample_rate: 44100
+  frame_size: 2048
+  music_threshold: 0.01      # RMS threshold for music detection
+  music_debounce: 0.5        # Seconds before state change
+  poll_interval: 0.1         # Audio monitoring interval (100ms)
+
+# Recognition settings (placeholder for future)
+recognizer:
+  enabled: false
+  cooldown: 5.0              # Seconds between recognition attempts
+  confidence_threshold: 0.7   # Minimum confidence to accept result
+  same_track_window: 30.0    # Seconds to suppress duplicate recognition
+
+# Integrations (placeholder for future)
+integrations:
+  webflow:
+    enabled: false
+    sync_window: 300.0       # Don't sync same track within 5 minutes
+    retry_backoff_max: 300   # Max backoff in seconds
+
+# Feature flags
+flags:
+  use_prebaked_video: false
+  use_live_math: true
+  enable_recognition: false
+  enable_webflow: false
+  enable_voice: true
+  offline_mode: false
+
+# Splash screen
+splash:
+  min_seconds: 2.0
+  title: "NRHOF Matrix Kiosk"
+
+# Intro scene texts
+intro_texts:
+  - "wake up, NRHOF..."
+  - "the matrix has you..."
+  - "follow the white rabbit..."
+
+# Menu configuration
+menu:
+  title: "Select an option:"
+  entries:
+    - label: "visualizer"
+      icon: "assets/option1.svg"
+      command: "echo 'Launching option 1'"
+    - label: "music video"
+      icon: "assets/option2.svg"
+      command: "echo 'Launching option 2'"
+    - label: "fate maker"
+      icon: "assets/option3.svg"
+      command: "echo 'Launching option 3'"
+
+# Visualizer settings
+visualizers:
+  spectrum_bars:
+    bars: 32
+    decay: 0.95
+  
+  waveform:
+    num_waves: 3
+    points: 100
+    speed: 2.0
+    freq_bands: [[20, 250], [250, 2000], [2000, 20000]]
+  
+  lissajous:
+    a: 3
+    b: 4
+    delta: 1.5708
+    trail: 50
+
+# Logging
+logging:
+  level: "INFO"              # DEBUG, INFO, WARNING, ERROR
+  file: "runtime/kiosk.log"
+  max_size_mb: 10
+  backup_count: 3
+  structured: true           # JSON lines format

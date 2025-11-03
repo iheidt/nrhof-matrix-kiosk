@@ -1,0 +1,15 @@
+[Unit]
+Description=NRHOF Matrix Kiosk Update
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=pi
+WorkingDirectory=/home/pi/nrhof-matrix-kiosk
+ExecStart=/home/pi/nrhof-matrix-kiosk/scripts/update.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

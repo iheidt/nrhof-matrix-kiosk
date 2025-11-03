@@ -1,0 +1,19 @@
+# Environment variables (CONTAINS API KEYS!)
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv312/
+.venv/
+*.log
+
+# OS
+.DS_Store
+runtime/
+
+# Videos (too large for GitHub)
+assets/videos/
+*.mp4
+*.mov
+*.avi
