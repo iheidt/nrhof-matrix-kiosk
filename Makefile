@@ -1,13 +1,14 @@
 # NRHOF Matrix Kiosk - Makefile
-# Convenient commands for Mac → GitHub → Pi workflow
+# Convenient commands for development and deployment
 
 # Configuration
 PI_HOST ?= raspberrypi.local
 PI_USER ?= iheidt
 PI_PATH ?= /home/$(PI_USER)/nrhof-matrix-kiosk
 BRANCH ?= main
+MAC_LAUNCHAGENT := ~/Library/LaunchAgents/com.nrhof.matrix-kiosk.plist
 
-.PHONY: help push deploy pi-pull pi-restart pi-logs pi-status pi-ssh test
+.PHONY: help push deploy pi-pull pi-restart pi-logs pi-status pi-ssh test mac-install mac-start mac-stop mac-restart mac-logs mac-status mac-uninstall
 
 # Default target
 help:
@@ -16,6 +17,15 @@ help:
 	@echo "Development Workflow:"
 	@echo "  make push          - Commit and push to GitHub"
 	@echo "  make deploy        - Push to GitHub + update Pi"
+	@echo ""
+	@echo "Mac Mini Management:"
+	@echo "  make mac-install   - Install LaunchAgent (manual start)"
+	@echo "  make mac-start     - Start kiosk service"
+	@echo "  make mac-stop      - Stop kiosk service"
+	@echo "  make mac-restart   - Restart kiosk service"
+	@echo "  make mac-logs      - View kiosk logs"
+	@echo "  make mac-status    - Check service status"
+	@echo "  make mac-uninstall - Remove LaunchAgent"
 	@echo ""
 	@echo "Pi Management:"
 	@echo "  make pi-pull       - Pull latest code on Pi"
@@ -89,3 +99,60 @@ test-full:
 quick-update:
 	@$(MAKE) pi-pull
 	@$(MAKE) pi-restart
+
+# ============================================
+# Mac Mini Deployment Commands
+# ============================================
+
+# Install LaunchAgent (manual start)
+mac-install:
+	@echo "🍎 Installing Mac Mini LaunchAgent..."
+	@mkdir -p logs
+	@mkdir -p ~/Library/LaunchAgents
+	@cp service/com.nrhof.matrix-kiosk.plist $(MAC_LAUNCHAGENT)
+	@launchctl load $(MAC_LAUNCHAGENT)
+	@echo "✅ LaunchAgent installed"
+	@echo "   Use 'make mac-start' to run kiosk"
+	@echo "   Use 'make mac-stop' to stop kiosk"
+
+# Start kiosk service
+mac-start:
+	@echo "▶️  Starting kiosk..."
+	@launchctl start com.nrhof.matrix-kiosk
+	@echo "✅ Kiosk started"
+
+# Stop kiosk service
+mac-stop:
+	@echo "⏹️  Stopping kiosk..."
+	@launchctl stop com.nrhof.matrix-kiosk
+	@echo "✅ Kiosk stopped"
+
+# Restart kiosk service
+mac-restart: mac-stop
+	@sleep 2
+	@$(MAKE) mac-start
+
+# View kiosk logs
+mac-logs:
+	@echo "📋 Viewing kiosk logs (Ctrl+C to exit)..."
+	@tail -f logs/kiosk.log
+
+# View error logs
+mac-errors:
+	@echo "📋 Viewing error logs..."
+	@tail -f logs/kiosk.error.log
+
+# Check service status
+mac-status:
+	@echo "📊 Checking kiosk status..."
+	@launchctl list | grep com.nrhof.matrix-kiosk || echo "Service not running"
+
+# Uninstall LaunchAgent
+mac-uninstall:
+	@echo "🗑️  Uninstalling LaunchAgent..."
+	@launchctl unload $(MAC_LAUNCHAGENT) 2>/dev/null || true
+	@rm -f $(MAC_LAUNCHAGENT)
+	@echo "✅ LaunchAgent uninstalled"
+
+# Reinstall (useful after config changes)
+mac-reinstall: mac-uninstall mac-install

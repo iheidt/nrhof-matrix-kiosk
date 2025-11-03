@@ -125,6 +125,9 @@ def main():
     logger.info("Renderer initialized", backend=cfg.get('render.backend', 'pygame'), 
                 resolution=cfg.get('render.resolution'))
     
+    # Hide mouse cursor for kiosk mode
+    pygame.mouse.set_visible(False)
+    
     # Create and configure voice router
     voice_router = VoiceRouter()
     

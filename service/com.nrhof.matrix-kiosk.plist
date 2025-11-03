@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.nrhof.matrix-kiosk</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/.venv312/bin/python</string>
+        <string>/Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/app.py</string>
+        <string>--fullscreen</string>
+    </array>
+    
+    <key>WorkingDirectory</key>
+    <string>/Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk</string>
+    
+    <!-- RunAtLoad disabled - manually start with 'make mac-start' -->
+    <key>RunAtLoad</key>
+    <false/>
+    
+    <!-- KeepAlive disabled - won't restart on exit -->
+    <key>KeepAlive</key>
+    <false/>
+    
+    <key>StandardOutPath</key>
+    <string>/Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/logs/kiosk.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/logs/kiosk.error.log</string>
+    
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>
