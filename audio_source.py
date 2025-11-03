@@ -40,34 +40,39 @@ def _init_microphone():
         return False
     
     try:
-        # Find the best available input device
-        devices = sd.query_devices()
+        # Try to find the best input device
+        # When running as systemd service, device enumeration may fail
+        # so we'll try default device first
         input_device = None
         
-        for i, device in enumerate(devices):
-            if device['max_input_channels'] > 0:
-                name_lower = device['name'].lower()
-                
-                # Skip iPhone/iPad devices (Mac only issue)
-                if 'iphone' in name_lower or 'ipad' in name_lower:
-                    continue
-                
-                # Prefer devices with 'usb' in name
-                if 'usb' in name_lower:
-                    input_device = i
-                    print(f"Audio: Using USB device {i}: {device['name']}")
-                    break
-                
-                # Use first available non-iPhone device
-                if input_device is None:
-                    input_device = i
+        try:
+            devices = sd.query_devices()
+            
+            for i, device in enumerate(devices):
+                if device['max_input_channels'] > 0:
+                    name_lower = device['name'].lower()
+                    
+                    # Skip iPhone/iPad devices (Mac only issue)
+                    if 'iphone' in name_lower or 'ipad' in name_lower:
+                        continue
+                    
+                    # Prefer devices with 'usb' in name
+                    if 'usb' in name_lower:
+                        input_device = i
+                        print(f"Audio: Using USB device {i}: {device['name']}")
+                        break
+                    
+                    # Use first available non-iPhone device
+                    if input_device is None:
+                        input_device = i
+                        print(f"Audio: Using device {i}: {device['name']}")
+        except Exception as e:
+            print(f"Audio: Device enumeration failed: {e}")
+            # Will try default device below
         
-        # Print which device we're using
-        if input_device is not None:
-            print(f"Audio: Using device {input_device}: {devices[input_device]['name']}")
-        else:
-            print("Audio: No input devices found!")
-            return False
+        # If no device found, try None (default device)
+        if input_device is None:
+            print("Audio: Using default input device")
         
         _audio_buffer = np.zeros(_buffer_size, dtype=np.float32)
         _audio_stream = sd.InputStream(
