@@ -40,15 +40,35 @@ def _init_microphone():
         return False
     
     try:
-        # Find the first available input device
+        # Find the best available input device
+        # Prefer USB/external devices over built-in/iPhone
         devices = sd.query_devices()
         input_device = None
+        fallback_device = None
         
         for i, device in enumerate(devices):
             if device['max_input_channels'] > 0:
-                input_device = i
-                print(f"Audio: Using device {i}: {device['name']}")
-                break
+                name_lower = device['name'].lower()
+                
+                # Skip iPhone/iPad devices
+                if 'iphone' in name_lower or 'ipad' in name_lower:
+                    continue
+                
+                # Prefer USB devices
+                if 'usb' in name_lower:
+                    input_device = i
+                    print(f"Audio: Using USB device {i}: {device['name']}")
+                    break
+                
+                # Save first non-iPhone device as fallback
+                if fallback_device is None:
+                    fallback_device = i
+        
+        # Use fallback if no USB device found
+        if input_device is None:
+            input_device = fallback_device
+            if input_device is not None:
+                print(f"Audio: Using device {i}: {devices[input_device]['name']}")
         
         _audio_buffer = np.zeros(_buffer_size, dtype=np.float32)
         _audio_stream = sd.InputStream(
