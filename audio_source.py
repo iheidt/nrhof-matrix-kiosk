@@ -18,7 +18,7 @@ except ImportError:
 # Global state
 _audio_stream = None
 _audio_buffer = None
-_buffer_size = 2048
+_buffer_size = 4096  # Increased from 2048 to prevent overflow on Pi
 _sample_rate = 44100
 _fallback_time = 0.0
 _fallback_freq = 220.0  # A3 note
@@ -27,7 +27,8 @@ _fallback_freq = 220.0  # A3 note
 def _audio_callback(indata, frames, time_info, status):
     """Callback for sounddevice stream."""
     global _audio_buffer
-    if status:
+    if status and 'overflow' not in str(status).lower():
+        # Only print non-overflow errors
         print(f"Audio status: {status}")
     _audio_buffer = indata[:, 0].copy()  # Mono channel
 
@@ -80,6 +81,7 @@ def _init_microphone():
             channels=1,
             samplerate=_sample_rate,
             blocksize=_buffer_size,
+            latency='high',  # Add latency to prevent overflow
             callback=_audio_callback
         )
         _audio_stream.start()
