@@ -26,7 +26,20 @@ class PygameRenderer(RendererBase):
     
     def initialize(self):
         """Initialize pygame and create display."""
+        import os
         pygame.init()
+        
+        # Get display configuration
+        display_index = self.config.get('render', {}).get('display', 0)
+        
+        # Position window on correct display
+        if display_index > 0:
+            # Get desktop info to find secondary display position
+            info = pygame.display.Info()
+            # For macOS with extended display, position window far right
+            # This assumes secondary display is to the right of primary
+            primary_width = info.current_w
+            os.environ['SDL_VIDEO_WINDOW_POS'] = f"{primary_width},0"
         
         flags = 0
         if self.config.get('render', {}).get('fullscreen', False):

@@ -10,6 +10,8 @@
         <string>/Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/.venv312/bin/python</string>
         <string>/Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/app.py</string>
         <string>--fullscreen</string>
+        <string>--display</string>
+        <string>1</string>
     </array>
     
     <key>WorkingDirectory</key>

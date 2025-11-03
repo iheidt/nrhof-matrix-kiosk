@@ -96,6 +96,7 @@ def main():
     parser = argparse.ArgumentParser(description='NRHOF Matrix Kiosk')
     parser.add_argument('--fullscreen', action='store_true', help='Run in fullscreen mode')
     parser.add_argument('--resolution', type=str, help='Display resolution (e.g., 1280x1024)')
+    parser.add_argument('--display', type=int, help='Display index (0=primary, 1=secondary)')
     args = parser.parse_args()
     
     cfg = load_config()
@@ -110,6 +111,8 @@ def main():
         except ValueError:
             print(f"Invalid resolution format: {args.resolution}. Use format: WIDTHxHEIGHT")
             sys.exit(1)
+    if args.display is not None:
+        cfg.set('render.display', args.display)
     
     # Initialize logger
     logger = get_logger('kiosk', cfg.to_dict())

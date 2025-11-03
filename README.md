@@ -1,51 +1,56 @@
-# NRHOF Matrix Kiosk (Raspberry Pi 5)
+# NRHOF Matrix Kiosk
 
-A fullscreen 1280x1024 kiosk app that boots to a Matrix-style intro and then shows a 3-option touchscreen menu. Each option launches a command/app. Icons are SVG placeholders you can replace.
+A fullscreen 1280x1024 kiosk app with Matrix-style intro, touchscreen menu, voice commands, and audio visualizations. Runs on Mac Mini (primary) or Raspberry Pi.
 
 ## Features
-- Matrix intro
-- Terminal-like UI, 3 large touch targets, keyboard 1/2/3 also work
-- Loop back to intro when exiting menu
-- Systemd unit for boot-to-app kiosk
-- Voice command support
-- Audio visualization
-- Auto-update system
+- **Matrix intro** - Typewriter effect with terminal aesthetic
+- **Voice commands** - Natural language control via OpenAI
+- **Audio visualizations** - Spectrum bars, waveform, Lissajous curves
+- **Music videos** - Fullscreen video playback
+- **Renderer abstraction** - Ready for Metal/Swift GPU acceleration
+- **Dual deployment** - Mac Mini (primary) or Raspberry Pi
+- **Touch & keyboard** - Large touch targets, keyboard shortcuts (1/2/3)
 
-## Quick Start (Development Workflow)
+## Quick Start
 
-### One-Time Setup
-1. **On Mac**: Clone and set up the repo
-2. **On Pi**: Run the bootstrap script (see [Pi Deployment Guide](docs/PI_DEPLOY.md))
-
-### Daily Workflow
+### Mac Mini Setup (Primary Platform)
 
 ```bash
-# See all available commands
-make help
+# Clone and setup
+git clone <repo-url>
+cd nrhof-matrix-kiosk
+python3 -m venv .venv312
+source .venv312/bin/activate
+pip install -r requirements.txt
 
-# Deploy changes to Pi (commit + push + update Pi)
-make deploy
+# Test locally
+make test                    # Windowed mode
+make test-full               # Fullscreen on secondary display
 
-# Just push to GitHub
-make push
+# Install for kiosk use (manual start/stop)
+make mac-install
 
-# Pull latest code on Pi and restart
-make pi-pull
-make pi-restart
-
-# View Pi logs
-make pi-logs
-
-# Test locally on Mac
-make test
+# Start/stop kiosk
+make mac-start               # Start fullscreen on secondary display
+make mac-stop                # Stop and return to normal use
+make mac-logs                # View logs
 ```
 
-**Development Rule**: Edit on Mac → Push to GitHub → Pi pulls automatically (or use `make deploy`)
+### Raspberry Pi Setup (Optional)
+
+See [Pi Deployment Guide](docs/PI_DEPLOY.md) for Pi-specific setup.
+
+```bash
+# Deploy to Pi
+make deploy                  # Push to GitHub + update Pi
+make pi-restart              # Restart Pi service
+make pi-logs                 # View Pi logs
+```
 
 ## Requirements
-- Raspberry Pi OS (Wayland or X11)
+- **macOS** (primary) or Raspberry Pi OS
 - Python 3.11+
-- Packages: `pygame`, `Pillow`, `cairosvg` (optional for SVG). Install:
+- Dependencies in `requirements.txt`:
 
 ```bash
 sudo apt update

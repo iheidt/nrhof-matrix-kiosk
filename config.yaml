@@ -4,7 +4,8 @@
 render:
   backend: "pygame"          # pygame (current) | swift (future Metal renderer)
   resolution: [1280, 1024]
-  fullscreen: false
+  fullscreen: true           # Run in fullscreen kiosk mode
+  display: 1                 # 0=primary display, 1=secondary display
   fps_target: 60
   matrix_green: [0, 255, 0]
   scanline_alpha: 30
