@@ -40,8 +40,19 @@ def _init_microphone():
         return False
     
     try:
+        # Find the first available input device
+        devices = sd.query_devices()
+        input_device = None
+        
+        for i, device in enumerate(devices):
+            if device['max_input_channels'] > 0:
+                input_device = i
+                print(f"Audio: Using device {i}: {device['name']}")
+                break
+        
         _audio_buffer = np.zeros(_buffer_size, dtype=np.float32)
         _audio_stream = sd.InputStream(
+            device=input_device,
             channels=1,
             samplerate=_sample_rate,
             blocksize=_buffer_size,
