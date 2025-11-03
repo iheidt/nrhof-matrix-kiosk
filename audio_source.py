@@ -41,32 +41,26 @@ def _init_microphone():
     
     try:
         # Find the best available input device
-        # Prefer USB/external devices over built-in/iPhone
         devices = sd.query_devices()
         input_device = None
-        fallback_device = None
         
         for i, device in enumerate(devices):
             if device['max_input_channels'] > 0:
                 name_lower = device['name'].lower()
                 
-                # Skip iPhone/iPad devices
+                # Skip iPhone/iPad devices (Mac only issue)
                 if 'iphone' in name_lower or 'ipad' in name_lower:
                     continue
                 
-                # Prefer USB devices
+                # Prefer devices with 'usb' in name
                 if 'usb' in name_lower:
                     input_device = i
                     print(f"Audio: Using USB device {i}: {device['name']}")
                     break
                 
-                # Save first non-iPhone device as fallback
-                if fallback_device is None:
-                    fallback_device = i
-        
-        # Use fallback if no USB device found
-        if input_device is None:
-            input_device = fallback_device
+                # Use first available non-iPhone device
+                if input_device is None:
+                    input_device = i
         
         # Print which device we're using
         if input_device is not None:
