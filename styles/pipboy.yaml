@@ -14,7 +14,12 @@ colors:
   card_placeholder: "#2D0859"  # Dark purple
 
 typography:
-  font_family: "monospace"
+  # Font files (in assets/fonts/)
+  primary_font: "IBMPlexMono-Regular.ttf"    # Main UI font
+  secondary_font: "miland.otf"               # Headings, titles
+  label_font: "Compadre-Extended.otf"        # Labels, buttons
+  
+  # Font sizes
   title_size: 48
   subtitle_size: 32
   body_size: 24

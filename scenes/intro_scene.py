@@ -2,7 +2,7 @@
 import time
 import pygame
 from scene_manager import Scene, register_scene
-from utils import get_font, draw_scanlines, draw_footer
+from utils import get_font, get_theme_font, draw_scanlines, draw_footer
 from renderers import FrameState, Text
 from theme_loader import get_theme_loader
 
@@ -127,10 +127,10 @@ class IntroScene(Scene):
         
         y_pos = self.margin_y
         
-        # Draw all completed lines
+        # Draw all completed lines (use primary font - IBM Plex Mono)
         for line in self.completed_lines:
             text_with_prompt = f"> {line}"
-            font = get_font(self.base_font_size)
+            font = get_theme_font(self.base_font_size, 'primary')
             img = font.render(text_with_prompt, True, self.color)
             screen.blit(img, (self.margin_x, y_pos))
             y_pos += self.line_height
@@ -138,7 +138,7 @@ class IntroScene(Scene):
         # Draw current line being typed
         if self.shown_text:
             text_with_prompt = f"> {self.shown_text}"
-            font = get_font(self.base_font_size)
+            font = get_theme_font(self.base_font_size, 'primary')
             img = font.render(text_with_prompt, True, self.color)
             screen.blit(img, (self.margin_x, y_pos))
             

@@ -7,20 +7,7 @@ render:
   fullscreen: false           # Run in fullscreen kiosk mode
   display: 1                 # 0=primary display, 1=secondary display
   fps_target: 60
-  matrix_green: [0, 255, 0]
-  scanline_alpha: 30
-
-# Custom fonts (drop .ttf/.otf files in assets/fonts/)
-fonts:
-  # Primary monospace font for terminal/matrix aesthetic
-  mono: "JetBrainsMono-Regular.ttf"    # or null to use system default
-  # Sans-serif font for UI elements
-  sans: "Inter-Regular.ttf"            # or null to use system default
-  # Bold variants (optional)
-  mono_bold: "JetBrainsMono-Bold.ttf"
-  sans_bold: "Inter-Bold.ttf"
-  # Custom fonts directory
-  directory: "assets/fonts"
+  # Note: Colors, fonts, and visual styling now in styles/pipboy.yaml
 
 # Audio settings
 audio:
@@ -53,30 +40,9 @@ flags:
   enable_voice: true
   offline_mode: false
 
-# Splash screen
-splash:
-  min_seconds: 2.0
-  title: "NRHOF"
-
-# Intro scene texts
-intro_texts:
-  - "wake up, NRHOF..."
-  - "the matrix has you..."
-  - "follow the white rabbit..."
-
-# Menu configuration
-menu:
-  title: "Select an option:"
-  entries:
-    - label: "visualizer"
-      icon: "assets/option1.svg"
-      command: "echo 'Launching option 1'"
-    - label: "music video"
-      icon: "assets/option2.svg"
-      command: "echo 'Launching option 2'"
-    - label: "fate maker"
-      icon: "assets/option3.svg"
-      command: "echo 'Launching option 3'"
+# Note: Scene content (splash, intro, menu) now in content/ directory
+# Note: Scene layouts now in layouts/ directory
+# Note: Theme colors and fonts now in styles/ directory
 
 # Visualizer settings
 visualizers:

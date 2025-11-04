@@ -72,7 +72,7 @@ def draw_back_arrow(surface: Surface, color: tuple = (140, 255, 140)) -> pygame.
     arrow_color = tuple(int(c * 0.8) for c in color)
     
     # Draw back arrow text
-    font = get_font(24)
+    font = get_theme_font(24, 'primary')
     arrow_text = "< back"
     text_surface = font.render(arrow_text, True, arrow_color)
     
@@ -103,7 +103,7 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140)):
     pygame.draw.line(surface, dim_color, (20, line_y), (w - 20, line_y), 1)
     
     # Draw footer text
-    font = get_font(16)  # Increased from 14
+    font = get_theme_font(16, 'primary')
     footer_text = "big nerd industries inc. ©2025"
     text_surface = font.render(footer_text, True, dim_color)
     text_rect = text_surface.get_rect()
@@ -259,6 +259,44 @@ def get_font(size: int = 24, *, mono: bool = True, prefer: str | None = None, bo
             return pygame.font.Font(None, size)
     except Exception:
         return pygame.font.Font(None, size)
+
+@lru_cache(maxsize=64)
+def get_theme_font(size: int = 24, font_type: str = 'primary') -> pygame.font.Font:
+    """Get a font from the theme.
+    
+    Args:
+        size: Font size in points
+        font_type: 'primary', 'secondary', or 'label'
+        
+    Returns:
+        pygame.Font object
+    """
+    from theme_loader import get_theme_loader
+    
+    try:
+        pygame.font.get_init() or pygame.font.init()
+    except Exception:
+        pass
+    
+    # Load theme
+    theme_loader = get_theme_loader()
+    style = theme_loader.load_style('pipboy')
+    
+    # Get font filename from theme
+    font_key = f"{font_type}_font"
+    font_filename = style.get('typography', {}).get(font_key)
+    
+    if font_filename:
+        # Try to load custom font
+        font_path = Path(__file__).parent / "assets" / "fonts" / font_filename
+        if font_path.exists():
+            try:
+                return pygame.font.Font(str(font_path), size)
+            except Exception as e:
+                print(f"Failed to load theme font {font_filename}: {e}")
+    
+    # Fallback to system font
+    return pygame.font.Font(None, size)
 
 def render_text(text: str, size: int = 24, *, mono: bool = True, color=(0, 255, 0), antialias=True, prefer: str | None = None) -> pygame.Surface:
     """Convenience: get a font and render one line of text to a surface."""

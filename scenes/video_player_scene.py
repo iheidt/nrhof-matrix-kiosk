@@ -173,14 +173,14 @@ class VideoPlayerScene(Scene):
         
         else:
             # Show error message using renderer abstraction
-            from utils import get_font
+            from utils import get_theme_font
             
-            font = get_font(48)
+            font = get_theme_font(48, 'secondary')
             text = font.render("Video player not available", True, tuple(style['colors']['primary']))
             text_rect = text.get_rect(center=(screen_size[0] // 2, screen_size[1] // 2))
             screen.blit(text, text_rect)
             
-            hint_font = get_font(24)
+            hint_font = get_theme_font(24, 'primary')
             hint_text = hint_font.render("Press ESC to go back", True, tuple(style['colors']['secondary']))
             hint_rect = hint_text.get_rect(center=(screen_size[0] // 2, screen_size[1] // 2 + 50))
             screen.blit(hint_text, hint_rect)

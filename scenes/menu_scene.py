@@ -2,7 +2,7 @@
 import pygame
 from pathlib import Path
 from scene_manager import Scene, register_scene
-from utils import get_font, draw_scanlines, draw_footer, render_text, load_icon, launch_command, ROOT
+from utils import get_font, get_theme_font, draw_scanlines, draw_footer, render_text, load_icon, launch_command, ROOT
 from intent_router import Intents
 from renderers import FrameState, Shape, Text, Image
 from theme_loader import get_theme_loader
@@ -262,7 +262,14 @@ class MenuScene(Scene):
         
         # Render text
         for text in frame.texts:
-            font = get_font(text.font_size, mono=(text.font_family == "monospace"))
+            # Use secondary font (Miland) for large titles, label font (Compadre) for card text
+            if text.font_size >= 48:
+                font = get_theme_font(text.font_size, 'secondary')
+            elif text.font_size >= 24:
+                font = get_theme_font(text.font_size, 'label')
+            else:
+                font = get_theme_font(text.font_size, 'primary')
+            
             color = text.color[:3]
             surface = font.render(text.content, True, color)
             screen.blit(surface, (int(text.position[0]), int(text.position[1])))

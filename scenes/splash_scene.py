@@ -2,7 +2,7 @@
 import time
 import pygame
 from scene_manager import Scene, register_scene
-from utils import get_font
+from utils import get_font, get_theme_font, draw_scanlines, draw_footer
 from renderers import FrameState, Shape, Text
 from __version__ import __version__
 from theme_loader import get_theme_loader
@@ -160,7 +160,12 @@ class SplashScene(Scene):
     
     def _render_text_compat(self, screen, text):
         """Temporary: render text using pygame (backward compat)."""
-        font = get_font(text.font_size, mono=(text.font_family == "monospace"))
+        # Use secondary font (Miland) for large title, primary (IBM Plex) for smaller text
+        if text.font_size >= 48:
+            font = get_theme_font(text.font_size, 'secondary')
+        else:
+            font = get_theme_font(text.font_size, 'primary')
+        
         color = text.color[:3]
         surface = font.render(text.content, True, color)
         x, y = text.position

@@ -262,7 +262,7 @@ class BaseHubScene(Scene):
     
     def draw(self, screen: pygame.Surface):
         """Draw the ASCII-style hub menu."""
-        from utils import get_font, draw_back_arrow
+        from utils import get_font, get_theme_font, draw_back_arrow
         
         screen.fill(self.bg)
         w, h = screen.get_size()
@@ -275,26 +275,26 @@ class BaseHubScene(Scene):
             # Draw back arrow
             self.back_arrow_rect = draw_back_arrow(screen, tuple(style['colors']['primary']))
             
-            # Title
+            # Title (use secondary font - Miland)
             title_layout = layout['title']
             title_pos = self.theme_loader.resolve_position(title_layout['position'], (w, h))
-            title_font = get_font(title_layout['font_size'])
+            title_font = get_theme_font(title_layout['font_size'], 'secondary')
             title_surface = title_font.render(self.title, True, tuple(style['colors']['primary']))
             screen.blit(title_surface, title_pos)
             
-            # Subtitle
+            # Subtitle (use primary font - IBM Plex Mono)
             if self.subtitle:
                 subtitle_layout = layout['subtitle']
                 subtitle_pos = self.theme_loader.resolve_position(subtitle_layout['position'], (w, h))
-                subtitle_font = get_font(subtitle_layout['font_size'])
+                subtitle_font = get_theme_font(subtitle_layout['font_size'], 'primary')
                 subtitle_surface = subtitle_font.render(self.subtitle, True, tuple(style['colors']['secondary']))
                 screen.blit(subtitle_surface, subtitle_pos)
             
-            # Menu items
+            # Menu items (use primary font - IBM Plex Mono)
             items_layout = layout['items']
             start_y = items_layout['start_y']
             line_height = items_layout['line_height']
-            item_font = get_font(items_layout['font_size'])
+            item_font = get_theme_font(items_layout['font_size'], 'primary')
             
             for i, item in enumerate(self.items):
                 if i == self.selected_index:
@@ -309,7 +309,7 @@ class BaseHubScene(Scene):
             
             # Footer for themed layout
             from utils import dim_color, draw_scanlines, draw_footer
-            help_font = get_font(18)
+            help_font = get_theme_font(18, 'primary')
             help_text = "press 1-3, arrow keys + enter, click, or use voice"
             help_surface = help_font.render(help_text, True, dim_color(tuple(style['colors']['primary']), 0.33))
             screen.blit(help_surface, (80, h - 100))
@@ -351,7 +351,7 @@ class BaseHubScene(Scene):
                 screen.blit(text, (MARGIN_LEFT, start_y + i * HUB_MENU_LINE_HEIGHT))
             
             # Footer for backward compatibility
-            help_font = get_font(18)
+            help_font = get_theme_font(18, 'primary')
             help_text = "press 1-3, arrow keys + enter, click, or use voice"
             help_surface = help_font.render(help_text, True, dim_color(self.color, 0.33))
             screen.blit(help_surface, (MARGIN_LEFT, h - 100))
