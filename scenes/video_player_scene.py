@@ -142,8 +142,13 @@ class VideoPlayerScene(Scene):
     
     def draw(self, screen: pygame.Surface):
         """Draw the video frame using renderer abstraction."""
+        # Load theme colors
+        from theme_loader import get_theme_loader
+        theme_loader = get_theme_loader()
+        style = theme_loader.load_style('pipboy')
+        
         # Clear screen
-        screen.fill((0, 0, 0))
+        screen.fill(tuple(style['colors']['background']))
         
         screen_size = screen.get_size()
         
@@ -171,11 +176,11 @@ class VideoPlayerScene(Scene):
             from utils import get_font
             
             font = get_font(48)
-            text = font.render("Video player not available", True, (0, 255, 0))
+            text = font.render("Video player not available", True, tuple(style['colors']['primary']))
             text_rect = text.get_rect(center=(screen_size[0] // 2, screen_size[1] // 2))
             screen.blit(text, text_rect)
             
             hint_font = get_font(24)
-            hint_text = hint_font.render("Press ESC to go back", True, (0, 255, 0))
+            hint_text = hint_font.render("Press ESC to go back", True, tuple(style['colors']['secondary']))
             hint_rect = hint_text.get_rect(center=(screen_size[0] // 2, screen_size[1] // 2 + 50))
             screen.blit(hint_text, hint_rect)

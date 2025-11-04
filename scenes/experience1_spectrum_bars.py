@@ -2,7 +2,7 @@
 import numpy as np
 import pygame
 from scene_manager import BaseAudioScene, register_scene
-from utils import draw_scanlines, draw_footer, draw_back_arrow, get_matrix_green
+from utils import draw_scanlines, draw_footer, draw_back_arrow
 from intent_router import Intents
 from visualizers import SpectrumBarsVisualizer
 from renderers import FrameState
@@ -16,13 +16,18 @@ class Experience1SpectrumBarsScene(BaseAudioScene):
         # Initialize with smaller FFT size for spectrum bars
         super().__init__(ctx, sample_rate=44100, fft_size=256)
         
-        self.color = (140, 255, 140)
-        self.bg = (0, 0, 0)
+        # Load theme colors
+        from theme_loader import get_theme_loader
+        theme_loader = get_theme_loader()
+        style = theme_loader.load_style('pipboy')
+        
+        self.color = tuple(style['colors']['primary'])
+        self.bg = tuple(style['colors']['background'])
         self.visualizer = None
     
     def on_enter(self):
         """Initialize audio visualization."""
-        self.color = get_matrix_green(self.manager.config)
+        # Color already loaded from theme in __init__
         
         # Create visualizer - pass visualizers config section
         viz_config = self.manager.config.get('visualizers', {}).get('spectrum_bars', {})

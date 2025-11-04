@@ -2,7 +2,7 @@
 import numpy as np
 import pygame
 from scene_manager import BaseAudioScene, register_scene
-from utils import draw_scanlines, draw_footer, draw_back_arrow, get_matrix_green
+from utils import draw_scanlines, draw_footer, draw_back_arrow
 from intent_router import Intents
 from visualizers import WaveformVisualizer
 
@@ -15,13 +15,18 @@ class Experience1WaveformScene(BaseAudioScene):
         # Initialize with default audio settings
         super().__init__(ctx, sample_rate=44100, fft_size=1024)
         
-        self.color = (140, 255, 140)
-        self.bg = (0, 0, 0)
+        # Load theme colors
+        from theme_loader import get_theme_loader
+        theme_loader = get_theme_loader()
+        style = theme_loader.load_style('pipboy')
+        
+        self.color = tuple(style['colors']['primary'])
+        self.bg = tuple(style['colors']['background'])
         self.visualizer = None
     
     def on_enter(self):
         """Start audio capture."""
-        self.color = get_matrix_green(self.manager.config)
+        # Color already loaded from theme in __init__
         
         # Create visualizer
         self.visualizer = WaveformVisualizer(self.manager.config)

@@ -59,7 +59,8 @@ class SplashScene(Scene):
     
     def draw(self, screen: pygame.Surface):
         """Build frame state for rendering."""
-        frame = FrameState(clear_color=(0, 0, 0))
+        style = self.theme['style']
+        frame = FrameState(clear_color=tuple(style['colors']['background']))
         
         w, h = screen.get_size()
         screen_size = (w, h)

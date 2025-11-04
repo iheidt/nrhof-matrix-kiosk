@@ -33,16 +33,7 @@ HUB_MENU_START_Y_OFFSET = 180  # Menu items start position from top margin
 HUB_MENU_LINE_HEIGHT = 50    # Spacing between menu items
 
 
-def get_matrix_green(config: dict) -> tuple:
-    """Get the matrix green color from config.
-    
-    Args:
-        config: Configuration dictionary
-        
-    Returns:
-        RGB tuple for matrix green color
-    """
-    return tuple(config.get("matrix_green", [140, 255, 140]))
+# get_matrix_green() removed - use theme_loader.load_style() instead
 
 
 def dim_color(color: tuple, factor: float = 0.5) -> tuple:

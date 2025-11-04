@@ -179,7 +179,7 @@ class MenuScene(Scene):
                 y=self.top,
                 w=self.card_w,
                 h=self.card_h,
-                color=(5, 5, 5),
+                color=tuple(style['colors']['card_bg']),
                 thickness=0
             ))
             
@@ -189,7 +189,7 @@ class MenuScene(Scene):
                 y=self.top,
                 w=self.card_w,
                 h=self.card_h,
-                color=(40, 100, 40),
+                color=tuple(style['colors']['card_border']),
                 thickness=2
             ))
             
@@ -211,7 +211,7 @@ class MenuScene(Scene):
                     y=icon_y,
                     w=self.icon_size[0],
                     h=self.icon_size[1],
-                    color=(20, 60, 20),
+                    color=tuple(style['colors']['card_placeholder']),
                     thickness=2
                 ))
                 # Placeholder text

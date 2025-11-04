@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import pygame
 from scene_manager import Scene, register_scene
-from utils import draw_scanlines, draw_footer, draw_back_arrow, get_matrix_green
+from utils import draw_scanlines, draw_footer, draw_back_arrow
 from intent_router import Intents
 from visualizers import LissajousVisualizer
 
@@ -12,14 +12,20 @@ class Experience1LissajousScene(Scene):
     
     def __init__(self, ctx):
         super().__init__(ctx)
-        self.color = (140, 255, 140)
-        self.bg = (0, 0, 0)
+        
+        # Load theme colors
+        from theme_loader import get_theme_loader
+        theme_loader = get_theme_loader()
+        style = theme_loader.load_style('pipboy')
+        
+        self.color = tuple(style['colors']['primary'])
+        self.bg = tuple(style['colors']['background'])
         self.visualizer = None
         self.back_arrow_rect = None
     
     def on_enter(self):
         """Initialize Lissajous scene."""
-        self.color = get_matrix_green(self.manager.config)
+        # Color already loaded from theme in __init__
         
         # Create visualizer with config
         self.visualizer = LissajousVisualizer(self.manager.config)

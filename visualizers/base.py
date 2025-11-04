@@ -13,7 +13,12 @@ class Visualizer(ABC):
             config: Configuration dictionary
         """
         self.config = config
-        self.color = tuple(config.get("matrix_green", [140, 255, 140]))
+        
+        # Load theme color
+        from theme_loader import get_theme_loader
+        theme_loader = get_theme_loader()
+        style = theme_loader.load_style('pipboy')
+        self.color = tuple(style['colors']['primary'])
     
     @abstractmethod
     def update(self, audio_data: dict, dt: float):

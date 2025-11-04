@@ -193,10 +193,7 @@ class BaseHubScene(Scene):
     
     def on_enter(self):
         """Initialize hub scene."""
-        # Color already loaded from theme in __init__ if using theme
-        if not self.theme:
-            from utils import get_matrix_green
-            self.color = get_matrix_green(self.manager.config)
+        # Color already loaded from theme or backward compatibility in __init__
         self.selected_index = 0
     
     def handle_event(self, event: pygame.event.Event):

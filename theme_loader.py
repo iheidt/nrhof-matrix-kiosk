@@ -3,6 +3,24 @@
 import yaml
 from pathlib import Path
 from typing import Any, Dict
+import pygame
+
+
+def hex_to_color(hex_str: str) -> tuple:
+    """Convert hex color string to RGB tuple.
+    
+    Args:
+        hex_str: Hex color string (e.g., '#00FF00' or '00FF00')
+        
+    Returns:
+        RGB tuple (r, g, b)
+    """
+    hex_str = hex_str.lstrip('#')
+    return (
+        int(hex_str[0:2], 16),
+        int(hex_str[2:4], 16),
+        int(hex_str[4:6], 16)
+    )
 
 
 class ThemeLoader:
@@ -53,7 +71,7 @@ class ThemeLoader:
             theme_name: Name of the theme (e.g., 'pipboy', 'amber')
             
         Returns:
-            Style configuration dictionary
+            Style configuration dictionary with colors converted to RGB tuples
         """
         # Load base styles first
         base = self.load_yaml(self.styles_dir / "_base.yaml")
@@ -62,7 +80,15 @@ class ThemeLoader:
         theme = self.load_yaml(self.styles_dir / f"{theme_name}.yaml")
         
         # Merge (theme overrides base)
-        return self._deep_merge(base, theme)
+        merged = self._deep_merge(base, theme)
+        
+        # Convert hex colors to RGB tuples
+        if 'colors' in merged:
+            for key, value in merged['colors'].items():
+                if isinstance(value, str) and value.startswith('#'):
+                    merged['colors'][key] = hex_to_color(value)
+        
+        return merged
     
     def load_layout(self, scene_name: str) -> Dict[str, Any]:
         """Load layout configuration for a scene.
