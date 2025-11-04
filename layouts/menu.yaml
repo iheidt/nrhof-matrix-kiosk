@@ -14,9 +14,3 @@ cards:
   center_x: true
   font_size: body
   font_type: primary
-  
-footer:
-  position: [center, "bottom - 40"]
-  font_size: micro
-  font_type: primary
-  align: center

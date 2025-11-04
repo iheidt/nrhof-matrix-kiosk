@@ -2,7 +2,7 @@
 import time
 import pygame
 from scene_manager import Scene, register_scene
-from utils import get_font, get_theme_font, draw_scanlines, draw_footer
+from utils import get_font, get_theme_font, draw_scanlines
 from renderers import FrameState, Text
 from theme_loader import get_theme_loader
 
@@ -173,4 +173,3 @@ class IntroScene(Scene):
         
         # Draw overlays
         draw_scanlines(screen)
-        draw_footer(screen, self.color)

@@ -86,30 +86,232 @@ def draw_back_arrow(surface: Surface, color: tuple = (140, 255, 140)) -> pygame.
     return pygame.Rect(x, y, text_surface.get_width(), text_surface.get_height())
 
 
-def draw_footer(surface: Surface, color: tuple = (140, 255, 140)):
-    """Draw a subtle technical footer at the bottom of the screen.
+def draw_card(surface: Surface, x: int, y: int, width: int, height: int, theme: dict = None,
+             border_solid: str = None, border_fade_pct: float = None):
+    """Draw a card using common card component styling with optional gradient fade.
     
     Args:
         surface: Pygame surface to draw on
-        color: RGB color tuple for the footer text
+        x: X position
+        y: Y position
+        width: Card width (or 'auto' to use container width)
+        height: Card height
+        theme: Theme dictionary with layout and style (optional)
+        border_solid: Override for which side stays solid ('top' or 'bottom')
+        border_fade_pct: Override for fade percentage (0.0-1.0)
+    
+    Returns:
+        Rect of the card's content area (inside padding)
     """
+    from theme_loader import get_theme_loader
+    
+    # Load theme if not provided
+    if theme is None:
+        theme_loader = get_theme_loader()
+        layout = theme_loader.load_layout('menu')  # Use any layout to get base
+        style = theme_loader.load_style('pipboy')
+        theme = {'layout': layout, 'style': style}
+    
+    # Get card settings from layout
+    card_settings = theme['layout'].get('card', {})
+    border_width = card_settings.get('border', 6)
+    padding = card_settings.get('padding', 24)
+    
+    # Use overrides if provided, otherwise use layout defaults
+    if border_solid is None:
+        border_solid = card_settings.get('border_solid', 'top')  # 'top' or 'bottom'
+    if border_fade_pct is None:
+        border_fade_pct = card_settings.get('border_fade_pct', 0.33)  # 0.0-1.0
+    
+    # Get border color from style
+    border_color_name = card_settings.get('border_color', 'primary')
+    border_color = tuple(theme['style']['colors'][border_color_name])
+    
+    # Draw card border with gradient fade
+    if border_fade_pct > 0:
+        _draw_card_border_with_fade(surface, x, y, width, height, border_width, 
+                                   border_color, border_solid, border_fade_pct)
+    else:
+        # Simple solid border
+        pygame.draw.rect(surface, border_color, (x, y, width, height), border_width)
+    
+    # Return content area (inside padding)
+    content_x = x + padding
+    content_y = y + padding
+    content_width = width - (padding * 2)
+    content_height = height - (padding * 2)
+    
+    return pygame.Rect(content_x, content_y, content_width, content_height)
+
+
+def _draw_card_border_with_fade(surface: Surface, x: int, y: int, width: int, height: int,
+                                border_width: int, color: tuple, solid_side: str, fade_pct: float):
+    """Draw a card border with gradient fade to transparent using surfarray for per-pixel alpha.
+    
+    Args:
+        surface: Pygame surface to draw on
+        x, y: Card position
+        width, height: Card dimensions
+        border_width: Border thickness
+        color: RGB color tuple
+        solid_side: 'top' or 'bottom' - which side stays solid
+        fade_pct: Percentage of border that fades (0.0-1.0)
+    """
+    # Ensure color is a valid RGB tuple with integers
+    if len(color) >= 3:
+        base_color = (int(color[0]), int(color[1]), int(color[2]))
+    else:
+        base_color = (255, 255, 255)
+    
+    # Create a surface with alpha channel for transparency
+    border_surface = pygame.Surface((width + border_width * 2, height + border_width * 2), pygame.SRCALPHA)
+    border_surface.fill((0, 0, 0, 0))  # Start fully transparent
+    
+    # Use surfarray for direct pixel manipulation
+    import pygame.surfarray as surfarray
+    import numpy as np
+    
+    # Get pixel arrays for RGB and alpha
+    pixels_rgb = surfarray.pixels3d(border_surface)
+    pixels_alpha = surfarray.pixels_alpha(border_surface)
+    
+    if solid_side == 'bottom':
+        # Bottom is solid, top fades to transparent
+        # fade_pct is the percentage that fades (e.g., 0.9 = top 90% fades, bottom 10% solid)
+        fade_start = int(height * fade_pct)
+        
+        # Draw each horizontal line with appropriate alpha
+        for i in range(height + border_width):
+            if i < fade_start:
+                # Fading portion at top (transparent at i=0, solid at fade_start)
+                progress = i / fade_start if fade_start > 0 else 0
+                alpha = int(255 * progress)
+            else:
+                # Solid portion at bottom
+                alpha = 255
+            
+            # Set RGB and alpha for this row
+            # Top border
+            if i < border_width:
+                pixels_rgb[:, i] = base_color
+                pixels_alpha[:, i] = alpha
+            else:
+                # Left border
+                pixels_rgb[0:border_width, i] = base_color
+                pixels_alpha[0:border_width, i] = alpha
+                # Right border
+                pixels_rgb[width + border_width:width + border_width * 2, i] = base_color
+                pixels_alpha[width + border_width:width + border_width * 2, i] = alpha
+                # Bottom border
+                if i >= height:
+                    pixels_rgb[:, i] = base_color
+                    pixels_alpha[:, i] = alpha
+    else:
+        # Top is solid, bottom fades to transparent
+        fade_end = int(height * (1 - fade_pct))
+        
+        # Set alpha channel using surfarray
+        for i in range(height + border_width):
+            if i <= fade_end:
+                # Solid portion at top
+                alpha = 255
+            else:
+                # Fading portion at bottom
+                progress = (i - fade_end) / (height - fade_end) if (height - fade_end) > 0 else 0
+                alpha = int(255 * (1.0 - progress))
+            
+            # Set RGB and alpha for this row
+            # Top border
+            if i < border_width:
+                pixels_rgb[:, i] = base_color
+                pixels_alpha[:, i] = alpha
+            else:
+                # Left border
+                pixels_rgb[0:border_width, i] = base_color
+                pixels_alpha[0:border_width, i] = alpha
+                # Right border
+                pixels_rgb[width + border_width:width + border_width * 2, i] = base_color
+                pixels_alpha[width + border_width:width + border_width * 2, i] = alpha
+                # Bottom border
+                if i >= height:
+                    pixels_rgb[:, i] = base_color
+                    pixels_alpha[:, i] = alpha
+    
+    # Release the pixel array locks
+    del pixels_rgb
+    del pixels_alpha
+    
+    # Blit the border surface onto the main surface
+    surface.blit(border_surface, (x - border_width, y - border_width))
+
+
+def draw_footer(surface: Surface, color: tuple = (140, 255, 140)):
+    """Draw footer with settings card and company name div.
+    
+    Footer structure:
+    - Card (80px): "settings" (left) | version (right)
+    - Div (50px): "BIG NERD INDUSTRIES INC. 2025" (centered)
+    
+    Args:
+        surface: Pygame surface to draw on
+        color: RGB color tuple (not used, colors from theme)
+    """
+    from theme_loader import get_theme_loader
+    from __version__ import __version__
+    
     w, h = surface.get_size()
     
-    # Dim the color for subtle appearance
-    dim_color = tuple(c // 4 for c in color)
+    # Load theme
+    theme_loader = get_theme_loader()
+    layout = theme_loader.load_layout('menu')  # Get base layout
+    style = theme_loader.load_style('pipboy')
     
-    # Draw horizontal line separator
-    line_y = h - FOOTER_HEIGHT + 5
-    pygame.draw.line(surface, dim_color, (20, line_y), (w - 20, line_y), 1)
+    # Get margins and footer settings
+    margins = layout.get('margins', {})
+    margin_left = margins.get('left', 50)
+    margin_right = margins.get('right', 50)
+    footer_settings = layout.get('footer', {})
+    footer_height = footer_settings.get('height', 130)
+    footer_fade_pct = footer_settings.get('border_fade_pct', 0.33)
     
-    # Draw footer text
-    font = get_theme_font(16, 'primary')
-    footer_text = "big nerd industries inc. ©2025"
-    text_surface = font.render(footer_text, True, dim_color)
-    text_rect = text_surface.get_rect()
-    text_rect.centerx = w // 2
-    text_rect.bottom = h - 12
-    surface.blit(text_surface, text_rect)
+    # Calculate positions
+    footer_top = h - footer_height
+    card_height = 80
+    div_height = 50
+    
+    # Draw settings card
+    card_x = margin_left
+    card_y = footer_top
+    card_width = w - margin_left - margin_right
+    
+    content_rect = draw_card(surface, card_x, card_y, card_width, card_height, 
+                            theme={'layout': layout, 'style': style},
+                            border_solid='bottom',
+                            border_fade_pct=footer_fade_pct)
+    
+    # Draw "settings" text (left aligned in card)
+    primary_color = tuple(style['colors']['primary'])
+    micro_size = style['typography']['fonts']['micro']
+    settings_font = get_theme_font(micro_size, 'primary')
+    settings_text = settings_font.render("settings", True, primary_color)
+    surface.blit(settings_text, (content_rect.x, content_rect.y + (content_rect.height - settings_text.get_height()) // 2))
+    
+    # Draw version number (right aligned in card)
+    secondary_color = tuple(style['colors']['secondary'])
+    pico_size = style['typography']['fonts']['pico']
+    version_font = get_theme_font(pico_size, 'primary')
+    version_text = version_font.render(f"v{__version__}", True, secondary_color)
+    version_x = content_rect.x + content_rect.width - version_text.get_width()
+    surface.blit(version_text, (version_x, content_rect.y + (content_rect.height - version_text.get_height()) // 2))
+    
+    # Draw company name div (50px tall, below card)
+    div_y = card_y + card_height
+    footer_size = style['typography']['fonts']['footer']
+    company_font = get_theme_font(footer_size, 'label')
+    company_text = company_font.render("BIG NERD INDUSTRIES INC. 2025", True, primary_color)
+    company_x = (w - company_text.get_width()) // 2
+    company_y = div_y + (div_height - company_text.get_height()) // 2
+    surface.blit(company_text, (company_x, company_y))
 
 
 def vignette(surface: Surface, strength: float = 0.6):

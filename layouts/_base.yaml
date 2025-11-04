@@ -1,0 +1,23 @@
+# Base layout - common margins and footer for all pages
+# Pages can inherit these values and override as needed
+
+margins:
+  top: 50
+  left: 50
+  right: 50
+  bottom: 130  # Reserved for footer
+
+footer:
+  height: 130
+  border_fade_pct: 2  # 67% fades away, 33% visible at bottom
+  # Footer respects left/right margins
+  # Positioned at bottom of screen
+
+# Card component - reusable card styling
+card:
+  width: 100%  # Full width within container
+  border: 6
+  border_color: primary  # References colors.primary from pipboy.yaml
+  padding: 24
+  border_solid: top  # Which side stays solid: 'top' or 'bottom'
+  border_fade_pct: 0.33  # Percentage of border that fades (0.0-1.0)

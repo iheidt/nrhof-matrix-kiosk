@@ -88,12 +88,23 @@ class ThemeLoader:
         """Load layout configuration for a scene.
         
         Args:
-            scene_name: Name of the scene (e.g., 'splash', 'menu', 'intro')
+            scene_name: Name of the scene (e.g., 'menu', 'intro', 'splash')
             
         Returns:
-            Layout configuration dictionary
+            Layout configuration dictionary merged with base layout
         """
-        return self.load_yaml(self.layouts_dir / f"{scene_name}.yaml")
+        # Load base layout first
+        base_layout_path = self.layouts_dir / "_base.yaml"
+        if base_layout_path.exists():
+            base = self.load_yaml(base_layout_path)
+        else:
+            base = {}
+        
+        # Load scene-specific layout
+        scene_layout = self.load_yaml(self.layouts_dir / f"{scene_name}.yaml")
+        
+        # Merge (scene overrides base)
+        return self._deep_merge(base, scene_layout)
     
     def load_content(self, content_name: str) -> Dict[str, Any]:
         """Load content configuration.

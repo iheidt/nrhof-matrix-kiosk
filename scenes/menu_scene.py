@@ -246,10 +246,6 @@ class MenuScene(Scene):
         
         # Render frame state (backward compat)
         self._render_frame_compat(screen, frame)
-        
-        # Draw scanlines and footer (still using utils for now)
-        draw_scanlines(screen)
-        draw_footer(screen, self.color)
     
     def _render_frame_compat(self, screen, frame):
         """Temporary: render frame state using pygame (backward compat)."""
@@ -284,3 +280,7 @@ class MenuScene(Scene):
                 screen.blit(surface, rect)
             else:
                 screen.blit(surface, (int(text.position[0]), int(text.position[1])))
+        
+        # Draw scanlines and footer AFTER everything else (so they don't get cleared)
+        draw_scanlines(screen)
+        draw_footer(screen, self.color)
