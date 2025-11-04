@@ -50,14 +50,19 @@ def register_intents(intent_router: IntentRouter, scene_manager: SceneManager, a
     # Main menu option selection
     def select_option_handler(index, **kw):
         if index == 0:
-            # Experience 1 goes to hub
-            scene_manager.switch_to("Experience1HubScene")
-        elif index == 1:
-            # Experience 2 goes to hub
+            # NR-38: Music video (was Experience 2)
             scene_manager.switch_to("Experience2HubScene")
+        elif index == 1:
+            # NR-18: Not implemented yet
+            print(f"Placeholder: NR-18 not implemented yet")
+        elif index == 2:
+            # Visualizer (was Experience 1)
+            scene_manager.switch_to("Experience1HubScene")
+        elif index == 3:
+            # Fate maker: Not implemented yet
+            print(f"Placeholder: Fate maker not implemented yet")
         else:
-            # Other experiences not implemented yet
-            print(f"Placeholder: Experience {index+1} not implemented yet")
+            print(f"Placeholder: Option {index+1} not implemented yet")
     intent_router.register(Intents.SELECT_OPTION, select_option_handler)
     
     # Sub-experience selection

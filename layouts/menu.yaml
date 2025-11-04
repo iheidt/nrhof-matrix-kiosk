@@ -1,16 +1,16 @@
 # Menu layout
-title:
-  position: [center, 100]
-  font_size: title
-  font_type: secondary
-  align: center
 
-cards:
-  layout: horizontal
-  count: 3
-  card_size: [300, 400]
-  spacing: 40
-  start_y: 250
-  center_x: true
-  font_size: body
-  font_type: primary
+# Two-column layout for content area (excludes margins and footer)
+columns:
+  left:
+    width: 715
+  right:
+    width: 415
+  gutter: 50  # Space between columns
+
+buttons:
+  layout: vertical
+  count: 4
+  spacing: 30  # Vertical spacing between buttons
+  width: 67%  # Button width as percentage of column
+  column: left  # Place buttons in left column

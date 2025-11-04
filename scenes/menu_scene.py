@@ -20,23 +20,14 @@ class MenuScene(Scene):
         self.theme = self.theme_loader.load_theme('menu', theme_name='pipboy')
         
         # Extract from theme
-        self.title = self.theme['content']['title']
         self.entries = self.theme['content']['items']
         self.color = tuple(self.theme['style']['colors']['primary'])
         self.bg = tuple(self.theme['style']['colors']['background'])
         
-        self.icons = []
-        
         # Layout vars (will be calculated in on_enter)
-        self.margin = 0
-        self.gutter = 0
-        self.card_w = 0
-        self.card_h = 0
-        self.top = 0
-        self.icon_pad = 0
-        self.icon_size = (0, 0)
-        self.item_font_size = 0
-        self.item_font_type = 'primary'
+        self.button_rects = []  # Store button rectangles for click detection
+        self.button_spacing = 0
+        self.button_start_y = 0
     
     def on_enter(self):
         """Initialize menu display."""
@@ -48,39 +39,33 @@ class MenuScene(Scene):
         layout = self.theme['layout']
         style = self.theme['style']
         
-        # Title font size
-        self.title_font_size = layout['title']['font_size']
+        # Get margins and calculate usable area
+        margins = layout.get('margins', {})
+        margin_left = margins.get('left', 50)
+        margin_right = margins.get('right', 50)
+        margin_top = margins.get('top', 50)
+        margin_bottom = margins.get('bottom', 130)
         
-        # Card layout
-        card_config = layout['cards']
-        num_cards = card_config['count']
-        card_w, card_h = card_config['card_size']
-        spacing = card_config['spacing']
-        start_y = card_config['start_y']
+        # Calculate two-column layout
+        columns = layout.get('columns', {})
+        left_col_width = columns.get('left', {}).get('width', 715)
+        right_col_width = columns.get('right', {}).get('width', 415)
+        col_gutter = columns.get('gutter', 50)
         
-        # Calculate positions
-        self.card_w = card_w
-        self.card_h = card_h
-        self.gutter = spacing
-        self.top = start_y
+        # Column x positions
+        self.left_col_x = margin_left
+        self.left_col_width = left_col_width
+        self.right_col_x = margin_left + left_col_width + col_gutter
+        self.right_col_width = right_col_width
         
-        # Center cards horizontally
-        total_width = (card_w * num_cards) + (spacing * (num_cards - 1))
-        self.margin = (w - total_width) // 2
+        # Usable height (excluding top margin and footer)
+        self.content_top = margin_top
+        self.content_height = h - margin_top - margin_bottom
         
-        # Load card font settings from layout (already resolved by theme_loader)
-        cards_layout = layout.get('cards', {})
-        self.item_font_size = cards_layout.get('font_size', style['typography']['fonts']['body'])
-        self.item_font_type = cards_layout.get('font_type', 'secondary')
-        
-        self.icon_pad = int(self.card_w * 0.1)
-        self.icon_size = (self.card_w - 2 * self.icon_pad, int(self.card_h * 0.55))
-        
-        # Load icons
-        self.icons = []
-        for e in self.entries:
-            icon_path = ROOT / e.get("icon", "")
-            self.icons.append(load_icon(icon_path, self.icon_size))
+        # Button layout - vertical in left column
+        button_config = layout.get('buttons', {})
+        self.button_spacing = button_config.get('spacing', 30)
+        self.button_start_y = margin_top  # Start at top margin
     
     def on_exit(self):
         """Clean up when leaving scene."""
@@ -131,9 +116,7 @@ class MenuScene(Scene):
             pos = self.get_event_position(event)
             if pos:
                 mx, my = pos
-                for i in range(3):
-                    x = self.margin + i * (self.card_w + self.gutter)
-                    rect = pygame.Rect(x, self.top, self.card_w, self.card_h)
+                for i, rect in enumerate(self.button_rects):
                     if rect.collidepoint(mx, my):
                         self.ctx.intent_router.emit(Intents.SELECT_OPTION, index=i)
                         return True
@@ -156,93 +139,12 @@ class MenuScene(Scene):
         
         w, h = screen.get_size()
         
-        # Title text
+        # Get layout and style
         layout = self.theme['layout']
         style = self.theme['style']
-        title_layout = layout['title']
-        title_pos = self.theme_loader.resolve_position(title_layout['position'], (w, h))
         
-        title_text = Text.create(
-            content=self.title,
-            x=title_pos[0],
-            y=title_pos[1],
-            color=tuple(style['colors']['primary']),
-            font_size=title_layout['font_size'],
-            mono=True
-        )
-        title_text.align = title_layout['align']
-        title_text.font_type = title_layout.get('font_type', 'secondary')
-        frame.add_text(title_text)
-        
-        # Draw menu cards
-        for i, e in enumerate(self.entries):
-            x = self.margin + i * (self.card_w + self.gutter)
-            
-            # Card background
-            frame.add_shape(Shape.rect(
-                x=x,
-                y=self.top,
-                w=self.card_w,
-                h=self.card_h,
-                color=tuple(style['colors']['card_bg']),
-                thickness=0
-            ))
-            
-            # Card border
-            frame.add_shape(Shape.rect(
-                x=x,
-                y=self.top,
-                w=self.card_w,
-                h=self.card_h,
-                color=tuple(style['colors']['card_border']),
-                thickness=2
-            ))
-            
-            # Icon area
-            icon = self.icons[i] if i < len(self.icons) else None
-            icon_x = x + self.icon_pad
-            icon_y = self.top + self.icon_pad
-            
-            if icon:
-                frame.add_image(Image.create(
-                    surface=icon,
-                    x=icon_x,
-                    y=icon_y
-                ))
-            else:
-                # Placeholder frame
-                frame.add_shape(Shape.rect(
-                    x=icon_x,
-                    y=icon_y,
-                    w=self.icon_size[0],
-                    h=self.icon_size[1],
-                    color=tuple(style['colors']['card_placeholder']),
-                    thickness=2
-                ))
-                # Placeholder text
-                placeholder_text = Text.create(
-                    content=e.get("label", f"Option {i+1}"),
-                    x=icon_x + 8,
-                    y=icon_y + self.icon_size[1] // 2 - 12,
-                    color=self.color,
-                    font_size=self.item_font_size,
-                    mono=True
-                )
-                placeholder_text.font_type = self.item_font_type
-                frame.add_text(placeholder_text)
-            
-            # Label at bottom
-            label = e.get("label", f"Option {i+1}")
-            label_text = Text.create(
-                content=label,
-                x=x + self.icon_pad,
-                y=self.top + self.card_h - self.icon_pad - self.item_font_size,
-                color=self.color,
-                font_size=self.item_font_size,
-                mono=True
-            )
-            label_text.font_type = self.item_font_type
-            frame.add_text(label_text)
+        # Clear button rects for this frame
+        self.button_rects = []
         
         # Render frame state (backward compat)
         self._render_frame_compat(screen, frame)
@@ -281,6 +183,38 @@ class MenuScene(Scene):
             else:
                 screen.blit(surface, (int(text.position[0]), int(text.position[1])))
         
-        # Draw scanlines and footer AFTER everything else (so they don't get cleared)
+        # Draw buttons vertically in left column
+        from utils import draw_button
+        
+        # Get layout and button config
+        layout = self.theme['layout']
+        buttons_config = layout.get('buttons', {})
+        button_width = buttons_config.get('width', '67%')  # Button width override
+        
+        # Get adornment config to calculate offset
+        button_config = layout.get('button', {})
+        adornment_config = button_config.get('adornment', {})
+        adornment_size = adornment_config.get('size', 25)
+        adornment_margin = adornment_config.get('margin_left', 18)
+        
+        # Offset button x to account for adornment (so adornment stays within margin)
+        button_x = self.left_col_x + adornment_size + adornment_margin
+        
+        y = self.button_start_y
+        for i, entry in enumerate(self.entries):
+            label = entry.get('label', f'Option {i+1}')
+            button_rect = draw_button(
+                surface=screen,
+                x=button_x,
+                y=y,
+                container_width=self.left_col_width - (adornment_size + adornment_margin),
+                text=label,
+                theme={'layout': self.theme['layout'], 'style': self.theme['style']},
+                width_pct=button_width  # Override button width
+            )
+            self.button_rects.append(button_rect)
+            y += button_rect.height + self.button_spacing
+        
+        # Draw scanlines and footer
         draw_scanlines(screen)
         draw_footer(screen, self.color)
