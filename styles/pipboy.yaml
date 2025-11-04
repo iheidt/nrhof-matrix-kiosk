@@ -1,0 +1,27 @@
+# Pipboy theme
+name: "pipboy"
+
+colors:
+  primary: [0, 255, 0]        # Bright green
+  secondary: [140, 255, 140]  # Matrix green
+  background: [0, 0, 0]       # Black
+  dim: [0, 128, 0]            # Dim green
+  accent: [0, 200, 0]         # Medium green
+
+typography:
+  font_family: "monospace"
+  title_size: 48
+  subtitle_size: 32
+  body_size: 24
+  small_size: 16
+
+effects:
+  scanline_alpha: 30
+  glow: false
+  blur: 0
+  
+spacing:
+  small: 10
+  medium: 20
+  large: 40
+  xlarge: 60

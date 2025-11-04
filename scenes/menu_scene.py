@@ -5,6 +5,7 @@ from scene_manager import Scene, register_scene
 from utils import get_font, draw_scanlines, draw_footer, render_text, load_icon, launch_command, ROOT
 from intent_router import Intents
 from renderers import FrameState, Shape, Text, Image
+from theme_loader import get_theme_loader
 
 
 @register_scene("MenuScene")
@@ -13,13 +14,20 @@ class MenuScene(Scene):
     
     def __init__(self, manager):
         super().__init__(manager)
-        self.color = (140, 255, 140)
-        self.bg = (0, 0, 0)
-        self.icons = []
-        self.entries = []
-        self.title = ""
         
-        # Layout vars
+        # Load theme (content + layout + style)
+        self.theme_loader = get_theme_loader()
+        self.theme = self.theme_loader.load_theme('menu', theme_name='pipboy')
+        
+        # Extract from theme
+        self.title = self.theme['content']['title']
+        self.entries = self.theme['content']['items']
+        self.color = tuple(self.theme['style']['colors']['primary'])
+        self.bg = tuple(self.theme['style']['colors']['background'])
+        
+        self.icons = []
+        
+        # Layout vars (will be calculated in on_enter)
         self.margin = 0
         self.gutter = 0
         self.card_w = 0
@@ -32,22 +40,35 @@ class MenuScene(Scene):
     
     def on_enter(self):
         """Initialize menu display."""
-        from utils import get_matrix_green
-        cfg = self.manager.config
-        self.color = get_matrix_green(cfg)
-        self.title = cfg["menu"].get("title", "Select an option:")
-        self.entries = cfg["menu"].get("entries", [])
+        # Content and colors already loaded from theme in __init__
         
         w, h = self.manager.screen.get_size()
-        self.title_font_size = max(28, int(h * 0.05))
-        self.item_font_size = max(22, int(h * 0.035))
         
-        # Layout 3 columns
-        self.margin = int(w * 0.08)
-        self.gutter = int(w * 0.04)
-        self.card_w = (w - self.margin * 2 - self.gutter * 2) // 3
-        self.card_h = int(h * 0.45)
-        self.top = int(h * 0.25)
+        # Get layout from theme
+        layout = self.theme['layout']
+        style = self.theme['style']
+        
+        # Title font size
+        self.title_font_size = layout['title']['font_size']
+        
+        # Card layout
+        card_config = layout['cards']
+        num_cards = card_config['count']
+        card_w, card_h = card_config['card_size']
+        spacing = card_config['spacing']
+        start_y = card_config['start_y']
+        
+        # Calculate positions
+        self.card_w = card_w
+        self.card_h = card_h
+        self.gutter = spacing
+        self.top = start_y
+        
+        # Center cards horizontally
+        total_width = (card_w * num_cards) + (spacing * (num_cards - 1))
+        self.margin = (w - total_width) // 2
+        
+        self.item_font_size = style['typography']['body_size']
         
         self.icon_pad = int(self.card_w * 0.1)
         self.icon_size = (self.card_w - 2 * self.icon_pad, int(self.card_h * 0.55))
@@ -133,14 +154,20 @@ class MenuScene(Scene):
         w, h = screen.get_size()
         
         # Title text
+        layout = self.theme['layout']
+        style = self.theme['style']
+        title_layout = layout['title']
+        title_pos = self.theme_loader.resolve_position(title_layout['position'], (w, h))
+        
         frame.add_text(Text.create(
             content=self.title,
-            x=self.margin,
-            y=int(h * 0.12),
-            color=self.color,
-            font_size=self.title_font_size,
+            x=title_pos[0],
+            y=title_pos[1],
+            color=tuple(style['colors']['primary']),
+            font_size=title_layout['font_size'],
             mono=True
         ))
+        frame.texts[-1].align = title_layout['align']
         
         # Draw menu cards
         for i, e in enumerate(self.entries):

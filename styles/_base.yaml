@@ -1,0 +1,17 @@
+# Base style tokens (shared across themes)
+typography:
+  font_family: "monospace"
+  line_height: 1.5
+  
+spacing:
+  unit: 10  # Base spacing unit
+  
+animation:
+  duration_fast: 0.2
+  duration_normal: 0.5
+  duration_slow: 1.0
+  
+borders:
+  thin: 1
+  medium: 2
+  thick: 4

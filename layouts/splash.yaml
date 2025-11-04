@@ -1,0 +1,21 @@
+# Splash screen layout
+title:
+  position: [center, "center - 60"]
+  font_size: 48
+  align: center
+
+version:
+  position: [center, "center + 10"]
+  font_size: 16
+  align: center
+
+loading_text:
+  position: [center, "center + 40"]
+  font_size: 24
+  align: center
+
+progress_bar:
+  position: [center, "center + 60"]
+  width: 400
+  height: 20
+  align: center

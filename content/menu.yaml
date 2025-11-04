@@ -1,0 +1,18 @@
+# Menu content
+title: "Select an option:"
+
+items:
+  - id: "visualizer"
+    label: "visualizer"
+    icon: "assets/option1.svg"
+    description: "Audio visualizations"
+    
+  - id: "music_video"
+    label: "music video"
+    icon: "assets/option2.svg"
+    description: "Watch music videos"
+    
+  - id: "fate_maker"
+    label: "fate maker"
+    icon: "assets/option3.svg"
+    description: "Interactive experience"

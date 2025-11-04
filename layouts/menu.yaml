@@ -1,0 +1,18 @@
+# Menu layout
+title:
+  position: [center, 100]
+  font_size: 48
+  align: center
+
+cards:
+  layout: horizontal
+  count: 3
+  card_size: [300, 400]
+  spacing: 40
+  start_y: 250
+  center_x: true
+  
+footer:
+  position: [center, "bottom - 40"]
+  font_size: 16
+  align: center

@@ -1,0 +1,9 @@
+# Intro scene content
+lines:
+  - "wake up, NRHOF..."
+  - "the matrix has you..."
+  - "follow the white rabbit..."
+
+timing:
+  typewriter_speed: 0.05  # seconds per character
+  line_pause: 1.0         # seconds between lines

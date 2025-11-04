@@ -4,6 +4,7 @@ import pygame
 from scene_manager import Scene, register_scene
 from utils import get_font, draw_scanlines, draw_footer
 from renderers import FrameState, Text
+from theme_loader import get_theme_loader
 
 
 @register_scene("IntroScene")
@@ -12,9 +13,19 @@ class IntroScene(Scene):
     
     def __init__(self, manager):
         super().__init__(manager)
-        self.lines = []
-        self.color = (140, 255, 140)
-        self.bg = (0, 0, 0)
+        
+        # Load theme (content + layout + style)
+        self.theme_loader = get_theme_loader()
+        self.theme = self.theme_loader.load_theme('intro', theme_name='pipboy')
+        
+        # Extract from theme
+        self.lines = self.theme['content']['lines']
+        self.typewriter_speed = self.theme['content']['timing']['typewriter_speed']
+        self.line_pause = self.theme['content']['timing']['line_pause']
+        self.color = tuple(self.theme['style']['colors']['primary'])
+        self.bg = tuple(self.theme['style']['colors']['background'])
+        
+        # State
         self.current_line_idx = 0
         self.current_char_idx = 0
         self.shown_text = ""
@@ -31,10 +42,7 @@ class IntroScene(Scene):
     
     def on_enter(self):
         """Initialize intro sequence."""
-        from utils import get_matrix_green
-        cfg = self.manager.config
-        self.lines = cfg.get("intro_texts", [])
-        self.color = get_matrix_green(cfg)
+        # Lines and colors already loaded from theme in __init__
         
         w, h = self.manager.screen.get_size()
         # Match menu margins (approximately 8% from screenshot)
@@ -85,7 +93,7 @@ class IntroScene(Scene):
         
         if self.state == "typing":
             self.char_timer += dt
-            if self.char_timer >= 0.045:  # 45ms per character
+            if self.char_timer >= self.typewriter_speed:
                 self.char_timer = 0
                 if self.current_char_idx < len(current_line):
                     self.current_char_idx += 1
@@ -97,7 +105,7 @@ class IntroScene(Scene):
         
         elif self.state == "lingering":
             self.linger_timer += dt
-            if self.linger_timer >= 1.2:  # Linger for 1.2 seconds
+            if self.linger_timer >= self.theme['content']['timing']['line_pause']:
                 self.state = "pausing"
                 self.pause_timer = 0
         

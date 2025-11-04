@@ -2,8 +2,10 @@
 import time
 import pygame
 from scene_manager import Scene, register_scene
-from utils import get_font, get_matrix_green
+from utils import get_font
 from renderers import FrameState, Shape, Text
+from __version__ import __version__
+from theme_loader import get_theme_loader
 
 
 @register_scene("SplashScene")
@@ -15,14 +17,20 @@ class SplashScene(Scene):
         self.screen = ctx.scene_manager.screen if hasattr(ctx, 'scene_manager') else None
         self.progress = 0.0
         self._start = 0.0
-        self._min_secs = ctx.config.get('splash_min_seconds', 1.0) if hasattr(ctx, 'config') else 1.0
-        self.color = (140, 255, 140)
+        
+        # Load theme (content + layout + style)
+        self.theme_loader = get_theme_loader()
+        self.theme = self.theme_loader.load_theme('splash', theme_name='pipboy')
+        
+        # Extract values from theme
+        self._min_secs = self.theme['content'].get('min_seconds', 2.0)
+        self.color = tuple(self.theme['style']['colors']['primary'])
     
     def on_enter(self):
         """Initialize splash screen."""
         self._start = time.time()
         self.progress = 0.0
-        self.color = get_matrix_green(self.manager.config)
+        # Color already loaded from theme in __init__
     
     def on_exit(self):
         """Clean up splash screen."""
@@ -54,41 +62,63 @@ class SplashScene(Scene):
         frame = FrameState(clear_color=(0, 0, 0))
         
         w, h = screen.get_size()
-        center_x = w // 2
-        center_y = h // 2
+        screen_size = (w, h)
+        
+        # Get content, layout, and style from theme
+        content = self.theme['content']
+        layout = self.theme['layout']
+        style = self.theme['style']
         
         # Title text
-        title = self.manager.config.get('title', 'NRHOF kiosk')
+        title_layout = layout['title']
+        title_pos = self.theme_loader.resolve_position(title_layout['position'], screen_size)
         frame.add_text(Text.create(
-            content=title,
-            x=center_x,
-            y=center_y - 60,
-            color=self.color,
-            font_size=48,
+            content=content['title'],
+            x=title_pos[0],
+            y=title_pos[1],
+            color=tuple(style['colors']['primary']),
+            font_size=title_layout['font_size'],
             mono=True
         ))
-        # Center align the title
-        frame.texts[-1].align = "center"
+        frame.texts[-1].align = title_layout['align']
+        
+        # Version text
+        version_layout = layout['version']
+        version_pos = self.theme_loader.resolve_position(version_layout['position'], screen_size)
+        frame.add_text(Text.create(
+            content=f'v{__version__}',
+            x=version_pos[0],
+            y=version_pos[1],
+            color=tuple(style['colors']['secondary']),
+            font_size=version_layout['font_size'],
+            mono=True
+        ))
+        frame.texts[-1].align = version_layout['align']
         
         # Loading text
+        loading_layout = layout['loading_text']
+        loading_pos = self.theme_loader.resolve_position(loading_layout['position'], screen_size)
         frame.add_text(Text.create(
-            content='loading...',
-            x=center_x,
-            y=center_y + 20,
-            color=self.color,
-            font_size=24,
+            content=content['loading_text'],
+            x=loading_pos[0],
+            y=loading_pos[1],
+            color=tuple(style['colors']['secondary']),
+            font_size=loading_layout['font_size'],
             mono=True
         ))
-        frame.texts[-1].align = "center"
+        frame.texts[-1].align = loading_layout['align']
         
         # Progress bar
-        bar_width = 400
-        bar_height = 20
-        bar_x = center_x - bar_width // 2
-        bar_y = center_y + 60
+        bar_layout = layout['progress_bar']
+        bar_pos = self.theme_loader.resolve_position(bar_layout['position'], screen_size)
+        bar_width = bar_layout['width']
+        bar_height = bar_layout['height']
+        bar_x = bar_pos[0] - bar_width // 2  # Center the bar
+        bar_y = bar_pos[1]
         
         # Border
-        border_color = tuple(int(c * 0.5) for c in self.color)
+        primary = style['colors']['primary']
+        border_color = tuple(int(c * 0.5) for c in primary)
         frame.add_shape(Shape.rect(
             x=bar_x,
             y=bar_y,
@@ -106,7 +136,7 @@ class SplashScene(Scene):
                 y=bar_y + 2,
                 w=fill_width - 4,
                 h=bar_height - 4,
-                color=self.color,
+                color=tuple(style['colors']['primary']),
                 thickness=0
             ))
         
