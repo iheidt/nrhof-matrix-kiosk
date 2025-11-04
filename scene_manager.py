@@ -151,28 +151,52 @@ class BaseAudioScene(Scene):
 class BaseHubScene(Scene):
     """Base class for hub menu scenes with sub-experience selection."""
     
-    def __init__(self, ctx, title, items, back_intent):
+    def __init__(self, ctx, title=None, items=None, back_intent=None, content_name=None):
         """Initialize hub scene.
         
         Args:
             ctx: AppContext instance
-            title: Title text for the hub (e.g., "experience 1")
-            items: List of menu items with 'label' and 'id' keys
-            back_intent: Intent to emit when going back (e.g., Intents.GO_HOME)
+            title: Title text (deprecated, use content_name)
+            items: Menu items (deprecated, use content_name)
+            back_intent: Intent to emit when going back
+            content_name: Name of content file (e.g., 'experience1_hub')
         """
         super().__init__(ctx)
-        self.color = (140, 255, 140)
-        self.bg = (0, 0, 0)
-        self.title = title
-        self.items = items
+        
+        # Load theme if content_name provided
+        if content_name:
+            from theme_loader import get_theme_loader
+            self.theme_loader = get_theme_loader()
+            self.theme = self.theme_loader.load_theme(content_name, theme_name='pipboy')
+            # Also load shared hub layout
+            self.hub_layout = self.theme_loader.load_layout('hub')
+            
+            self.title = self.theme['content']['title']
+            self.subtitle = self.theme['content'].get('subtitle', '')
+            self.items = self.theme['content']['items']
+            self.color = tuple(self.theme['style']['colors']['primary'])
+            self.bg = tuple(self.theme['style']['colors']['background'])
+        else:
+            # Backward compatibility
+            self.theme_loader = None
+            self.theme = None
+            self.hub_layout = None
+            self.title = title or ""
+            self.subtitle = ""
+            self.items = items or []
+            self.color = (140, 255, 140)
+            self.bg = (0, 0, 0)
+        
         self.back_intent = back_intent
         self.selected_index = 0
         self.back_arrow_rect = None
     
     def on_enter(self):
         """Initialize hub scene."""
-        from utils import get_matrix_green
-        self.color = get_matrix_green(self.manager.config)
+        # Color already loaded from theme in __init__ if using theme
+        if not self.theme:
+            from utils import get_matrix_green
+            self.color = get_matrix_green(self.manager.config)
         self.selected_index = 0
     
     def handle_event(self, event: pygame.event.Event):
@@ -241,56 +265,106 @@ class BaseHubScene(Scene):
     
     def draw(self, screen: pygame.Surface):
         """Draw the ASCII-style hub menu."""
-        from utils import (get_font, draw_scanlines, draw_footer, draw_back_arrow, 
-                          MARGIN_TOP, MARGIN_LEFT, HUB_TITLE_Y_OFFSET, HUB_SUBTITLE_Y_OFFSET,
-                          HUB_MENU_START_Y_OFFSET, HUB_MENU_LINE_HEIGHT)
+        from utils import get_font, draw_back_arrow
         
         screen.fill(self.bg)
         w, h = screen.get_size()
         
-        # Draw back arrow
-        self.back_arrow_rect = draw_back_arrow(screen, self.color)
-        
-        # Title - left aligned with margin
-        title_font = get_font(48)
-        title_surface = title_font.render(self.title, True, self.color)
-        screen.blit(title_surface, (MARGIN_LEFT, MARGIN_TOP + HUB_TITLE_Y_OFFSET))
-        
-        # Subtitle - left aligned with margin
-        subtitle_font = get_font(24)
-        subtitle = subtitle_font.render("select a visualization:", True, self.color)
-        screen.blit(subtitle, (MARGIN_LEFT, MARGIN_TOP + HUB_SUBTITLE_Y_OFFSET))
-        
-        # Menu items - left aligned with margin
-        item_font = get_font(32)
-        start_y = MARGIN_TOP + HUB_MENU_START_Y_OFFSET
-        
-        for i, item in enumerate(self.items):
-            # Highlight selected item
-            if i == self.selected_index:
-                prefix = "> "
-                color = self.color
-            else:
-                prefix = "  "
-                from utils import dim_color
-                color = dim_color(self.color)
+        # Use theme layout if available, otherwise fall back to constants
+        if self.hub_layout:
+            layout = self.hub_layout
+            style = self.theme['style']
             
-            text = item_font.render(f"{prefix}{item['label']}", True, color)
-            screen.blit(text, (MARGIN_LEFT, start_y + i * HUB_MENU_LINE_HEIGHT))
-        
-        # Instructions - left aligned at bottom
-        from utils import dim_color
-        help_font = get_font(18)
-        help_text = "press 1-3, arrow keys + enter, click, or use voice"
-        help_surface = help_font.render(help_text, True, dim_color(self.color, 0.33))
-        screen.blit(help_surface, (MARGIN_LEFT, h - 100))
-        
-        esc_text = "esc: return to main menu"
-        esc_surface = help_font.render(esc_text, True, dim_color(self.color, 0.33))
-        screen.blit(esc_surface, (MARGIN_LEFT, h - 75))
-        
-        draw_scanlines(screen)
-        draw_footer(screen, self.color)
+            # Draw back arrow
+            self.back_arrow_rect = draw_back_arrow(screen, tuple(style['colors']['primary']))
+            
+            # Title
+            title_layout = layout['title']
+            title_pos = self.theme_loader.resolve_position(title_layout['position'], (w, h))
+            title_font = get_font(title_layout['font_size'])
+            title_surface = title_font.render(self.title, True, tuple(style['colors']['primary']))
+            screen.blit(title_surface, title_pos)
+            
+            # Subtitle
+            if self.subtitle:
+                subtitle_layout = layout['subtitle']
+                subtitle_pos = self.theme_loader.resolve_position(subtitle_layout['position'], (w, h))
+                subtitle_font = get_font(subtitle_layout['font_size'])
+                subtitle_surface = subtitle_font.render(self.subtitle, True, tuple(style['colors']['secondary']))
+                screen.blit(subtitle_surface, subtitle_pos)
+            
+            # Menu items
+            items_layout = layout['items']
+            start_y = items_layout['start_y']
+            line_height = items_layout['line_height']
+            item_font = get_font(items_layout['font_size'])
+            
+            for i, item in enumerate(self.items):
+                if i == self.selected_index:
+                    prefix = "> "
+                    color = tuple(style['colors']['primary'])
+                else:
+                    prefix = "  "
+                    color = tuple(style['colors']['dim'])
+                
+                text = item_font.render(f"{prefix}{item['label']}", True, color)
+                screen.blit(text, (items_layout['indent'], start_y + i * line_height))
+            
+            # Footer for themed layout
+            from utils import dim_color, draw_scanlines, draw_footer
+            help_font = get_font(18)
+            help_text = "press 1-3, arrow keys + enter, click, or use voice"
+            help_surface = help_font.render(help_text, True, dim_color(tuple(style['colors']['primary']), 0.33))
+            screen.blit(help_surface, (80, h - 100))
+            
+            esc_text = "esc: return to main menu"
+            esc_surface = help_font.render(esc_text, True, dim_color(tuple(style['colors']['primary']), 0.33))
+            screen.blit(esc_surface, (80, h - 75))
+            
+            draw_scanlines(screen)
+            draw_footer(screen, tuple(style['colors']['primary']))
+        else:
+            # Backward compatibility - use old constants
+            from utils import (MARGIN_TOP, MARGIN_LEFT, HUB_TITLE_Y_OFFSET, HUB_SUBTITLE_Y_OFFSET,
+                              HUB_MENU_START_Y_OFFSET, HUB_MENU_LINE_HEIGHT, dim_color,
+                              draw_scanlines, draw_footer)
+            
+            self.back_arrow_rect = draw_back_arrow(screen, self.color)
+            
+            title_font = get_font(48)
+            title_surface = title_font.render(self.title, True, self.color)
+            screen.blit(title_surface, (MARGIN_LEFT, MARGIN_TOP + HUB_TITLE_Y_OFFSET))
+            
+            subtitle_font = get_font(24)
+            subtitle = subtitle_font.render("select a visualization:", True, self.color)
+            screen.blit(subtitle, (MARGIN_LEFT, MARGIN_TOP + HUB_SUBTITLE_Y_OFFSET))
+            
+            item_font = get_font(32)
+            start_y = MARGIN_TOP + HUB_MENU_START_Y_OFFSET
+            
+            for i, item in enumerate(self.items):
+                if i == self.selected_index:
+                    prefix = "> "
+                    color = self.color
+                else:
+                    prefix = "  "
+                    color = dim_color(self.color)
+                
+                text = item_font.render(f"{prefix}{item['label']}", True, color)
+                screen.blit(text, (MARGIN_LEFT, start_y + i * HUB_MENU_LINE_HEIGHT))
+            
+            # Footer for backward compatibility
+            help_font = get_font(18)
+            help_text = "press 1-3, arrow keys + enter, click, or use voice"
+            help_surface = help_font.render(help_text, True, dim_color(self.color, 0.33))
+            screen.blit(help_surface, (MARGIN_LEFT, h - 100))
+            
+            esc_text = "esc: return to main menu"
+            esc_surface = help_font.render(esc_text, True, dim_color(self.color, 0.33))
+            screen.blit(esc_surface, (MARGIN_LEFT, h - 75))
+            
+            draw_scanlines(screen)
+            draw_footer(screen, self.color)
 
 
 class SceneManager:

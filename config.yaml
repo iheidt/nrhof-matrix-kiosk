@@ -4,11 +4,23 @@
 render:
   backend: "pygame"          # pygame (current) | swift (future Metal renderer)
   resolution: [1280, 1024]
-  fullscreen: true           # Run in fullscreen kiosk mode
+  fullscreen: false           # Run in fullscreen kiosk mode
   display: 1                 # 0=primary display, 1=secondary display
   fps_target: 60
   matrix_green: [0, 255, 0]
   scanline_alpha: 30
+
+# Custom fonts (drop .ttf/.otf files in assets/fonts/)
+fonts:
+  # Primary monospace font for terminal/matrix aesthetic
+  mono: "JetBrainsMono-Regular.ttf"    # or null to use system default
+  # Sans-serif font for UI elements
+  sans: "Inter-Regular.ttf"            # or null to use system default
+  # Bold variants (optional)
+  mono_bold: "JetBrainsMono-Bold.ttf"
+  sans_bold: "Inter-Bold.ttf"
+  # Custom fonts directory
+  directory: "assets/fonts"
 
 # Audio settings
 audio:
@@ -44,7 +56,7 @@ flags:
 # Splash screen
 splash:
   min_seconds: 2.0
-  title: "NRHOF Matrix Kiosk"
+  title: "NRHOF"
 
 # Intro scene texts
 intro_texts:

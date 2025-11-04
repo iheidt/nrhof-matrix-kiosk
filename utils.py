@@ -159,6 +159,13 @@ def launch_command(cmd: str):
 
 # ---------------- Font helpers (centralized) ----------------
 
+from pathlib import Path
+
+# Custom fonts cache
+_CUSTOM_FONTS = {}
+_FONTS_DIR = None
+_FONT_CONFIG = None
+
 # Preferred fonts (mono first for "matrix" look, then common mac/win fallbacks)
 _MONO_FONT_CANDIDATES = [
     "DejaVu Sans Mono",  # present on Raspberry Pi via fonts-dejavu-core
@@ -172,6 +179,39 @@ _SANS_FONT_CANDIDATES = [
     "Arial",
     "Liberation Sans",
 ]
+
+def init_custom_fonts(config: dict):
+    """Initialize custom fonts from config.
+    
+    Args:
+        config: Full config dictionary with 'fonts' section
+    """
+    global _FONTS_DIR, _FONT_CONFIG
+    _FONT_CONFIG = config.get('fonts', {})
+    _FONTS_DIR = Path(__file__).parent / _FONT_CONFIG.get('directory', 'assets/fonts')
+    
+def _load_custom_font(filename: str, size: int) -> pygame.font.Font | None:
+    """Load a custom font file.
+    
+    Args:
+        filename: Font filename (e.g., 'JetBrainsMono-Regular.ttf')
+        size: Font size
+        
+    Returns:
+        pygame.Font or None if not found
+    """
+    if not filename or not _FONTS_DIR:
+        return None
+        
+    font_path = _FONTS_DIR / filename
+    if not font_path.exists():
+        return None
+        
+    try:
+        return pygame.font.Font(str(font_path), size)
+    except Exception as e:
+        print(f"Failed to load custom font {filename}: {e}")
+        return None
 
 def _first_available_font(candidates):
     """Return the first available font name from the candidate list."""
@@ -187,12 +227,13 @@ def _first_available_font(candidates):
     return None
 
 @lru_cache(maxsize=64)
-def get_font(size: int = 24, *, mono: bool = True, prefer: str | None = None) -> pygame.font.Font:
+def get_font(size: int = 24, *, mono: bool = True, prefer: str | None = None, bold: bool = False) -> pygame.font.Font:
     """
     Centralized font getter with caching and sane fallbacks.
     - size: point size
     - mono: True picks monospaced candidates; False picks sans candidates
     - prefer: exact font name to try first (optional)
+    - bold: Use bold variant if available
     """
     try:
         pygame.font.get_init() or pygame.font.init()
@@ -200,7 +241,20 @@ def get_font(size: int = 24, *, mono: bool = True, prefer: str | None = None) ->
         # Will be initialized by pygame.init() elsewhere, but we try anyway
         pass
 
-    # Build ordered list
+    # Try custom fonts first
+    if _FONT_CONFIG:
+        if bold:
+            custom_font_key = 'mono_bold' if mono else 'sans_bold'
+        else:
+            custom_font_key = 'mono' if mono else 'sans'
+        
+        custom_font_file = _FONT_CONFIG.get(custom_font_key)
+        if custom_font_file:
+            custom_font = _load_custom_font(custom_font_file, size)
+            if custom_font:
+                return custom_font
+
+    # Fall back to system fonts
     candidates = []
     if prefer:
         candidates.append(prefer)
@@ -209,11 +263,10 @@ def get_font(size: int = 24, *, mono: bool = True, prefer: str | None = None) ->
     chosen = _first_available_font(candidates)
     try:
         if chosen:
-            return pygame.font.SysFont(chosen, size)
-        # None → default font
-        return pygame.font.SysFont(None, size)
+            return pygame.font.SysFont(chosen, size, bold=bold)
+        else:
+            return pygame.font.Font(None, size)
     except Exception:
-        # Final fallback: constructed Font (rarely needed)
         return pygame.font.Font(None, size)
 
 def render_text(text: str, size: int = 24, *, mono: bool = True, color=(0, 255, 0), antialias=True, prefer: str | None = None) -> pygame.Surface:

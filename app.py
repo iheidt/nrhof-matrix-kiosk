@@ -7,6 +7,9 @@ import threading
 from pathlib import Path
 import pygame
 
+# Import version
+from __version__ import __version__
+
 # Load environment variables from .env if python-dotenv is available
 try:
     from dotenv import load_dotenv  # type: ignore
@@ -82,6 +85,8 @@ def init_pygame_env():
     """Initialize pygame environment variables."""
     os.environ.setdefault("SDL_VIDEO_ALLOW_SCREENSAVER", "0")
     os.environ.setdefault("SDL_VIDEO_WINDOW_POS", "0,0")
+    # Prevent window from minimizing when focus is lost
+    os.environ.setdefault("SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS", "0")
 
 
 
@@ -93,7 +98,7 @@ def main():
     global voice_router
     
     # Parse command-line arguments
-    parser = argparse.ArgumentParser(description='NRHOF Matrix Kiosk')
+    parser = argparse.ArgumentParser(description='NRHOF')
     parser.add_argument('--fullscreen', action='store_true', help='Run in fullscreen mode')
     parser.add_argument('--resolution', type=str, help='Display resolution (e.g., 1280x1024)')
     parser.add_argument('--display', type=int, help='Display index (0=primary, 1=secondary)')
@@ -116,7 +121,7 @@ def main():
     
     # Initialize logger
     logger = get_logger('kiosk', cfg.to_dict())
-    logger.info("Starting NRHOF Matrix Kiosk", version="1.0.0")
+    logger.info("Starting NRHOF", version=__version__)
     
     # Initialize pygame environment
     init_pygame_env()
@@ -127,6 +132,11 @@ def main():
     screen = renderer.get_surface()  # Get pygame surface for backward compatibility
     logger.info("Renderer initialized", backend=cfg.get('render.backend', 'pygame'), 
                 resolution=cfg.get('render.resolution'))
+    
+    # Initialize custom fonts
+    from utils import init_custom_fonts
+    init_custom_fonts(cfg.to_dict())
+    logger.info("Custom fonts initialized")
     
     # Hide mouse cursor for kiosk mode
     pygame.mouse.set_visible(False)

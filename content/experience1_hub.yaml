@@ -1,0 +1,9 @@
+# Experience 1 Hub (Visualizers)
+title: "experience 1"
+items:
+  - id: "spectrum_bars"
+    label: "1. spectrum bars"
+  - id: "waveform"
+    label: "2. waveform"
+  - id: "lissajous"
+    label: "3. lissajous"

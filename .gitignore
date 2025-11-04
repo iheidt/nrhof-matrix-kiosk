@@ -17,3 +17,9 @@ assets/videos/
 *.mp4
 *.mov
 *.avi
+
+# Custom fonts (users add their own)
+assets/fonts/*.ttf
+assets/fonts/*.otf
+assets/fonts/*.woff
+assets/fonts/*.woff2

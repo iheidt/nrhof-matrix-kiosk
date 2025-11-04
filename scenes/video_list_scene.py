@@ -16,9 +16,9 @@ class VideoListScene(BaseHubScene):
         
         if video_dir.exists():
             # Find all MP4 files
-            for video_file in sorted(video_dir.glob("*.mp4")):
+            for i, video_file in enumerate(sorted(video_dir.glob("*.mp4")), 1):
                 video_files.append({
-                    "label": video_file.stem,  # Filename without extension
+                    "label": f"{i}. {video_file.stem}",  # Numbered list
                     "id": f"video:{video_file.name}"  # Store full filename
                 })
         
@@ -28,10 +28,17 @@ class VideoListScene(BaseHubScene):
                 {"label": "no videos found", "id": "none"}
             ]
         
-        # Initialize with title, items, and back intent
+        # Load theme for styling but use dynamic items
+        from theme_loader import get_theme_loader
+        theme_loader = get_theme_loader()
+        theme = theme_loader.load_theme('video_list', theme_name='pipboy')
+        
+        # Initialize with theme content but override items with scanned videos
         super().__init__(
             ctx=ctx,
-            title="videos",
-            items=video_files,
+            content_name='video_list',
             back_intent=Intents.GO_HOME
         )
+        
+        # Override items with dynamically scanned videos
+        self.items = video_files

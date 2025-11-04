@@ -8,17 +8,9 @@ class Experience1HubScene(BaseHubScene):
     """Hub menu for Experience 1 sub-experiences."""
     
     def __init__(self, ctx):
-        # Define sub-experience items
-        items = [
-            {"label": "1. spectrum bars", "id": "spectrum_bars"},
-            {"label": "2. waveform", "id": "waveform"},
-            {"label": "3. lissajous", "id": "lissajous"}
-        ]
-        
-        # Initialize with title, items, and back intent
+        # Initialize with theme-driven content
         super().__init__(
             ctx=ctx,
-            title="experience 1",
-            items=items,
+            content_name='experience1_hub',
             back_intent=Intents.GO_HOME
         )
