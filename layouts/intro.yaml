@@ -2,7 +2,8 @@
 text_area:
   position: [center, center]
   max_width: 800
-  line_height: 60
+  font_size: body
+  font_type: primary
   align: center
   
 typewriter:

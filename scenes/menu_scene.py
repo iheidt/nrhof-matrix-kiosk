@@ -35,8 +35,8 @@ class MenuScene(Scene):
         self.top = 0
         self.icon_pad = 0
         self.icon_size = (0, 0)
-        self.title_font_size = 28
-        self.item_font_size = 22
+        self.item_font_size = 0
+        self.item_font_type = 'primary'
     
     def on_enter(self):
         """Initialize menu display."""
@@ -68,7 +68,10 @@ class MenuScene(Scene):
         total_width = (card_w * num_cards) + (spacing * (num_cards - 1))
         self.margin = (w - total_width) // 2
         
-        self.item_font_size = style['typography']['body_size']
+        # Load card font settings from layout (already resolved by theme_loader)
+        cards_layout = layout.get('cards', {})
+        self.item_font_size = cards_layout.get('font_size', style['typography']['fonts']['body'])
+        self.item_font_type = cards_layout.get('font_type', 'secondary')
         
         self.icon_pad = int(self.card_w * 0.1)
         self.icon_size = (self.card_w - 2 * self.icon_pad, int(self.card_h * 0.55))
@@ -159,15 +162,17 @@ class MenuScene(Scene):
         title_layout = layout['title']
         title_pos = self.theme_loader.resolve_position(title_layout['position'], (w, h))
         
-        frame.add_text(Text.create(
+        title_text = Text.create(
             content=self.title,
             x=title_pos[0],
             y=title_pos[1],
             color=tuple(style['colors']['primary']),
             font_size=title_layout['font_size'],
             mono=True
-        ))
-        frame.texts[-1].align = title_layout['align']
+        )
+        title_text.align = title_layout['align']
+        title_text.font_type = title_layout.get('font_type', 'secondary')
+        frame.add_text(title_text)
         
         # Draw menu cards
         for i, e in enumerate(self.entries):
@@ -215,25 +220,29 @@ class MenuScene(Scene):
                     thickness=2
                 ))
                 # Placeholder text
-                frame.add_text(Text.create(
+                placeholder_text = Text.create(
                     content=e.get("label", f"Option {i+1}"),
                     x=icon_x + 8,
                     y=icon_y + self.icon_size[1] // 2 - 12,
                     color=self.color,
                     font_size=self.item_font_size,
                     mono=True
-                ))
+                )
+                placeholder_text.font_type = self.item_font_type
+                frame.add_text(placeholder_text)
             
             # Label at bottom
             label = e.get("label", f"Option {i+1}")
-            frame.add_text(Text.create(
+            label_text = Text.create(
                 content=label,
                 x=x + self.icon_pad,
                 y=self.top + self.card_h - self.icon_pad - self.item_font_size,
                 color=self.color,
                 font_size=self.item_font_size,
                 mono=True
-            ))
+            )
+            label_text.font_type = self.item_font_type
+            frame.add_text(label_text)
         
         # Render frame state (backward compat)
         self._render_frame_compat(screen, frame)
@@ -262,14 +271,16 @@ class MenuScene(Scene):
         
         # Render text
         for text in frame.texts:
-            # Use secondary font (Miland) for large titles, label font (Compadre) for card text
-            if text.font_size >= 48:
-                font = get_theme_font(text.font_size, 'secondary')
-            elif text.font_size >= 24:
-                font = get_theme_font(text.font_size, 'label')
-            else:
-                font = get_theme_font(text.font_size, 'primary')
+            # Use font_type from text object (set in draw method)
+            font_type = getattr(text, 'font_type', 'primary')
+            font = get_theme_font(text.font_size, font_type)
             
             color = text.color[:3]
             surface = font.render(text.content, True, color)
-            screen.blit(surface, (int(text.position[0]), int(text.position[1])))
+            
+            # Handle alignment
+            if hasattr(text, 'align') and text.align == 'center':
+                rect = surface.get_rect(center=(int(text.position[0]), int(text.position[1])))
+                screen.blit(surface, rect)
+            else:
+                screen.blit(surface, (int(text.position[0]), int(text.position[1])))

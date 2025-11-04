@@ -1,21 +1,25 @@
 # Splash screen layout
+
 title:
-  position: [center, "center - 60"]
-  font_size: 48
+  position: ["center", "center - 100"]
+  font_size: display
+  font_type: secondary
   align: center
 
 version:
-  position: [center, "center + 10"]
-  font_size: 16
+  position: ["center", "center"]
+  font_size: micro
+  font_type: primary
   align: center
 
 loading_text:
-  position: [center, "center + 40"]
-  font_size: 24
+  position: ["center", "center + 80"]
+  font_size: micro
+  font_type: primary
   align: center
 
 progress_bar:
-  position: [center, "center + 60"]
+  position: ["center", "center + 130"]
   width: 400
-  height: 20
+  height: 10
   align: center

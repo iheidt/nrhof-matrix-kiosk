@@ -23,14 +23,20 @@ class SplashScene(Scene):
         self.theme = self.theme_loader.load_theme('splash', theme_name='pipboy')
         
         # Extract values from theme
-        self._min_secs = self.theme['content'].get('min_seconds', 2.0)
+        default_min_secs = self.theme['style'].get('timing', {}).get('splash_min_seconds', 2.0)
+        self._min_secs = self.theme['content'].get('min_seconds', default_min_secs)
         self.color = tuple(self.theme['style']['colors']['primary'])
     
     def on_enter(self):
         """Initialize splash screen."""
         self._start = time.time()
         self.progress = 0.0
-        # Color already loaded from theme in __init__
+        
+        # Reload theme to pick up any content changes
+        self.theme = self.theme_loader.load_theme('splash', theme_name='pipboy')
+        default_min_secs = self.theme['style'].get('timing', {}).get('splash_min_seconds', 2.0)
+        self._min_secs = self.theme['content'].get('min_seconds', default_min_secs)
+        self.color = tuple(self.theme['style']['colors']['primary'])
     
     def on_exit(self):
         """Clean up splash screen."""
@@ -43,15 +49,22 @@ class SplashScene(Scene):
     
     def update(self, dt: float):
         """Update splash screen progress."""
+        elapsed = time.time() - self._start
+        
         # Read preload progress from app context
         if hasattr(self.ctx, 'preload_progress'):
             self.progress = self.ctx.preload_progress
         else:
-            # Fallback: simulate progress
-            self.progress = min(1.0, self.progress + dt * 0.5)
+            # Animate progress to match min_seconds duration with ease-in-out
+            # Progress should reach 1.0 at min_seconds
+            t = min(1.0, elapsed / self._min_secs)  # Normalized time (0 to 1)
+            # Ease-in-out cubic: smooth acceleration and deceleration
+            if t < 0.5:
+                self.progress = 4 * t * t * t
+            else:
+                self.progress = 1 - pow(-2 * t + 2, 3) / 2
         
         # Check if loading is done and minimum time has elapsed
-        elapsed = time.time() - self._start
         preload_done = getattr(self.ctx, 'preload_done', False)
         
         if (preload_done or self.progress >= 1.0) and elapsed >= self._min_secs:
@@ -73,41 +86,47 @@ class SplashScene(Scene):
         # Title text
         title_layout = layout['title']
         title_pos = self.theme_loader.resolve_position(title_layout['position'], screen_size)
-        frame.add_text(Text.create(
+        title_text = Text.create(
             content=content['title'],
             x=title_pos[0],
             y=title_pos[1],
             color=tuple(style['colors']['primary']),
             font_size=title_layout['font_size'],
             mono=True
-        ))
-        frame.texts[-1].align = title_layout['align']
+        )
+        title_text.align = title_layout['align']
+        title_text.font_type = title_layout.get('font_type', 'primary')  # Store font type
+        frame.add_text(title_text)
         
         # Version text
         version_layout = layout['version']
         version_pos = self.theme_loader.resolve_position(version_layout['position'], screen_size)
-        frame.add_text(Text.create(
+        version_text = Text.create(
             content=f'v{__version__}',
             x=version_pos[0],
             y=version_pos[1],
             color=tuple(style['colors']['secondary']),
             font_size=version_layout['font_size'],
             mono=True
-        ))
-        frame.texts[-1].align = version_layout['align']
+        )
+        version_text.align = version_layout['align']
+        version_text.font_type = version_layout.get('font_type', 'primary')
+        frame.add_text(version_text)
         
         # Loading text
         loading_layout = layout['loading_text']
         loading_pos = self.theme_loader.resolve_position(loading_layout['position'], screen_size)
-        frame.add_text(Text.create(
+        loading_text = Text.create(
             content=content['loading_text'],
             x=loading_pos[0],
             y=loading_pos[1],
             color=tuple(style['colors']['secondary']),
             font_size=loading_layout['font_size'],
             mono=True
-        ))
-        frame.texts[-1].align = loading_layout['align']
+        )
+        loading_text.align = loading_layout['align']
+        loading_text.font_type = loading_layout.get('font_type', 'primary')
+        frame.add_text(loading_text)
         
         # Progress bar
         bar_layout = layout['progress_bar']
@@ -160,11 +179,9 @@ class SplashScene(Scene):
     
     def _render_text_compat(self, screen, text):
         """Temporary: render text using pygame (backward compat)."""
-        # Use secondary font (Miland) for large title, primary (IBM Plex) for smaller text
-        if text.font_size >= 48:
-            font = get_theme_font(text.font_size, 'secondary')
-        else:
-            font = get_theme_font(text.font_size, 'primary')
+        # Use font_type from layout (primary, secondary, or label)
+        font_type = getattr(text, 'font_type', 'primary')
+        font = get_theme_font(text.font_size, font_type)
         
         color = text.color[:3]
         surface = font.render(text.content, True, color)

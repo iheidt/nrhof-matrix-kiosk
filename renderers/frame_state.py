@@ -90,6 +90,7 @@ class Text:
     bold: bool = False
     italic: bool = False
     align: str = "left"  # left, center, right
+    font_type: str = "primary"  # primary, secondary, or label
     
     @classmethod
     def create(cls, content: str, x: float, y: float, color: Tuple[int, int, int],

@@ -73,22 +73,16 @@ class ThemeLoader:
         Returns:
             Style configuration dictionary with colors converted to RGB tuples
         """
-        # Load base styles first
-        base = self.load_yaml(self.styles_dir / "_base.yaml")
-        
-        # Load theme-specific styles
+        # Load theme styles
         theme = self.load_yaml(self.styles_dir / f"{theme_name}.yaml")
         
-        # Merge (theme overrides base)
-        merged = self._deep_merge(base, theme)
-        
         # Convert hex colors to RGB tuples
-        if 'colors' in merged:
-            for key, value in merged['colors'].items():
+        if 'colors' in theme:
+            for key, value in theme['colors'].items():
                 if isinstance(value, str) and value.startswith('#'):
-                    merged['colors'][key] = hex_to_color(value)
+                    theme['colors'][key] = hex_to_color(value)
         
-        return merged
+        return theme
     
     def load_layout(self, scene_name: str) -> Dict[str, Any]:
         """Load layout configuration for a scene.
@@ -126,6 +120,11 @@ class ThemeLoader:
         layout = self.load_layout(scene_name)
         style = self.load_style(theme_name)
         
+        # Resolve font size names to actual values
+        font_sizes = style.get('typography', {}).get('fonts', {})
+        if font_sizes:
+            layout = self._resolve_font_sizes(layout, font_sizes)
+        
         # Merge all three
         theme = {
             "content": content,
@@ -134,6 +133,28 @@ class ThemeLoader:
         }
         
         return theme
+    
+    def _resolve_font_sizes(self, layout: Dict, font_sizes: Dict) -> Dict:
+        """Resolve font_size names (display, title, body, micro) to pixel values.
+        
+        Args:
+            layout: Layout dictionary
+            font_sizes: Font size mapping from style
+            
+        Returns:
+            Layout with resolved font sizes
+        """
+        import copy
+        resolved = copy.deepcopy(layout)
+        
+        for key, value in resolved.items():
+            if isinstance(value, dict) and 'font_size' in value:
+                font_size = value['font_size']
+                # If font_size is a string (name), resolve it
+                if isinstance(font_size, str) and font_size in font_sizes:
+                    value['font_size'] = font_sizes[font_size]
+        
+        return resolved
     
     def _deep_merge(self, base: Dict, override: Dict) -> Dict:
         """Deep merge two dictionaries.

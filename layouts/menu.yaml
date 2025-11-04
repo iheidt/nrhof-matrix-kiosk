@@ -1,7 +1,8 @@
 # Menu layout
 title:
   position: [center, 100]
-  font_size: 48
+  font_size: title
+  font_type: secondary
   align: center
 
 cards:
@@ -11,8 +12,11 @@ cards:
   spacing: 40
   start_y: 250
   center_x: true
+  font_size: body
+  font_type: primary
   
 footer:
   position: [center, "bottom - 40"]
-  font_size: 16
+  font_size: micro
+  font_type: primary
   align: center

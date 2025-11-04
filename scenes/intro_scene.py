@@ -35,21 +35,44 @@ class IntroScene(Scene):
         self.linger_timer = 0
         self.pause_timer = 0
         self.state = "typing"  # typing, lingering, pausing, done
-        self.base_font_size = 32  # Smaller, more terminal-like
+        
+        # Load font settings from layout (already resolved by theme_loader)
+        text_area = self.theme['layout']['text_area']
+        typography = self.theme['style'].get('typography', {})
+        
+        # Font size already resolved by theme_loader ('body' → 32)
+        self.base_font_size = text_area.get('font_size')
+        self.font_type = text_area.get('font_type', 'primary')
         self.margin_x = 0
         self.margin_y = 0
-        self.line_height = 0
+        
+        # Calculate line_height: font_size × ratio from pipboy.yaml
+        # Need to find which size name this is (32 = body)
+        fonts = typography.get('fonts', {})
+        size_name = None
+        for name, size in fonts.items():
+            if size == self.base_font_size:
+                size_name = name
+                break
+        
+        if size_name:
+            line_height_ratios = typography.get('line_height', {})
+            ratio = line_height_ratios.get(size_name, 1.5)
+            self.line_height = int(self.base_font_size * ratio)
+        else:
+            raise ValueError(f"Font size {self.base_font_size} not found in pipboy.yaml fonts scale")
     
     def on_enter(self):
         """Initialize intro sequence."""
         # Lines and colors already loaded from theme in __init__
         
         w, h = self.manager.screen.get_size()
-        # Match menu margins (approximately 8% from screenshot)
+        # Margins from layout or defaults
         self.margin_x = int(w * 0.08)
-        self.margin_y = int(h * 0.12)  # Top margin
-        self.base_font_size = max(28, int(h * 0.04))  # Terminal-sized font
-        self.line_height = int(self.base_font_size * 1.5)  # Line spacing
+        self.margin_y = int(h * 0.15)
+        
+        # Font settings already loaded from layout in __init__
+        # No hardcoded font sizes - all from layout
         
         # Reset state
         self.current_line_idx = 0
@@ -127,10 +150,10 @@ class IntroScene(Scene):
         
         y_pos = self.margin_y
         
-        # Draw all completed lines (use primary font - IBM Plex Mono)
+        # Draw all completed lines
         for line in self.completed_lines:
             text_with_prompt = f"> {line}"
-            font = get_theme_font(self.base_font_size, 'primary')
+            font = get_theme_font(self.base_font_size, self.font_type)
             img = font.render(text_with_prompt, True, self.color)
             screen.blit(img, (self.margin_x, y_pos))
             y_pos += self.line_height
@@ -138,7 +161,7 @@ class IntroScene(Scene):
         # Draw current line being typed
         if self.shown_text:
             text_with_prompt = f"> {self.shown_text}"
-            font = get_theme_font(self.base_font_size, 'primary')
+            font = get_theme_font(self.base_font_size, self.font_type)
             img = font.render(text_with_prompt, True, self.color)
             screen.blit(img, (self.margin_x, y_pos))
             
