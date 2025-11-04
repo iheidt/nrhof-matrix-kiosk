@@ -183,11 +183,41 @@ class MenuScene(Scene):
             else:
                 screen.blit(surface, (int(text.position[0]), int(text.position[1])))
         
-        # Draw buttons vertically in left column
-        from utils import draw_button
+        # Draw title card at top of left column
+        from utils import draw_title_card, draw_button
         
-        # Get layout and button config
+        # Get layout and style
         layout = self.theme['layout']
+        style = self.theme['style']
+        
+        # Title card configuration from layout
+        title_card_config = layout.get('title_card', {})
+        title_card_height = title_card_config.get('height', 120)
+        title_card_title = title_card_config.get('title', 'NRHOF')
+        title_card_margin_bottom = title_card_config.get('margin_bottom', 70)
+        title_card_fade_pct = title_card_config.get('border_fade_pct', 0.33)
+        
+        # Calculate title font size to determine overlap
+        title_font_size = style['typography']['fonts'].get('title', 76)
+        title_font = get_theme_font(title_font_size, 'secondary')
+        title_surface = title_font.render(title_card_title, True, (255, 255, 255))
+        title_overlap = title_surface.get_height() // 2
+        
+        # Adjust card y position so title top respects margin
+        title_card_y = self.content_top + title_overlap
+        
+        title_card_rect = draw_title_card(
+            surface=screen,
+            x=self.left_col_x,
+            y=title_card_y,
+            width=self.left_col_width,
+            height=title_card_height,
+            title=title_card_title,
+            theme={'layout': layout, 'style': style},
+            border_fade_pct=title_card_fade_pct
+        )
+        
+        # Draw buttons vertically in left column (below title card)
         buttons_config = layout.get('buttons', {})
         button_width = buttons_config.get('width', '67%')  # Button width override
         
@@ -200,7 +230,8 @@ class MenuScene(Scene):
         # Offset button x to account for adornment (so adornment stays within margin)
         button_x = self.left_col_x + adornment_size + adornment_margin
         
-        y = self.button_start_y
+        # Start buttons below title card with configured spacing
+        y = title_card_y + title_card_height + title_card_margin_bottom
         for i, entry in enumerate(self.entries):
             label = entry.get('label', f'Option {i+1}')
             button_rect = draw_button(

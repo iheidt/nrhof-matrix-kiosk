@@ -212,13 +212,14 @@ def _draw_card_border_with_fade(surface: Surface, x: int, y: int, width: int, he
         
         # Set alpha channel using surfarray
         for i in range(height + border_width):
-            if i <= fade_end:
-                # Solid portion at top
-                alpha = 255
-            else:
-                # Fading portion at bottom
+            if solid_side == 'bottom':
+                # Bottom is solid, top fades
+                progress = i / fade_end if fade_end > 0 else 0
+                alpha = max(0, min(255, int(255 * progress)))
+            else:  # solid_side == 'top'
+                # Top is solid, bottom fades
                 progress = (i - fade_end) / (height - fade_end) if (height - fade_end) > 0 else 0
-                alpha = int(255 * (1.0 - progress))
+                alpha = max(0, min(255, int(255 * (1.0 - progress))))
             
             # Set RGB and alpha for this row
             # Top border
@@ -406,6 +407,86 @@ def draw_button(surface: Surface, x: int, y: int, container_width: int, text: st
     
     # Return content rect (for click detection, etc.)
     return pygame.Rect(x, y, button_width, button_height)
+
+
+def draw_title_card(surface: Surface, x: int, y: int, width: int, height: int, title: str,
+                    theme: dict = None, **overrides) -> pygame.Rect:
+    """Draw a card with title overlaying the top border.
+    
+    Args:
+        surface: Pygame surface to draw on
+        x, y: Card position (top-left)
+        width, height: Card dimensions
+        title: Title text to display
+        theme: Dict with 'layout' and 'style' keys
+        **overrides: Override any card settings
+    
+    Returns:
+        pygame.Rect of the content area (inside border and padding)
+    """
+    from theme_loader import get_theme_loader
+    
+    # Load theme if not provided
+    if theme is None:
+        theme_loader = get_theme_loader()
+        layout = theme_loader.load_layout('menu')
+        style = theme_loader.load_style('pipboy')
+        theme = {'layout': layout, 'style': style}
+    else:
+        layout = theme['layout']
+        style = theme['style']
+    
+    # Get card config
+    card_config = layout.get('card', {})
+    border_width = overrides.get('border', card_config.get('border', 6))
+    padding = overrides.get('padding', card_config.get('padding', 24))
+    border_fade_pct = overrides.get('border_fade_pct', card_config.get('border_fade_pct', 0.33))
+    
+    # Colors
+    border_color_key = overrides.get('border_color', card_config.get('border_color', 'primary'))
+    border_color = tuple(style['colors'].get(border_color_key, style['colors']['primary']))
+    
+    # Title font - always uses 'title' size and 'miland' (secondary) font
+    title_font_size = style['typography']['fonts'].get('title', 76)
+    title_font = get_theme_font(title_font_size, 'secondary')
+    
+    # Render title to get dimensions
+    title_surface = title_font.render(title, True, border_color)
+    title_width = title_surface.get_width()
+    title_height = title_surface.get_height()
+    
+    # Calculate how much the title overlaps into the card
+    # Title is centered on the top border, so half above, half below
+    title_overlap = title_height // 2
+    
+    # Adjust card top padding to accommodate title overlap
+    adjusted_top_padding = padding + title_overlap
+    
+    # Draw card border with fade (top solid, bottom/sides fade)
+    draw_card(surface, x, y, width, height, theme=theme, 
+              border_solid='top', border_fade_pct=border_fade_pct)
+    
+    # Calculate title position
+    # 35px solid border on left, then 24px gap, then text, then 24px gap
+    title_x = x + 35 + 24  # 35px border + 24px gap from left edge
+    title_y = y - title_overlap  # Centered on top border
+    
+    # Draw background behind title to create gaps (erase the border)
+    # Gap starts 24px before text and extends 24px after text
+    bg_color = tuple(style['colors']['background'])
+    gap_rect = pygame.Rect(x + 35, y - border_width, title_width + 48, border_width * 2)
+    pygame.draw.rect(surface, bg_color, gap_rect, 0)
+    
+    # Draw the title
+    surface.blit(title_surface, (title_x, title_y))
+    
+    # Return content rect (accounting for adjusted top padding)
+    content_x = x + border_width + padding
+    content_y = y + border_width + adjusted_top_padding
+    content_width = width - (border_width + padding) * 2
+    content_height = height - border_width - adjusted_top_padding - padding - border_width
+    
+    return pygame.Rect(content_x, content_y, content_width, content_height)
 
 
 def vignette(surface: Surface, strength: float = 0.6):
