@@ -3,7 +3,7 @@ name: "pipboy"
 
 colors:
   primary: "#e91e63"        # Deep pink
-  secondary: "#EB5F7B"      # Salmon pink
+  secondary: "#A3677B"      # Salmon pink
   background: "#080610"     # Deep purple blue
   dim: "#2C405B"            # Dim blue
   accent: "#C4F3FF"         # Powder blue

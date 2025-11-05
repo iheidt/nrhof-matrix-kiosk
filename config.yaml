@@ -4,8 +4,8 @@
 render:
   backend: "pygame"          # pygame (current) | swift (future Metal renderer)
   resolution: [1280, 1024]
-  fullscreen: false           # Run in fullscreen kiosk mode
-  display: 0                 # 0=primary display, 1=secondary display
+  fullscreen: true           # Run in fullscreen kiosk mode
+  display: 1                 # 0=primary display, 1=secondary display
   fps_target: 60
   # Note: Colors, fonts, and visual styling now in styles/pipboy.yaml
 

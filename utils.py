@@ -191,10 +191,9 @@ def _draw_card_border_with_fade(surface: Surface, x: int, y: int, width: int, he
                 alpha = 255
             
             # Set RGB and alpha for this row
-            # Top border
+            # Skip top border entirely (it would be transparent anyway)
             if i < border_width:
-                pixels_rgb[:, i] = base_color
-                pixels_alpha[:, i] = alpha
+                pass  # Don't draw top border when bottom is solid
             else:
                 # Left border
                 pixels_rgb[0:border_width, i] = base_color
@@ -233,10 +232,17 @@ def _draw_card_border_with_fade(surface: Surface, x: int, y: int, width: int, he
                 # Right border
                 pixels_rgb[width + border_width:width + border_width * 2, i] = base_color
                 pixels_alpha[width + border_width:width + border_width * 2, i] = alpha
-                # Bottom border
+                # Bottom border with horizontal edge fade
                 if i >= height:
-                    pixels_rgb[:, i] = base_color
-                    pixels_alpha[:, i] = alpha
+                    for j in range(width + border_width * 2):
+                        # Calculate horizontal fade from edges (fade to transparent at edges)
+                        dist_from_edge = min(j, width + border_width * 2 - j)
+                        # Use a smaller divisor to make fade reach 0 at edges
+                        fade_width = (width + border_width * 2) * 0.4  # 40% of width fades
+                        edge_fade = min(1.0, dist_from_edge / fade_width) if fade_width > 0 else 0
+                        combined_alpha = int(alpha * edge_fade)
+                        pixels_rgb[j, i] = base_color
+                        pixels_alpha[j, i] = combined_alpha
     
     # Release the pixel array locks
     del pixels_rgb
@@ -298,10 +304,14 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140)):
     surface.blit(settings_text, (content_rect.x, content_rect.y + (content_rect.height - settings_text.get_height()) // 2))
     
     # Draw version number (right aligned in card)
-    secondary_color = tuple(style['colors']['secondary'])
+    dim_color_hex = style['colors'].get('dim', '#2C405B')
+    if isinstance(dim_color_hex, str) and dim_color_hex.startswith('#'):
+        dim_color = tuple(int(dim_color_hex[i:i+2], 16) for i in (1, 3, 5))
+    else:
+        dim_color = tuple(dim_color_hex) if isinstance(dim_color_hex, (list, tuple)) else (44, 64, 91)
     pico_size = style['typography']['fonts']['pico']
     version_font = get_theme_font(pico_size, 'primary')
-    version_text = version_font.render(f"v{__version__}", True, secondary_color)
+    version_text = version_font.render(f"v{__version__}", True, dim_color)
     version_x = content_rect.x + content_rect.width - version_text.get_width()
     surface.blit(version_text, (version_x, content_rect.y + (content_rect.height - version_text.get_height()) // 2))
     
@@ -537,15 +547,10 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     title_font_size = style['typography']['fonts'].get('label', 16)
     title_font = pygame.font.Font(str(title_font_path), title_font_size)
     
-    # Line 1: IBM Plex Mono Italic, micro size (24)
+    # Line 1: IBM Plex Mono Italic, body size (48)
     line1_font_path = Path(__file__).parent / "assets" / "fonts" / "IBMPlexMono-Italic.ttf"
-    line1_font_size = style['typography']['fonts'].get('micro', 24)
+    line1_font_size = style['typography']['fonts'].get('body', 48)
     line1_font = pygame.font.Font(str(line1_font_path), line1_font_size)
-    
-    # Line 2: IBM Plex Mono Regular, pico size (18)
-    line2_font_path = Path(__file__).parent / "assets" / "fonts" / "IBMPlexMono-Regular.ttf"
-    line2_font_size = style['typography']['fonts'].get('pico', 18)
-    line2_font = pygame.font.Font(str(line2_font_path), line2_font_size)
     
     # Render title
     title_surface = title_font.render(title, True, title_color)
@@ -581,19 +586,14 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
         return text + "..."
     
     line1_text = truncate_text(line1_font, line1, max_text_width) if line1 else ""
-    line2_text = truncate_text(line2_font, line2, max_text_width) if line2 else ""
     
-    # Render body lines
+    # Render body line
     line1_surface = line1_font.render(line1_text, True, title_color) if line1_text else None
-    line2_surface = line2_font.render(line2_text, True, title_color) if line2_text else None
     
     # Calculate content height
-    line_spacing = 12
     content_height = padding  # Top padding
     if line1_surface:
         content_height += line1_surface.get_height()
-    if line2_surface:
-        content_height += line_spacing + line2_surface.get_height()
     content_height += padding - 28  # Bottom padding (reduced by 28px)
     
     # Total component height
@@ -616,10 +616,6 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     
     if line1_surface:
         surface.blit(line1_surface, (text_x, text_y))
-        text_y += line1_surface.get_height() + line_spacing
-    
-    if line2_surface:
-        surface.blit(line2_surface, (text_x, text_y))
     
     # Draw circle element (80x80px) aligned with border
     circle_size = 80
@@ -712,6 +708,7 @@ def draw_timeclock(surface: Surface, x: int, y: int, width: int, height: int, th
     
     # Get colors
     primary_color = tuple(style.get('colors', {}).get('primary', (255, 20, 147)))
+    secondary_color = tuple(style.get('colors', {}).get('secondary', (140, 255, 140)))
     dim_color_hex = style['colors'].get('dim', '#2C405B')
     if isinstance(dim_color_hex, str) and dim_color_hex.startswith('#'):
         dim_color = tuple(int(dim_color_hex[i:i+2], 16) for i in (1, 3, 5))
@@ -730,10 +727,9 @@ def draw_timeclock(surface: Surface, x: int, y: int, width: int, height: int, th
     from datetime import datetime
     now = datetime.now()
     
-    # Format time and date
+    # Format time
     ampm = now.strftime("%p")  # AM or PM
     time_str = now.strftime("%I:%M")  # 05:30 (with leading zero)
-    date_str = now.strftime("%a %b %Y").lower()  # tue oct 2025
     
     # Load fonts
     # AM/PM: Miland 30px
@@ -744,13 +740,9 @@ def draw_timeclock(surface: Surface, x: int, y: int, width: int, height: int, th
     time_font_path = Path(__file__).parent / "assets" / "fonts" / "IBMPlexMono-SemiBoldItalic.ttf"
     time_font = pygame.font.Font(str(time_font_path), 124)
     
-    # Date: IBM Plex Semibold Italic 48px (body size)
-    date_font = pygame.font.Font(str(time_font_path), 48)
-    
     # Render text
-    ampm_surface = ampm_font.render(ampm, True, primary_color)
+    ampm_surface = ampm_font.render(ampm, True, dim_color)
     time_surface = time_font.render(time_str, True, primary_color)
-    date_surface = date_font.render(date_str, True, dim_color)
     
     # Layout with 24px top padding
     padding = 24
@@ -764,11 +756,6 @@ def draw_timeclock(surface: Surface, x: int, y: int, width: int, height: int, th
     time_x = x + (width - time_surface.get_width()) // 2
     time_y = ampm_y + ampm_surface.get_height() - 25
     surface.blit(time_surface, (time_x, time_y))
-    
-    # Date centered horizontally, 10px below time, moved up 48px
-    date_x = x + (width - date_surface.get_width()) // 2
-    date_y = time_y + time_surface.get_height() - 25
-    surface.blit(date_surface, (date_x, date_y))
     
     return pygame.Rect(x, y, width, height)
 

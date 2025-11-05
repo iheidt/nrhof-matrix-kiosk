@@ -90,10 +90,6 @@ def init_pygame_env():
     """Initialize pygame environment variables."""
     os.environ.setdefault("SDL_VIDEO_ALLOW_SCREENSAVER", "0")
     os.environ.setdefault("SDL_VIDEO_WINDOW_POS", "0,0")
-    # Prevent window from minimizing when focus is lost
-    os.environ.setdefault("SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS", "0")
-
-
 
 # Global voice router instance for testing/access
 voice_router = None

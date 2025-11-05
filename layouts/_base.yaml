@@ -9,7 +9,7 @@ margins:
 
 footer:
   height: 130
-  border_fade_pct: 2  # 67% fades away, 33% visible at bottom
+  border_fade_pct: .9  # 67% fades away, 33% visible at bottom
   # Footer respects left/right margins
   # Positioned at bottom of screen
 

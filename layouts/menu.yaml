@@ -24,3 +24,7 @@ buttons:
 timeclock:
   height: 100  # Card height
   border_fade_pct: 0.9  # Percentage of border that fades (0.0-1.0)
+
+footer:
+  height: 130  # Total footer height (card + company div)
+  border_fade_pct: 0.9  # Percentage of border that fades (0.0-1.0)
