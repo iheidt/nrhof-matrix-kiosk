@@ -130,7 +130,7 @@ def get_theme_font(size: int = 24, font_type: str = 'primary') -> pygame.font.Fo
     Returns:
         pygame.Font object
     """
-    from theme_loader import get_theme_loader
+    from core.theme_loader import get_theme_loader
     
     try:
         pygame.font.get_init() or pygame.font.init()

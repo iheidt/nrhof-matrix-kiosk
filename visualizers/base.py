@@ -15,7 +15,7 @@ class Visualizer(ABC):
         self.config = config
         
         # Load theme color
-        from theme_loader import get_theme_loader
+        from core.theme_loader import get_theme_loader
         theme_loader = get_theme_loader()
         style = theme_loader.load_style('pipboy')
         self.color = tuple(style['colors']['primary'])

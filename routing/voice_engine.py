@@ -10,7 +10,7 @@ import numpy as np
 from scipy.io import wavfile
 from openai import OpenAI
 
-from voice_router import VoiceRouter
+from routing.voice_router import VoiceRouter
 
 
 class VoiceEngine:

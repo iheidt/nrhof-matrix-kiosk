@@ -22,7 +22,7 @@ def draw_button(surface: Surface, x: int, y: int, container_width: int, text: st
     Returns:
         pygame.Rect of the content area (inside border and padding)
     """
-    from theme_loader import get_theme_loader
+    from core.theme_loader import get_theme_loader
     
     # Load theme if not provided
     if theme is None:

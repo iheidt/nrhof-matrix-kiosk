@@ -164,7 +164,7 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     Returns:
         pygame.Rect of the entire component
     """
-    from theme_loader import get_theme_loader
+    from core.theme_loader import get_theme_loader
     
     # Load theme if not provided
     if theme is None:

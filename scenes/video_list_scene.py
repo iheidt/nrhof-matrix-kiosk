@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import os
 from pathlib import Path
-from scene_manager import BaseHubScene, register_scene
-from intent_router import Intents
+from scenes.scene_manager import BaseHubScene, register_scene
+from routing.intent_router import Intents
 
 
 @register_scene("VideoListScene")
@@ -29,7 +29,7 @@ class VideoListScene(BaseHubScene):
             ]
         
         # Load theme for styling but use dynamic items
-        from theme_loader import get_theme_loader
+        from core.theme_loader import get_theme_loader
         theme_loader = get_theme_loader()
         theme = theme_loader.load_theme('video_list', theme_name='pipboy')
         

@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-import os
 import sys
-import argparse
-import importlib
-import threading
-from pathlib import Path
 import pygame
 
 # Import version
@@ -17,199 +12,63 @@ try:
 except Exception:
     pass
 
-from scene_manager import SceneManager
-from scenes.splash_scene import SplashScene  # Only eager import
-from voice_router import VoiceRouter
-from voice_engine import VoiceEngine
-from intent_router import IntentRouter, Intents
-from app_context import AppContext
-from config_loader import load_config
-from event_bus import EventBus, EventType, get_event_bus
-from app_state import AppState, get_app_state, SceneProfile
-from workers.audio_worker import AudioWorker
-from workers.recognition_worker import RecognitionWorker
-from logger import get_logger
-from renderers import create_renderer
-from intent_handlers import register_all_intents
-
-ROOT = Path(__file__).resolve().parent
-
-
-def init_pygame_env():
-    """Initialize pygame environment variables."""
-    os.environ.setdefault("SDL_VIDEO_ALLOW_SCREENSAVER", "0")
-    os.environ.setdefault("SDL_VIDEO_WINDOW_POS", "0,0")
-
-# Global voice router instance for testing/access
-voice_router = None
-
+from core.config_loader import load_config
+from core.event_bus import EventType
+from core.app_initializer import (
+    parse_arguments,
+    apply_cli_overrides,
+    initialize_renderer,
+    initialize_fonts,
+    create_app_components,
+    start_workers,
+    register_all_handlers,
+    start_preload
+)
 
 def main():
-    global voice_router
-    
-    # Parse command-line arguments
-    parser = argparse.ArgumentParser(description='NRHOF')
-    parser.add_argument('--fullscreen', action='store_true', help='Run in fullscreen mode')
-    parser.add_argument('--resolution', type=str, help='Display resolution (e.g., 1280x1024)')
-    parser.add_argument('--display', type=int, help='Display index (0=primary, 1=secondary)')
-    args = parser.parse_args()
-    
+    # Parse arguments and load config
+    args = parse_arguments()
     cfg = load_config()
     
     # Initialize localization
-    import localization
+    from core import localization
     lang = cfg.get('localization.language', 'en')
     localization.set_language(lang)
     
-    # Override config with command-line arguments
-    if args.fullscreen:
-        cfg.set('render.fullscreen', True)
-    if args.resolution:
-        try:
-            width, height = map(int, args.resolution.split('x'))
-            cfg.set('render.resolution', [width, height])
-        except ValueError:
-            print(f"Invalid resolution format: {args.resolution}. Use format: WIDTHxHEIGHT")
-            sys.exit(1)
-    if args.display is not None:
-        cfg.set('render.display', args.display)
+    # Apply CLI overrides
+    apply_cli_overrides(cfg, args)
     
-    # Initialize logger
-    logger = get_logger('kiosk', cfg.to_dict())
+    # Initialize renderer and get logger
+    renderer, screen, logger = initialize_renderer(cfg)
     logger.info("Starting NRHOF", version=__version__)
     
-    # Initialize pygame environment
-    init_pygame_env()
+    # Initialize fonts
+    initialize_fonts(cfg, logger)
     
-    # Create renderer
-    renderer = create_renderer(cfg.to_dict())
-    renderer.initialize()
-    screen = renderer.get_surface()  # Get pygame surface for backward compatibility
-    logger.info("Renderer initialized", backend=cfg.get('render.backend', 'pygame'), 
-                resolution=cfg.get('render.resolution'))
+    # Create all app components
+    components = create_app_components(cfg, screen)
     
-    # Initialize custom fonts
-    from utils import init_custom_fonts
-    init_custom_fonts(cfg.to_dict())
-    logger.info("Custom fonts initialized")
+    # Start workers
+    audio_worker, recognition_worker = start_workers(cfg)
     
-    # Create and configure voice router
-    voice_router = VoiceRouter()
-    
-    # Create intent router
-    intent_router = IntentRouter()
-    
-    # Create voice engine (but don't start yet)
-    voice_engine = VoiceEngine(voice_router)
-    
-    # Create scene manager
-    scene_manager = SceneManager(screen, cfg.to_dict())  # Pass as dict for now
-    
-    # Create app context
-    app_context = AppContext(cfg.to_dict(), scene_manager, voice_router, voice_engine, intent_router)
-    
-    # Initialize event bus and app state
-    event_bus = get_event_bus()
-    app_state = get_app_state()
-    
-    # Start audio worker
-    audio_worker = AudioWorker(cfg.to_dict())
-    audio_worker.start()
-    
-    # Start recognition worker
-    recognition_worker = RecognitionWorker(cfg.to_dict())
-    recognition_worker.start()
-    
-    # Initialize preload tracking
-    app_context.preload_progress = 0.0
-    app_context.preload_done = False
-    
-    # Eagerly register and switch to Splash
-    scene_manager.register_scene('SplashScene', SplashScene(app_context))
-    
-    # Register all other scenes lazily
-    def make_factory(module_name, class_name):
-        def factory():
-            module = importlib.import_module(module_name)
-            scene_class = getattr(module, class_name)
-            return scene_class(app_context)
-        return factory
-    
-    scene_manager.register_lazy('IntroScene', make_factory('scenes.intro_scene', 'IntroScene'))
-    scene_manager.register_lazy('MenuScene', make_factory('scenes.menu_scene', 'MenuScene'))
-    scene_manager.register_lazy('Experience1HubScene', make_factory('scenes.experience1_hub_scene', 'Experience1HubScene'))
-    scene_manager.register_lazy('Experience1SpectrumBarsScene', make_factory('scenes.experience1_spectrum_bars', 'Experience1SpectrumBarsScene'))
-    scene_manager.register_lazy('Experience1WaveformScene', make_factory('scenes.experience1_waveform', 'Experience1WaveformScene'))
-    scene_manager.register_lazy('Experience1LissajousScene', make_factory('scenes.experience1_lissajous', 'Experience1LissajousScene'))
-    scene_manager.register_lazy('Experience2HubScene', make_factory('scenes.experience2_hub_scene', 'Experience2HubScene'))
-    scene_manager.register_lazy('VideoListScene', make_factory('scenes.video_list_scene', 'VideoListScene'))
-    scene_manager.register_lazy('VideoPlayerScene', make_factory('scenes.video_player_scene', 'VideoPlayerScene'))
-    
-    # Register intent handlers
-    register_all_intents(intent_router, scene_manager, app_context)
-    
-    # Register voice commands for scene navigation (emit intents)
-    def register_voice_commands(voice_router: VoiceRouter, intent_router: IntentRouter):
-        """Register all voice commands.
-        
-        Args:
-            voice_router: VoiceRouter instance
-            intent_router: IntentRouter instance
-        """
-        # Navigation commands - all emit go_home intent
-        for cmd in ["menu", "home", "main"]:
-            voice_router.register_command(cmd, lambda: intent_router.emit(Intents.GO_HOME))
-        
-        # Option selection with variants
-        options = [
-            (["one", "1", "first"], 0),
-            (["two", "2", "second"], 1),
-            (["three", "3", "third"], 2)
-        ]
-        for variants, index in options:
-            for variant in variants:
-                voice_router.register_command(
-                    variant,
-                    lambda idx=index: intent_router.emit(Intents.SELECT_OPTION, index=idx)
-                )
-    register_voice_commands(voice_router, intent_router)
-    voice_router.register_command("three", lambda: intent_router.emit("select_option", index=2))
-    voice_router.register_command("3", lambda: intent_router.emit("select_option", index=2))  # Number variant
-    voice_router.register_command("third", lambda: intent_router.emit("select_option", index=2))  # Alternative
+    # Register all handlers
+    register_all_handlers(components)
     
     # Start voice engine
-    voice_engine.start()
+    components['voice_engine'].start()
     
     # Start with splash screen
-    scene_manager.switch_to("SplashScene")
+    components['scene_manager'].switch_to("SplashScene")
     
-    # Kick off background preload
-    def _progress(done, total):
-        app_context.preload_progress = float(done) / float(total)
-    
-    scenes_to_preload = [
-        'IntroScene',
-        'MenuScene',
-        'Experience1HubScene',
-        'Experience1SpectrumBarsScene',
-        'Experience1WaveformScene',
-        'Experience1LissajousScene',
-        'Experience2HubScene',
-        'VideoListScene',
-        'VideoPlayerScene'
-    ]
-    
-    preload_thread = scene_manager.preload_lazy(scenes_to_preload, progress_cb=_progress, sleep_between=0.05)
-    
-    # Waiter thread to set preload_done
-    def _waiter():
-        preload_thread.join()
-        app_context.preload_done = True
-    
-    waiter_thread = threading.Thread(target=_waiter, daemon=True)
-    waiter_thread.start()
+    # Start background preload
+    start_preload(components['scene_manager'], components['app_context'])
     
     # Main game loop
+    scene_manager = components['scene_manager']
+    event_bus = components['event_bus']
+    app_state = components['app_state']
+    voice_engine = components['voice_engine']
+    
     clock = pygame.time.Clock()
     running = True
     frame_count = 0

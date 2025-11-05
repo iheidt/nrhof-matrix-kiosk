@@ -24,7 +24,7 @@ def draw_card(surface: Surface, x: int, y: int, width: int, height: int, theme: 
     Returns:
         Rect of the card's content area (inside padding)
     """
-    from theme_loader import get_theme_loader
+    from core.theme_loader import get_theme_loader
     
     # Load theme if not provided
     if theme is None:
@@ -182,7 +182,7 @@ def draw_title_card(surface: Surface, x: int, y: int, width: int, height: int, t
     Returns:
         pygame.Rect of the content area (inside border and padding)
     """
-    from theme_loader import get_theme_loader
+    from core.theme_loader import get_theme_loader
     
     # Load theme if not provided
     if theme is None:

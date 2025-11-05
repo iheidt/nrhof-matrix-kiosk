@@ -9,8 +9,8 @@ import time
 import numpy as np
 from typing import Optional
 from audio_source import get_audio_frame, get_sample_rate
-from event_bus import get_event_bus, EventType
-from app_state import get_app_state, TrackInfo
+from core.event_bus import get_event_bus, EventType
+from core.app_state import get_app_state, TrackInfo
 
 
 class AudioWorker:

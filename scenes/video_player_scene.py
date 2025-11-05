@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import pygame
 from pathlib import Path
-from scene_manager import Scene, register_scene
-from intent_router import Intents
+from scenes.scene_manager import Scene, register_scene
+from routing.intent_router import Intents
 from renderers import FrameState, Video, Text
 
 
@@ -143,7 +143,7 @@ class VideoPlayerScene(Scene):
     def draw(self, screen: pygame.Surface):
         """Draw the video frame using renderer abstraction."""
         # Load theme colors
-        from theme_loader import get_theme_loader
+        from core.theme_loader import get_theme_loader
         theme_loader = get_theme_loader()
         style = theme_loader.load_style('pipboy')
         

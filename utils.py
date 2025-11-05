@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parent
 def _load_margins_from_yaml():
     """Load margins from _base.yaml."""
     try:
-        from theme_loader import get_theme_loader
+        from core.theme_loader import get_theme_loader
         theme_loader = get_theme_loader()
         base_layout = theme_loader.load_layout('_base')
         margins = base_layout.get('margins', {})

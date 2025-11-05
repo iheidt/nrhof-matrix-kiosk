@@ -98,7 +98,7 @@ def load_config(config_path: Optional[Path] = None) -> Config:
         Config object
     """
     if config_path is None:
-        config_path = Path(__file__).parent / 'config.yaml'
+        config_path = Path(__file__).parent.parent / 'config.yaml'
     
     # Load YAML
     with open(config_path, 'r') as f:

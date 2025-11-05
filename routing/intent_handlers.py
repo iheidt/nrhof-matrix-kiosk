@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Intent handlers for application navigation and actions."""
 
-from intent_router import IntentRouter, Intents
-from scene_manager import SceneManager
-from app_context import AppContext
+from routing.intent_router import IntentRouter, Intents
+from scenes.scene_manager import SceneManager
+from core.app_context import AppContext
 
 
 def register_all_intents(intent_router: IntentRouter, scene_manager: SceneManager, app_context: AppContext):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Test script for voice router functionality."""
 
-from voice_router import VoiceRouter
+from routing.voice_router import VoiceRouter
 
 
 def test_voice_router():

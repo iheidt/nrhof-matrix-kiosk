@@ -49,7 +49,7 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140)):
         surface: Pygame surface to draw on
         color: RGB color tuple (not used, colors from theme)
     """
-    from theme_loader import get_theme_loader
+    from core.theme_loader import get_theme_loader
     from __version__ import __version__
     from ..components.cards import draw_card
     
@@ -84,7 +84,7 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140)):
                             border_fade_pct=footer_fade_pct)
     
     # Draw "settings" text (left aligned in card)
-    from localization import t
+    from core.localization import t
     primary_color = tuple(style['colors']['primary'])
     micro_size = style['typography']['fonts']['micro']
     settings_font = get_theme_font(micro_size, 'primary')

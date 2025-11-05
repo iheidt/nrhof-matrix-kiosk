@@ -165,8 +165,8 @@ class BaseHubScene(Scene):
         
         # Load theme if content_name provided
         if content_name:
-            from theme_loader import get_theme_loader
-            from localization import t
+            from core.theme_loader import get_theme_loader
+            from core.localization import t
             self.theme_loader = get_theme_loader()
             self.theme = self.theme_loader.load_theme(content_name, theme_name='pipboy')
             # Also load shared hub layout
@@ -258,7 +258,7 @@ class BaseHubScene(Scene):
     
     def _select_item(self, index: int):
         """Select a sub-experience by index."""
-        from intent_router import Intents
+        from routing.intent_router import Intents
         if 0 <= index < len(self.items):
             item = self.items[index]
             self.ctx.intent_router.emit(Intents.SELECT_SUB_EXPERIENCE, id=item["id"])
@@ -303,7 +303,7 @@ class BaseHubScene(Scene):
             line_height = items_layout['line_height']
             item_font = get_theme_font(items_layout['font_size'], 'primary')
             
-            from localization import t
+            from core.localization import t
             for i, item in enumerate(self.items):
                 if i == self.selected_index:
                     prefix = "> "

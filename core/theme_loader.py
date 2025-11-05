@@ -33,7 +33,7 @@ class ThemeLoader:
             root_dir: Root directory of the project (defaults to current file's parent)
         """
         if root_dir is None:
-            root_dir = Path(__file__).parent
+            root_dir = Path(__file__).parent.parent
         
         self.root_dir = Path(root_dir)
         self.content_dir = self.root_dir / "content"

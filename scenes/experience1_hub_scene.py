@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-from scene_manager import BaseHubScene, register_scene
-from intent_router import Intents
+from scenes.scene_manager import BaseHubScene, register_scene
+from routing.intent_router import Intents
 
 
 @register_scene("Experience1HubScene")

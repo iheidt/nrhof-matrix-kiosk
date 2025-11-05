@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import pygame
 from pathlib import Path
-from scene_manager import Scene, register_scene
+from scenes.scene_manager import Scene, register_scene
 from utils import get_font, get_theme_font, draw_scanlines, draw_footer, render_text, load_icon, launch_command, draw_now_playing, draw_d20, draw_timeclock, ROOT
-from intent_router import Intents
+from routing.intent_router import Intents
 from renderers import FrameState, Shape, Text, Image
-from theme_loader import get_theme_loader
+from core.theme_loader import get_theme_loader
 
 
 @register_scene("MenuScene")
@@ -234,7 +234,7 @@ class MenuScene(Scene):
         button_x = self.left_col_x + adornment_size + adornment_margin
         
         # Start buttons below title card with configured spacing
-        from localization import t
+        from core.localization import t
         y = title_card_y + title_card_height + title_card_margin_bottom
         for i, entry in enumerate(self.entries):
             # Use localization key if available, otherwise fall back to label

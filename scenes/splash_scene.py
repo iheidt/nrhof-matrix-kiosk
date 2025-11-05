@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import time
 import pygame
-from scene_manager import Scene, register_scene
+from scenes.scene_manager import Scene, register_scene
 from utils import get_font, get_theme_font, draw_scanlines
 from renderers import FrameState, Shape, Text
 from __version__ import __version__
-from theme_loader import get_theme_loader
+from core.theme_loader import get_theme_loader
 
 
 @register_scene("SplashScene")
@@ -87,7 +87,7 @@ class SplashScene(Scene):
         style = self.theme['style']
         
         # Title text
-        from localization import t
+        from core.localization import t
         title_layout = layout['title']
         title_pos = self.theme_loader.resolve_position(title_layout['position'], screen_size)
         # Use localization if title_key exists

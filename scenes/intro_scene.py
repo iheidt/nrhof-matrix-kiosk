@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import time
 import pygame
-from scene_manager import Scene, register_scene
+from scenes.scene_manager import Scene, register_scene
 from utils import get_font, get_theme_font, draw_scanlines
 from renderers import FrameState, Text
-from theme_loader import get_theme_loader
+from core.theme_loader import get_theme_loader
 
 
 @register_scene("IntroScene")
@@ -19,7 +19,7 @@ class IntroScene(Scene):
         self.theme = self.theme_loader.load_theme('intro', theme_name='pipboy')
         
         # Extract from theme
-        from localization import t
+        from core.localization import t
         # Use localization if lines_keys exists
         lines_keys = self.theme['content'].get('lines_keys')
         if lines_keys:

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import numpy as np
 import pygame
-from scene_manager import BaseAudioScene, register_scene
+from scenes.scene_manager import BaseAudioScene, register_scene
 from utils import draw_scanlines, draw_footer, draw_back_arrow
-from intent_router import Intents
+from routing.intent_router import Intents
 from visualizers import WaveformVisualizer
 
 
@@ -16,7 +16,7 @@ class Experience1WaveformScene(BaseAudioScene):
         super().__init__(ctx, sample_rate=44100, fft_size=1024)
         
         # Load theme colors
-        from theme_loader import get_theme_loader
+        from core.theme_loader import get_theme_loader
         theme_loader = get_theme_loader()
         style = theme_loader.load_style('pipboy')
         
