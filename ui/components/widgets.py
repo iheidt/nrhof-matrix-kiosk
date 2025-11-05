@@ -214,7 +214,11 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
                      line2: str = "",
                      theme: dict = None,
                      border_y: int = None,
-                     marquee: MarqueeText = None) -> pygame.Rect:
+                     marquee: MarqueeText = None,
+                     progress_ms: int = None,
+                     duration_ms: int = None,
+                     is_playing: bool = False,
+                     fade_amount: float = 0.0) -> pygame.Rect:
     """Draw a 'Now Playing' component with title, border, and two body lines.
     
     Args:
@@ -241,7 +245,9 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
         style = theme.get('style', theme)
     
     # Colors
-    title_color = tuple(style['colors'].get('primary', (233, 30, 99)))
+    primary_color = tuple(style['colors'].get('primary', (233, 30, 99)))
+    dim_color = tuple(style['colors'].get('dim', (100, 100, 100)))  # Dim/muted color
+    title_color = primary_color
     bg_color_hex = "#1797CD"
     # Convert hex to RGB with 33% alpha
     bg_r = int(bg_color_hex[1:3], 16)
@@ -251,7 +257,22 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     
     # Border
     border_width = 6
-    border_color = title_color
+    
+    # Calculate progress percentage
+    progress_pct = 0.0
+    if is_playing and progress_ms is not None and duration_ms and duration_ms > 0:
+        progress_pct = min(1.0, progress_ms / duration_ms)
+    
+    # Animate border color fade (primary -> dim when playing)
+    # Interpolate between primary and dim based on fade_amount
+    if fade_amount > 0:
+        # Linear interpolation between colors
+        border_color = tuple(
+            int(primary_color[i] + (dim_color[i] - primary_color[i]) * fade_amount)
+            for i in range(3)
+        )
+    else:
+        border_color = primary_color
     
     # Fonts
     # Title: Compadre Extended (label_font), label size (16)
@@ -323,8 +344,20 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     bg_surface.fill((bg_r, bg_g, bg_b, bg_alpha))
     surface.blit(bg_surface, (x, content_y))
     
-    # Draw border (solid line)
+    # Draw border (secondary color when playing)
     pygame.draw.rect(surface, border_color, (x, calculated_border_y, width, border_width), 0)
+    
+    # Draw progress bar overlay (primary color) if playing
+    if is_playing:
+        # Calculate progress width (stop before circle starts)
+        circle_size = 80
+        circle_left_edge = x + width - circle_size  # Where circle actually starts
+        max_progress_width = circle_left_edge - x
+        progress_width = int(max_progress_width * progress_pct)
+        
+        # Draw primary progress bar on top of dim border
+        if progress_width > 0:
+            pygame.draw.rect(surface, primary_color, (x, calculated_border_y, progress_width, border_width), 0)
     
     # Draw title
     surface.blit(title_surface, (x, title_y))
@@ -354,7 +387,7 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     circle_x = x + width - (circle_size // 2)  # Right edge, half overlapping
     circle_y = calculated_border_y - (circle_size // 2) + (border_width // 2) + 40  # Centered on border, moved down 40px
     
-    # Draw outer circle (border)
+    # Draw outer circle (border) - use same color as top border
     pygame.draw.circle(surface, border_color, (circle_x, circle_y), circle_size // 2, 0)
     
     # Draw inner circle (background fill)

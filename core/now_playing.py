@@ -73,21 +73,27 @@ class NowPlayingState:
         self.listeners: List[Callable[[Optional[Track]], None]] = []
     
     def set_track(self, track: Optional[Track]) -> bool:
-        """Update current track if it's different.
+        """Update current track.
         
         Args:
             track: New track or None
             
         Returns:
-            True if track changed, False otherwise
+            True if track changed (by title/artist), False if just updated
         """
-        if track == self.track:
-            return False
+        # Check if it's a different track (by title/artist)
+        is_different_track = track != self.track
         
+        # Always update to capture progress_ms and other field changes
         self.track = track
-        self.last_change_ts = time.time()
-        self._notify_listeners()
-        return True
+        
+        # Only update timestamp and notify if it's actually a different track
+        if is_different_track:
+            self.last_change_ts = time.time()
+            self._notify_listeners()
+            return True
+        
+        return False
     
     def get_track(self) -> Optional[Track]:
         """Get current track."""

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import pygame
+import time
 from pathlib import Path
 from scenes.scene_manager import Scene, register_scene
 from utils import get_font, get_theme_font, draw_scanlines, draw_footer, render_text, load_icon, launch_command, draw_now_playing, draw_d20, draw_timeclock, ROOT
@@ -31,7 +32,19 @@ class MenuScene(Scene):
         self.button_rects = []  # Store button rectangles for click detection
         self.button_spacing = 0
         self.button_start_y = 0
+        # Marquee for now playing text
         self.now_playing_marquee = None
+        
+        # Progress tracking for smooth interpolation
+        self.last_track_id = None
+        self.last_progress_ms = None
+        self.last_progress_update_time = None
+        
+        # Fade transition tracking
+        self.playback_state_start_time = None
+        self.is_in_playback_state = False
+        self.fade_delay = 1.0  # Delay before starting fade (seconds)
+        self.fade_duration = 0.5  # Fade duration (seconds)
     
     def on_enter(self):
         """Initialize menu display."""
@@ -327,6 +340,77 @@ class MenuScene(Scene):
         if self.now_playing_marquee is None:
             self.now_playing_marquee = MarqueeText(song_line, max_text_width, scroll_speed=50.0, gap=100)
         
+        # Get playback progress info with client-side interpolation
+        progress_ms = None
+        duration_ms = None
+        is_playing = False
+        
+        if track:
+            duration_ms = track.duration_ms
+            is_playing = track.is_playing
+            
+            # Create a unique track ID for comparison
+            track_id = f"{track.title}_{track.artist}_{track.source}"
+            
+            # Check if track changed
+            if track_id != self.last_track_id:
+                # New track, reset progress tracking
+                self.last_track_id = track_id
+                self.last_progress_ms = track.progress_ms
+                self.last_progress_update_time = time.time()
+                progress_ms = track.progress_ms
+            elif track.progress_ms is not None and track.progress_ms != self.last_progress_ms:
+                # Progress updated from API - always reset to new position
+                # This handles both normal updates and scrubs
+                self.last_progress_ms = track.progress_ms
+                self.last_progress_update_time = time.time()
+                progress_ms = track.progress_ms
+            elif is_playing and self.last_progress_ms is not None and self.last_progress_update_time is not None:
+                # Interpolate progress client-side for smooth animation
+                elapsed_ms = (time.time() - self.last_progress_update_time) * 1000
+                progress_ms = self.last_progress_ms + int(elapsed_ms)
+                
+                # Clamp to duration
+                if duration_ms and progress_ms > duration_ms:
+                    progress_ms = duration_ms
+            else:
+                # Not playing or no previous data
+                progress_ms = track.progress_ms
+        else:
+            # No track, reset tracking
+            self.last_track_id = None
+            self.last_progress_ms = None
+            self.last_progress_update_time = None
+        
+        # Track playback state changes for fade transition
+        if is_playing and not self.is_in_playback_state:
+            # Just started playing
+            self.is_in_playback_state = True
+            self.playback_state_start_time = time.time()
+        elif not is_playing and self.is_in_playback_state:
+            # Just stopped playing
+            self.is_in_playback_state = False
+            self.playback_state_start_time = time.time()
+        
+        # Calculate fade amount (0.0 = primary, 1.0 = dim)
+        fade_amount = 0.0
+        if self.playback_state_start_time is not None:
+            elapsed = time.time() - self.playback_state_start_time
+            
+            if is_playing:
+                # Fading to dim (playing state)
+                if elapsed < self.fade_delay:
+                    # Still in delay period, stay at primary
+                    fade_amount = 0.0
+                else:
+                    # Fade from primary to dim
+                    fade_progress = min(1.0, (elapsed - self.fade_delay) / self.fade_duration)
+                    fade_amount = fade_progress
+            else:
+                # Fading back to primary (stopped state) - no delay, immediate fade
+                fade_progress = min(1.0, elapsed / self.fade_duration)
+                fade_amount = 1.0 - fade_progress  # Reverse: 1.0 -> 0.0
+        
         # Pass border_y directly to align with title card top border (adjusted up by 6px)
         now_playing_rect = draw_now_playing(
             surface=screen,
@@ -338,7 +422,11 @@ class MenuScene(Scene):
             line2=album_line,
             theme={'style': style},
             border_y=title_card_y - 6,  # Move entire component up 6px
-            marquee=self.now_playing_marquee
+            marquee=self.now_playing_marquee,
+            progress_ms=progress_ms,
+            duration_ms=duration_ms,
+            is_playing=is_playing,
+            fade_amount=fade_amount
         )
         
         # Draw d20 component (includes speech_synthesizer inside) 100px below now playing, shifted 50px left

@@ -101,12 +101,9 @@ class SourceManager:
         
         # Check if it's the same track (just updating)
         if track == current_track:
-            # Same track, just update metadata if needed
-            if track.image_url and not current_track.image_url:
-                logger.debug("Updating track metadata", source=source)
-                self.now_playing.set_track(track)
-                return True
-            return False
+            # Same track, always update to capture progress_ms and other changes
+            self.now_playing.set_track(track)
+            return True
         
         # Different track - check priority
         new_priority = self.PRIORITY.get(source, 999)
