@@ -268,6 +268,30 @@ class MenuScene(Scene):
         now_playing = get_now_playing_state()
         track = now_playing.get_track()
         
+        # Determine title based on source
+        if track:
+            if track.source == 'spotify':
+                # SPOTIFY . DEVICE NAME
+                device = track.device_name if track.device_name else "unknown"
+                device_formatted = device.upper().replace(' ', '.').replace('-', '.')
+                now_playing_title = f"SPOTIFY . {device_formatted}"
+            elif track.source == 'sonos':
+                # SONOS . ROOM NAME
+                room = track.sonos_room if track.sonos_room else "unknown"
+                room_formatted = room.upper().replace('-', '.')
+                now_playing_title = f"SONOS . {room_formatted}"
+            elif track.source == 'vinyl':
+                # RECORD PLAYER
+                now_playing_title = "RECORD PLAYER"
+            else:
+                now_playing_title = "NOW PLAYING"
+            
+            # Truncate title to prevent overlap with circle (max ~30 chars)
+            if len(now_playing_title) > 30:
+                now_playing_title = now_playing_title[:27] + "..."
+        else:
+            now_playing_title = "NOW PLAYING"
+        
         if track:
             # Format based on content type with emojis and lowercase
             if track.content_type == 'podcast':
@@ -309,7 +333,7 @@ class MenuScene(Scene):
             x=right_col_x,
             y=0,  # Not used when border_y is provided
             width=right_col_width,
-            title="NOW PLAYING",
+            title=now_playing_title,
             line1=song_line,
             line2=album_line,
             theme={'style': style},
