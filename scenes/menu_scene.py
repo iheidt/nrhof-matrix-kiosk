@@ -2,7 +2,7 @@
 import pygame
 from pathlib import Path
 from scene_manager import Scene, register_scene
-from utils import get_font, get_theme_font, draw_scanlines, draw_footer, render_text, load_icon, launch_command, draw_now_playing, ROOT
+from utils import get_font, get_theme_font, draw_scanlines, draw_footer, render_text, load_icon, launch_command, draw_now_playing, draw_d20, draw_timeclock, ROOT
 from intent_router import Intents
 from renderers import FrameState, Shape, Text, Image
 from theme_loader import get_theme_loader
@@ -254,7 +254,7 @@ class MenuScene(Scene):
         right_col_width = columns_config['right']['width']
         
         # Pass border_y directly to align with title card top border (adjusted up by 6px)
-        draw_now_playing(
+        now_playing_rect = draw_now_playing(
             surface=screen,
             x=right_col_x,
             y=0,  # Not used when border_y is provided
@@ -264,6 +264,33 @@ class MenuScene(Scene):
             line2="Rnk 1/38",
             theme={'style': style},
             border_y=title_card_y - 6  # Move entire component up 6px
+        )
+        
+        # Draw d20 component (includes speech_synthesizer inside) 100px below now playing, shifted 50px left
+        d20_y = now_playing_rect.bottom + 110
+        d20_x = right_col_x - 25  # Shift 50px to the left
+        d20_rect = draw_d20(
+            surface=screen,
+            x=d20_x,
+            y=d20_y,
+            width=right_col_width,
+            height=420,
+            theme={'style': style}
+        )
+        
+        # Draw timeclock component 100px below d20, extended 50px to the left
+        timeclock_y = d20_rect.bottom + 40
+        timeclock_settings = layout.get('timeclock', {})
+        timeclock_height = timeclock_settings.get('height', 300)
+        timeclock_width = right_col_width + 50  # Extend by 50px
+        timeclock_x = right_col_x - 50  # Shift 50px to the left
+        draw_timeclock(
+            surface=screen,
+            x=timeclock_x,
+            y=timeclock_y,
+            width=timeclock_width,
+            height=timeclock_height,
+            theme={'style': style, 'layout': layout}
         )
         
         # Draw scanlines and footer

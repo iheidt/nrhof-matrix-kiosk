@@ -20,3 +20,7 @@ buttons:
   spacing: 30  # Vertical spacing between buttons
   width: 67%  # Button width as percentage of column
   column: left  # Place buttons in left column
+
+timeclock:
+  height: 100  # Card height
+  border_fade_pct: 0.9  # Percentage of border that fades (0.0-1.0)

@@ -684,10 +684,155 @@ def load_icon(path: Path, size: tuple[int, int], fill_color: tuple = None) -> Su
         data = pil_img.tobytes()
         return pygame.image.fromstring(data, pil_img.size, mode)
     except Exception as e:
-        print(f"Error loading icon: {e}")
-        import traceback
-        traceback.print_exc()
+        # Suppress cairo write errors (only happen on Ctrl+C interrupt)
+        if "CAIRO_STATUS_WRITE_ERROR" not in str(e):
+            print(f"Error loading icon: {e}")
         return None
+
+
+def draw_timeclock(surface: Surface, x: int, y: int, width: int, height: int, theme: dict = None) -> pygame.Rect:
+    """
+    Draw timeclock component with card border and live time/date.
+    
+    Args:
+        surface: Surface to draw on
+        x: X position
+        y: Y position
+        width: Card width
+        height: Card height
+        theme: Theme dict with style
+    
+    Returns:
+        Rect of the component
+    """
+    if theme is None:
+        theme = {}
+    style = theme.get('style', {})
+    layout = theme.get('layout', {})
+    
+    # Get colors
+    primary_color = tuple(style.get('colors', {}).get('primary', (255, 20, 147)))
+    dim_color_hex = style['colors'].get('dim', '#2C405B')
+    if isinstance(dim_color_hex, str) and dim_color_hex.startswith('#'):
+        dim_color = tuple(int(dim_color_hex[i:i+2], 16) for i in (1, 3, 5))
+    else:
+        dim_color = tuple(dim_color_hex) if isinstance(dim_color_hex, (list, tuple)) else (44, 64, 91)
+    
+    # Get timeclock settings from layout
+    timeclock_settings = layout.get('timeclock', {})
+    border_fade_pct = timeclock_settings.get('border_fade_pct', 0.9)
+    
+    # Draw card border with fade (top solid, bottom/sides fade) - reuse draw_card logic
+    draw_card(surface, x, y, width, height, theme=theme, 
+              border_solid='top', border_fade_pct=border_fade_pct)
+    
+    # Get current time and date
+    from datetime import datetime
+    now = datetime.now()
+    
+    # Format time and date
+    ampm = now.strftime("%p")  # AM or PM
+    time_str = now.strftime("%I:%M")  # 05:30 (with leading zero)
+    date_str = now.strftime("%a %b %Y").lower()  # tue oct 2025
+    
+    # Load fonts
+    # AM/PM: Miland 30px
+    ampm_font_path = Path(__file__).parent / "assets" / "fonts" / "miland.otf"
+    ampm_font = pygame.font.Font(str(ampm_font_path), 30)
+    
+    # Time: IBM Plex Semibold Italic 124px (display size)
+    time_font_path = Path(__file__).parent / "assets" / "fonts" / "IBMPlexMono-SemiBoldItalic.ttf"
+    time_font = pygame.font.Font(str(time_font_path), 124)
+    
+    # Date: IBM Plex Semibold Italic 48px (body size)
+    date_font = pygame.font.Font(str(time_font_path), 48)
+    
+    # Render text
+    ampm_surface = ampm_font.render(ampm, True, primary_color)
+    time_surface = time_font.render(time_str, True, primary_color)
+    date_surface = date_font.render(date_str, True, dim_color)
+    
+    # Layout with 24px top padding
+    padding = 24
+    
+    # AM/PM right-justified with padding
+    ampm_x = x + width - padding - ampm_surface.get_width()
+    ampm_y = y + padding
+    surface.blit(ampm_surface, (ampm_x, ampm_y))
+    
+    # Time centered horizontally, 10px below AM/PM, moved up 48px
+    time_x = x + (width - time_surface.get_width()) // 2
+    time_y = ampm_y + ampm_surface.get_height() - 25
+    surface.blit(time_surface, (time_x, time_y))
+    
+    # Date centered horizontally, 10px below time, moved up 48px
+    date_x = x + (width - date_surface.get_width()) // 2
+    date_y = time_y + time_surface.get_height() - 25
+    surface.blit(date_surface, (date_x, date_y))
+    
+    return pygame.Rect(x, y, width, height)
+
+
+def draw_d20(surface: Surface, x: int, y: int, width: int, height: int = 300, theme: dict = None) -> pygame.Rect:
+    """
+    Draw d20 SVG component with speech_synthesizer below it.
+    
+    Args:
+        surface: Surface to draw on
+        x: X position
+        y: Y position  
+        width: Container width
+        height: Container height (default 300px)
+        theme: Theme dict with style
+    
+    Returns:
+        Rect of the component
+    """
+    if theme is None:
+        theme = {}
+    style = theme.get('style', {})
+    
+    # Get primary color for d20 SVG fill
+    primary_color = tuple(style.get('colors', {}).get('primary', (255, 20, 147)))
+    
+    # Get dim color for speech synthesizer
+    dim_hex = style['colors'].get('dim', '#2C405B')
+    if isinstance(dim_hex, str) and dim_hex.startswith('#'):
+        dim_color = tuple(int(dim_hex[i:i+2], 16) for i in (1, 3, 5))
+    else:
+        dim_color = tuple(dim_hex) if isinstance(dim_hex, (list, tuple)) else (44, 64, 91)
+    
+    # Calculate space for d20 (leaving room for speech synth + margin)
+    speech_height = 40
+    margin = 20
+    d20_available_height = height - speech_height - margin
+    
+    # Load d20 SVG
+    d20_path = Path(__file__).parent / "assets" / "d20.svg"
+    if d20_path.exists():
+        d20_surface = load_icon(d20_path, (width, d20_available_height), fill_color=primary_color)
+        if d20_surface:
+            # Center the d20 horizontally at top of container
+            d20_rect = d20_surface.get_rect()
+            d20_x = x + (width - d20_rect.width) // 2
+            d20_y = y
+            surface.blit(d20_surface, (d20_x, d20_y))
+            
+            # Draw speech_synthesizer below d20 with 30px margin
+            speech_y = d20_y + d20_rect.height + margin
+            speech_path = Path(__file__).parent / "assets" / "speech_synthesizer.svg"
+            if speech_path.exists():
+                speech_surface = load_icon(speech_path, (width, speech_height), fill_color=dim_color)
+                if speech_surface:
+                    speech_rect = speech_surface.get_rect()
+                    speech_x = x + (width - speech_rect.width) // 2
+                    surface.blit(speech_surface, (speech_x, speech_y))
+        else:
+            print(f"Warning: Failed to load d20 from {d20_path}")
+    else:
+        print(f"Warning: d20 not found at {d20_path}")
+    
+    return pygame.Rect(x, y, width, height)
 
 
 def launch_command(cmd: str):

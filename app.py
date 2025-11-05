@@ -317,6 +317,15 @@ def main():
 
 
 if __name__ == "__main__":
+    import signal
+    import sys
+    
+    # Suppress cffi cairo errors on Ctrl+C
+    def signal_handler(sig, frame):
+        sys.exit(0)
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    
     try:
         main()
     except KeyboardInterrupt:
