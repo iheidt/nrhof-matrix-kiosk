@@ -23,6 +23,12 @@ class EventType(Enum):
     TRACK_CONFIRMED = auto()
     TRACK_RECOGNITION_FAILED = auto()
     RECOGNITION_COOLDOWN = auto()
+    SONG_RECOGNIZED = auto()
+    
+    # Voice events
+    WAKE_WORD_DETECTED = auto()
+    VOICE_COMMAND_START = auto()
+    VOICE_COMMAND_END = auto()
     
     # Scene events
     SCENE_CHANGED = auto()

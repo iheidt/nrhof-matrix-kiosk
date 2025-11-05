@@ -48,11 +48,11 @@ def main():
     # Create all app components
     components = create_app_components(cfg, screen)
     
-    # Start workers
-    audio_worker, recognition_worker = start_workers(cfg)
-    
     # Register all handlers
     register_all_handlers(components)
+    
+    # Start workers (pass voice_engine for wake word callback)
+    workers = start_workers(cfg, components['voice_engine'])
     
     # Start voice engine
     components['voice_engine'].start()
@@ -109,7 +109,9 @@ def main():
     
     # Cleanup
     print("\nShutting down...")
-    audio_worker.stop()
+    for worker in workers.values():
+        if hasattr(worker, 'stop'):
+            worker.stop()
     event_bus.shutdown()
     voice_engine.stop()
     

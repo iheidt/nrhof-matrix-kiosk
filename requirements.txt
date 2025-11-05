@@ -11,3 +11,5 @@ opencv-python>=4.8.0
 # Optional: enable if you want SVG -> raster conversion at runtime
 cairosvg==2.7.1
 PyYAML==6.0.3
+git+https://github.com/acrcloud/acrcloud_sdk_python.git
+pvporcupine>=3.0.0

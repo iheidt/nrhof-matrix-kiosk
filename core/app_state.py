@@ -28,6 +28,7 @@ class TrackInfo:
     title: str
     artist: str
     album: Optional[str] = None
+    duration: float = 0.0   # Duration in seconds
     track_key: str = ""     # Deterministic key for deduplication
     confidence: float = 0.0
     recognized_at: float = 0.0
@@ -74,6 +75,10 @@ class AppState:
         self.current_track: Optional[TrackInfo] = None
         self.last_track: Optional[TrackInfo] = None
         self.track_changed_at: float = 0.0
+        
+        # Ambient song recognition (passive background detection)
+        self.ambient_song: Optional[TrackInfo] = None
+        self.ambient_song_updated_at: float = 0.0
         
         # Scene state
         self.scene_profile: SceneProfile = SceneProfile.IDLE
@@ -122,6 +127,32 @@ class AppState:
         """
         with self._lock:
             return self.music_present, self.audio_level
+    
+    # Ambient song methods
+    def update_ambient_song(self, track: TrackInfo):
+        """Update ambient song (passive background recognition).
+        
+        Args:
+            track: Recognized track information
+        """
+        with self._lock:
+            self.ambient_song = track
+            self.ambient_song_updated_at = time.time()
+    
+    def get_ambient_song(self) -> Optional[TrackInfo]:
+        """Get currently recognized ambient song.
+        
+        Returns:
+            TrackInfo or None
+        """
+        with self._lock:
+            return self.ambient_song
+    
+    def clear_ambient_song(self):
+        """Clear ambient song (e.g., when music stops)."""
+        with self._lock:
+            self.ambient_song = None
+            self.ambient_song_updated_at = 0.0
     
     # Track state methods
     def set_current_track(self, track: Optional[TrackInfo]):

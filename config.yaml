@@ -35,6 +35,26 @@ integrations:
 localization:
   language: "en"  # en (English) | jp (Japanese)
 
+# Wake word detection (Picovoice Porcupine)
+# API key loaded from PICOVOICE_ACCESS_KEY environment variable
+wake_word:
+  enabled: false  # Set to true when you have Picovoice access key in .env
+  picovoice_access_key: "${PICOVOICE_ACCESS_KEY}"  # Loaded from .env
+  keywords: ["jarvis"]  # Built-in keywords: jarvis, alexa, computer, etc.
+  keyword_paths: []  # Custom .ppn files (e.g., ["assets/wake_words/hey-nerd.ppn"])
+  sensitivity: 0.5  # 0.0 (least sensitive) to 1.0 (most sensitive)
+
+# Song recognition (ACRCloud)
+# API keys loaded from ACRCLOUD_* environment variables
+song_recognition:
+  enabled: true  # Set to true when you have ACRCloud credentials in .env
+  host: "identify-us-west-2.acrcloud.com"  # ACRCloud host
+  access_key: "${ACRCLOUD_ACCESS_KEY}"  # Loaded from .env
+  access_secret: "${ACRCLOUD_ACCESS_SECRET}"  # Loaded from .env
+  timeout: 10  # API timeout in seconds
+  min_interval_seconds: 30  # Minimum time between recognition attempts
+  audio_buffer_seconds: 10  # Audio buffer length for recognition
+
 # Feature flags
 flags:
   use_prebaked_video: false

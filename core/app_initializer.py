@@ -16,6 +16,8 @@ from core.event_bus import get_event_bus
 from core.app_state import get_app_state
 from workers.audio_worker import AudioWorker
 from workers.recognition_worker import RecognitionWorker
+from workers.wake_word_worker import WakeWordWorker
+from workers.song_recognition_worker import SongRecognitionWorker
 from core.logger import get_logger
 from renderers import create_renderer
 from routing.intent_handlers import register_all_intents
@@ -128,22 +130,47 @@ def create_app_components(cfg, screen):
     }
 
 
-def start_workers(cfg):
+def start_workers(cfg, voice_engine=None):
     """Start background workers.
     
     Args:
         cfg: Config object
+        voice_engine: VoiceEngine instance (for wake word callback)
         
     Returns:
-        tuple: (audio_worker, recognition_worker)
+        dict: Dictionary of workers
     """
+    logger = get_logger('app_initializer')
+    
+    # Audio worker (always runs)
     audio_worker = AudioWorker(cfg.to_dict())
     audio_worker.start()
     
+    # Recognition worker (legacy, may be disabled)
     recognition_worker = RecognitionWorker(cfg.to_dict())
     recognition_worker.start()
     
-    return audio_worker, recognition_worker
+    # Wake word worker (new)
+    wake_word_worker = WakeWordWorker(cfg.to_dict())
+    if wake_word_worker.enabled and voice_engine:
+        # Set callback to activate voice engine when wake word detected
+        def on_wake_word(keyword):
+            logger.info("Wake word detected, activating voice engine", keyword=keyword)
+            voice_engine.start_listening()
+        
+        wake_word_worker.set_callback(on_wake_word)
+    wake_word_worker.start()
+    
+    # Song recognition worker (new)
+    song_recognition_worker = SongRecognitionWorker(cfg.to_dict())
+    song_recognition_worker.start()
+    
+    return {
+        'audio_worker': audio_worker,
+        'recognition_worker': recognition_worker,
+        'wake_word_worker': wake_word_worker,
+        'song_recognition_worker': song_recognition_worker
+    }
 
 
 def register_all_handlers(components):

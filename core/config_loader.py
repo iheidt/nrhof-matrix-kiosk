@@ -104,6 +104,20 @@ def load_config(config_path: Optional[Path] = None) -> Config:
     with open(config_path, 'r') as f:
         config_dict = yaml.safe_load(f)
     
+    # Expand environment variables in config (${VAR_NAME} syntax)
+    def expand_env_vars(obj):
+        """Recursively expand ${VAR_NAME} in config values."""
+        if isinstance(obj, dict):
+            return {k: expand_env_vars(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [expand_env_vars(item) for item in obj]
+        elif isinstance(obj, str) and obj.startswith('${') and obj.endswith('}'):
+            var_name = obj[2:-1]
+            return os.environ.get(var_name, '')
+        return obj
+    
+    config_dict = expand_env_vars(config_dict)
+    
     # Apply environment variable overrides
     # Format: KIOSK_SECTION_KEY=value
     # Example: KIOSK_AUDIO_SAMPLE_RATE=48000
