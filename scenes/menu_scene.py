@@ -9,6 +9,7 @@ from renderers import FrameState, Shape, Text, Image
 from core.theme_loader import get_theme_loader
 from core.app_state import get_app_state
 from core.now_playing import get_now_playing_state
+from core.event_bus import get_event_bus, EventType
 from ui.components.widgets import MarqueeText
 
 
@@ -45,6 +46,20 @@ class MenuScene(Scene):
         self.is_in_playback_state = False
         self.fade_delay = 1.0  # Delay before starting fade (seconds)
         self.fade_duration = 0.5  # Fade duration (seconds)
+        
+        # Wake word detection indicator
+        self.wake_word_detected_time = None
+        self.wake_word_indicator_duration = 2.0  # Show red dot for 2 seconds
+        
+        # Subscribe to wake word events
+        event_bus = get_event_bus()
+        event_bus.subscribe(EventType.WAKE_WORD_DETECTED, self._on_wake_word_detected)
+    
+    def _on_wake_word_detected(self, **kwargs):
+        """Handle wake word detection event."""
+        keyword = kwargs.get('keyword', 'unknown')
+        print(f"[MENU] Wake word detected: {keyword}")
+        self.wake_word_detected_time = time.time()
     
     def on_enter(self):
         """Initialize menu display."""
@@ -455,6 +470,22 @@ class MenuScene(Scene):
             height=timeclock_height,
             theme={'style': style, 'layout': layout}
         )
+        
+        # Draw wake word indicator (red dot in top-right corner)
+        if self.wake_word_detected_time is not None:
+            elapsed = time.time() - self.wake_word_detected_time
+            if elapsed < self.wake_word_indicator_duration:
+                # Draw pulsing red dot
+                pulse = 0.5 + 0.5 * abs((elapsed % 0.5) - 0.25) / 0.25  # Pulse between 0.5 and 1.0
+                dot_radius = int(15 * pulse)
+                dot_x = screen.get_width() - 30
+                dot_y = 30
+                pygame.draw.circle(screen, (255, 0, 0), (dot_x, dot_y), dot_radius)
+                # Draw outer ring
+                pygame.draw.circle(screen, (255, 100, 100), (dot_x, dot_y), dot_radius + 3, 2)
+            else:
+                # Clear the indicator after duration
+                self.wake_word_detected_time = None
         
         # Draw scanlines and footer
         draw_scanlines(screen)

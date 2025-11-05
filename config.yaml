@@ -38,11 +38,11 @@ localization:
 # Wake word detection (Picovoice Porcupine)
 # API key loaded from PICOVOICE_ACCESS_KEY environment variable
 wake_word:
-  enabled: false  # Set to true when you have Picovoice access key in .env
+  enabled: true  # Set to true when you have Picovoice access key in .env
   picovoice_access_key: "${PICOVOICE_ACCESS_KEY}"  # Loaded from .env
-  keywords: ["jarvis"]  # Built-in keywords: jarvis, alexa, computer, etc.
-  keyword_paths: []  # Custom .ppn files (e.g., ["assets/wake_words/hey-nerd.ppn"])
-  sensitivity: 0.5  # 0.0 (least sensitive) to 1.0 (most sensitive)
+  keywords: ["hey google"]  # Built-in keywords: jarvis, alexa, computer, etc.
+  keyword_paths: []  # Custom .ppn files
+  sensitivity: 0.65  # 0.0 (least sensitive) to 1.0 (most sensitive)
 
 # Spotify Integration (Primary music source)
 spotify:

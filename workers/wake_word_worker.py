@@ -7,6 +7,7 @@ import struct
 import numpy as np
 from typing import Optional, Callable
 import pvporcupine
+from scipy import signal
 
 from audio_source import get_audio_frame
 from core.logger import get_logger
@@ -72,7 +73,8 @@ class WakeWordWorker:
                 logger.info("Porcupine wake word detector initialized (built-in)", 
                            keywords=self.keywords,
                            sample_rate=self.porcupine.sample_rate,
-                           frame_length=self.porcupine.frame_length)
+                           frame_length=self.porcupine.frame_length,
+                           version=self.porcupine.version)
         except Exception as e:
             logger.error("Failed to initialize Porcupine", error=str(e))
             self.enabled = False
@@ -112,13 +114,17 @@ class WakeWordWorker:
     def _worker_loop(self):
         """Main worker loop - continuously processes audio for wake word."""
         logger.info("Wake word detection loop started")
+        logger.info(f"Porcupine expects frame_length={self.porcupine.frame_length} samples at {self.porcupine.sample_rate}Hz")
         
         frame_length = self.porcupine.frame_length
+        logger.info(f"Requesting {frame_length} samples per frame (native 16kHz)")
+        
+        frame_count = 0
         
         while self.running:
             try:
-                # Get audio frame
-                audio_frame = get_audio_frame()
+                # Get audio frame (float32 samples) - mic is now natively 16kHz
+                audio_frame = get_audio_frame(length=frame_length)
                 
                 if audio_frame is None:
                     time.sleep(0.01)
@@ -128,11 +134,22 @@ class WakeWordWorker:
                 if len(audio_frame) < frame_length:
                     continue
                 
-                # Process frame with Porcupine
-                # Porcupine expects int16 PCM
-                pcm = struct.unpack_from("h" * frame_length, audio_frame[:frame_length * 2])
+                frame_count += 1
+                
+                # Convert float32 [-1, 1] to int16 [-32768, 32767] for Porcupine
+                # No resampling needed - mic is natively 16kHz
+                pcm = (audio_frame[:frame_length] * 32767).astype(np.int16)
+                
+                # Apply gain boost - USB lav mic is very quiet
+                # Porcupine likes peaks around 15000-24000 for best detection
+                GAIN = 1.0
+                pcm = (pcm.astype(np.int32) * GAIN).clip(-32768, 32767).astype(np.int16)
                 
                 keyword_index = self.porcupine.process(pcm)
+                
+                # Log only when wake word is detected
+                if keyword_index >= 0:
+                    logger.info(f"Wake word detected! keyword_index={keyword_index}")
                 
                 if keyword_index >= 0:
                     # Wake word detected!

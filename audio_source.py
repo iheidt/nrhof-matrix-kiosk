@@ -18,8 +18,8 @@ except ImportError:
 # Global state
 _audio_stream = None
 _audio_buffer = None
-_buffer_size = 4096  # Increased from 2048 to prevent overflow on Pi
-_sample_rate = 44100
+_buffer_size = 512  # Porcupine frame length
+_sample_rate = 16000  # Porcupine sample rate
 _fallback_time = 0.0
 _fallback_freq = 220.0  # A3 note
 
