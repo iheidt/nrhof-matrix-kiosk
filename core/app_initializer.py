@@ -18,6 +18,8 @@ from workers.audio_worker import AudioWorker
 from workers.recognition_worker import RecognitionWorker
 from workers.wake_word_worker import WakeWordWorker
 from workers.song_recognition_worker import SongRecognitionWorker
+from core.source_manager import SourceManager
+from integrations.spotify_source import SpotifySource
 from core.logger import get_logger
 from renderers import create_renderer
 from routing.intent_handlers import register_all_intents
@@ -141,17 +143,18 @@ def start_workers(cfg, voice_engine=None):
         dict: Dictionary of workers
     """
     logger = get_logger('app_initializer')
+    config_dict = cfg.to_dict()
     
     # Audio worker (always runs)
-    audio_worker = AudioWorker(cfg.to_dict())
+    audio_worker = AudioWorker(config_dict)
     audio_worker.start()
     
     # Recognition worker (legacy, may be disabled)
-    recognition_worker = RecognitionWorker(cfg.to_dict())
+    recognition_worker = RecognitionWorker(config_dict)
     recognition_worker.start()
     
     # Wake word worker (new)
-    wake_word_worker = WakeWordWorker(cfg.to_dict())
+    wake_word_worker = WakeWordWorker(config_dict)
     if wake_word_worker.enabled and voice_engine:
         # Set callback to activate voice engine when wake word detected
         def on_wake_word(keyword):
@@ -161,15 +164,25 @@ def start_workers(cfg, voice_engine=None):
         wake_word_worker.set_callback(on_wake_word)
     wake_word_worker.start()
     
-    # Song recognition worker (new)
-    song_recognition_worker = SongRecognitionWorker(cfg.to_dict())
+    # Song recognition worker (legacy ambient ACR - disabled)
+    song_recognition_worker = SongRecognitionWorker(config_dict)
     song_recognition_worker.start()
+    
+    # Source Manager (new music source arbitration)
+    source_manager = SourceManager(config_dict)
+    logger.info("SourceManager initialized")
+    
+    # Spotify source (primary music source)
+    spotify_source = SpotifySource(config_dict, source_manager)
+    spotify_source.start()
     
     return {
         'audio_worker': audio_worker,
         'recognition_worker': recognition_worker,
         'wake_word_worker': wake_word_worker,
-        'song_recognition_worker': song_recognition_worker
+        'song_recognition_worker': song_recognition_worker,
+        'source_manager': source_manager,
+        'spotify_source': spotify_source
     }
 
 

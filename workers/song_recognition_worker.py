@@ -90,13 +90,17 @@ class SongRecognitionWorker:
                 
                 # Check if it's time to recognize
                 if current_time - last_recognition_time >= self.recognition_interval:
+                    print(f"[SONG] Attempting recognition at {current_time:.1f}s")
                     # Collect audio buffer
                     audio_data = self._collect_audio_buffer()
+                    print(f"[SONG] Buffer collected: {len(audio_data) if audio_data else 0} bytes")
                     
                     if audio_data:
                         # Attempt recognition
+                        print(f"[SONG] Calling ACRCloud API...")
                         logger.debug("Attempting song recognition...")
                         song_info = self.recognizer.recognize_from_audio(audio_data, self.sample_rate)
+                        print(f"[SONG] API returned: {song_info}")
                         
                         if song_info:
                             # Song recognized!
@@ -125,7 +129,10 @@ class SongRecognitionWorker:
                 time.sleep(1.0)
                 
             except Exception as e:
-                logger.error("Error in song recognition loop", error=str(e))
+                import traceback
+                print(f"[SONG] Loop error: {e}")
+                print(f"[SONG] Traceback: {traceback.format_exc()}")
+                logger.error("Error in song recognition loop", error=str(e), traceback=traceback.format_exc())
                 time.sleep(5.0)
         
         logger.info("Song recognition loop ended")
@@ -137,24 +144,48 @@ class SongRecognitionWorker:
             Audio data as bytes (WAV format) or None
         """
         try:
-            # Collect audio frames
+            # Collect audio frames with timeout
+            # get_audio_frame() returns numpy float32 array [-1, 1]
             frames = []
-            samples_needed = self.buffer_size
+            samples_per_frame = 4096  # samples per call to get_audio_frame()
+            frames_needed = int((self.sample_rate * self.audio_buffer_seconds) / samples_per_frame)
             
-            logger.debug("Collecting audio buffer", seconds=self.audio_buffer_seconds)
+            logger.debug("Collecting audio buffer", 
+                        seconds=self.audio_buffer_seconds,
+                        frames_needed=frames_needed)
             
-            while len(frames) * 2048 < samples_needed and self.running:
-                audio_frame = get_audio_frame()
-                if audio_frame:
+            start_time = time.time()
+            timeout = self.audio_buffer_seconds + 5  # Give extra time
+            
+            while len(frames) < frames_needed and self.running:
+                # Check timeout
+                if time.time() - start_time > timeout:
+                    logger.warning("Audio buffer collection timeout",
+                                 frames_collected=len(frames),
+                                 frames_needed=frames_needed)
+                    break
+                
+                audio_frame = get_audio_frame()  # Returns numpy float32 array
+                if audio_frame is not None and len(audio_frame) > 0:
                     frames.append(audio_frame)
                 else:
                     time.sleep(0.01)
             
             if not frames:
+                logger.warning("No audio frames collected")
                 return None
             
-            # Concatenate frames
-            audio_data = b''.join(frames)
+            if len(frames) < frames_needed / 2:
+                logger.warning("Insufficient audio frames",
+                             collected=len(frames),
+                             needed=frames_needed)
+                return None
+            
+            # Concatenate numpy arrays and convert to int16 PCM
+            audio_float = np.concatenate(frames)
+            # Convert float32 [-1, 1] to int16 [-32768, 32767]
+            audio_int16 = (audio_float * 32767).astype(np.int16)
+            audio_data = audio_int16.tobytes()
             
             # Convert to WAV format (ACRCloud expects WAV)
             wav_buffer = io.BytesIO()
@@ -165,7 +196,10 @@ class SongRecognitionWorker:
                 wav_file.writeframes(audio_data)
             
             wav_bytes = wav_buffer.getvalue()
-            logger.debug("Audio buffer collected", size_bytes=len(wav_bytes))
+            print(f"[SONG] WAV: {len(wav_bytes)} bytes, {self.sample_rate}Hz, 16-bit, mono, {len(audio_data)/2/self.sample_rate:.1f}s")
+            logger.debug("Audio buffer collected",
+                        frames=len(frames),
+                        size_bytes=len(wav_bytes))
             
             return wav_bytes
             

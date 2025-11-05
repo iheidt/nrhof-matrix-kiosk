@@ -99,13 +99,30 @@ class SongRecognizer:
             return None
         
         try:
-            # ACRCloud expects audio data
-            result = self.recognizer.recognize_by_filebuffer(audio_data, 0)
+            # ACRCloud expects WAV format PCM audio
+            # audio_data is already in WAV format from the worker
+            # recognize_by_filebuffer(file_buffer, start_seconds, rec_length)
+            result = self.recognizer.recognize_by_filebuffer(audio_data, 0, 10)
             
             # Update last recognition time
             self.last_recognition_time = time.time()
             
-            # Parse result
+            # Print raw result for debugging
+            print(f"[ACR] Raw response type: {type(result).__name__}")
+            print(f"[ACR] Raw response: {result[:500] if isinstance(result, str) else result}")
+            
+            # Log raw result for debugging
+            logger.debug("ACRCloud raw result", result_type=type(result).__name__)
+            
+            # Parse result (handle both dict and string responses)
+            if isinstance(result, str):
+                import json
+                try:
+                    result = json.loads(result)
+                except json.JSONDecodeError as e:
+                    logger.error("Failed to parse ACRCloud JSON", error=str(e), result=result[:200])
+                    return None
+            
             song_info = self._parse_result(result)
             
             if song_info:
@@ -118,7 +135,10 @@ class SongRecognizer:
             return song_info
             
         except Exception as e:
-            logger.error("Song recognition failed", error=str(e))
+            import traceback
+            print(f"[ACR] Exception: {e}")
+            print(f"[ACR] Traceback: {traceback.format_exc()}")
+            logger.error("Song recognition failed", error=str(e), traceback=traceback.format_exc())
             return None
     
     def _parse_result(self, result: dict) -> Optional[SongInfo]:
@@ -131,10 +151,18 @@ class SongRecognizer:
             SongInfo if song found, None otherwise
         """
         try:
+            # Log the result structure for debugging
+            logger.debug("Parsing ACRCloud result", keys=list(result.keys()) if isinstance(result, dict) else "not_dict")
+            
             # Check status
             status = result.get('status', {})
-            if status.get('code') != 0:
-                logger.debug("No song recognized", msg=status.get('msg'))
+            status_code = status.get('code')
+            status_msg = status.get('msg', 'unknown')
+            
+            logger.debug("ACRCloud status", code=status_code, msg=status_msg)
+            
+            if status_code != 0:
+                logger.debug("No song recognized", code=status_code, msg=status_msg)
                 return None
             
             # Extract metadata

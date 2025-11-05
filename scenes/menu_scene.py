@@ -6,6 +6,8 @@ from utils import get_font, get_theme_font, draw_scanlines, draw_footer, render_
 from routing.intent_router import Intents
 from renderers import FrameState, Shape, Text, Image
 from core.theme_loader import get_theme_loader
+from core.app_state import get_app_state
+from core.now_playing import get_now_playing_state
 
 
 @register_scene("MenuScene")
@@ -259,6 +261,17 @@ class MenuScene(Scene):
         right_col_x = self.left_col_x + self.left_col_width + columns_config['gutter']
         right_col_width = columns_config['right']['width']
         
+        # Get current track from NowPlayingState
+        now_playing = get_now_playing_state()
+        track = now_playing.get_track()
+        
+        if track:
+            song_line = f"{track.artist} - {track.title}"
+            album_line = track.album if track.album else f"via {track.source.title()}"
+        else:
+            song_line = "Listening..."
+            album_line = "No music playing"
+        
         # Pass border_y directly to align with title card top border (adjusted up by 6px)
         now_playing_rect = draw_now_playing(
             surface=screen,
@@ -266,8 +279,8 @@ class MenuScene(Scene):
             y=0,  # Not used when border_y is provided
             width=right_col_width,
             title="NOW PLAYING",
-            line1="weezer - say it aint",
-            line2="Rnk 1/38",
+            line1=song_line,
+            line2=album_line,
             theme={'style': style},
             border_y=title_card_y - 6  # Move entire component up 6px
         )

@@ -44,16 +44,30 @@ wake_word:
   keyword_paths: []  # Custom .ppn files (e.g., ["assets/wake_words/hey-nerd.ppn"])
   sensitivity: 0.5  # 0.0 (least sensitive) to 1.0 (most sensitive)
 
-# Song recognition (ACRCloud)
-# API keys loaded from ACRCLOUD_* environment variables
+# Spotify Integration (Primary music source)
+spotify:
+  enabled: true
+  client_id: "${SPOTIFY_CLIENT_ID}"
+  client_secret: "${SPOTIFY_CLIENT_SECRET}"
+  redirect_uri: "http://127.0.0.1:8888/callback"
+  cache_path: ".spotify_cache"  # OAuth token cache (gitignored)
+  poll_interval_seconds: 2.0  # How often to check for track changes
+
+# Source Manager (Music source arbitration)
+source_manager:
+  min_change_interval_seconds: 2.0  # Debounce track changes
+  confidence_threshold: 0.6  # Minimum confidence for vinyl matches
+  hysteresis_seconds: 5.0  # Stick to current source for this long
+
+# Song Recognition (ACRCloud) - Only for vinyl/line-in mode
 song_recognition:
-  enabled: true  # Set to true when you have ACRCloud credentials in .env
-  host: "identify-us-west-2.acrcloud.com"  # ACRCloud host
-  access_key: "${ACRCLOUD_ACCESS_KEY}"  # Loaded from .env
-  access_secret: "${ACRCLOUD_ACCESS_SECRET}"  # Loaded from .env
-  timeout: 10  # API timeout in seconds
-  min_interval_seconds: 30  # Minimum time between recognition attempts
-  audio_buffer_seconds: 10  # Audio buffer length for recognition
+  enabled: false  # Disabled - will use Spotify as primary source
+  acrcloud:
+    access_key: "${ACRCLOUD_ACCESS_KEY}"
+    access_secret: "${ACRCLOUD_ACCESS_SECRET}"
+    host: "${ACRCLOUD_HOST}"
+  min_interval_seconds: 10
+  audio_buffer_seconds: 8
 
 # Feature flags
 flags:
@@ -89,7 +103,7 @@ visualizers:
 
 # Logging
 logging:
-  level: "INFO"              # DEBUG, INFO, WARNING, ERROR
+  level: "DEBUG"              # DEBUG, INFO, WARNING, ERROR
   file: "runtime/kiosk.log"
   max_size_mb: 10
   backup_count: 3
