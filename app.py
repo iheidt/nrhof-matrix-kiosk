@@ -144,9 +144,6 @@ def main():
     init_custom_fonts(cfg.to_dict())
     logger.info("Custom fonts initialized")
     
-    # Hide mouse cursor for kiosk mode
-    pygame.mouse.set_visible(False)
-    
     # Create and configure voice router
     voice_router = VoiceRouter()
     

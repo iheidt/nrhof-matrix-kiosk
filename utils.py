@@ -112,6 +112,10 @@ def draw_back_arrow(surface: Surface, color: tuple = (140, 255, 140)) -> pygame.
     return pygame.Rect(x, y, text_surface.get_width(), text_surface.get_height())
 
 
+# ============================================================================
+# UI COMPONENTS - Cards & Containers
+# ============================================================================
+
 def draw_card(surface: Surface, x: int, y: int, width: int, height: int, theme: dict = None,
              border_solid: str = None, border_fade_pct: float = None):
     """Draw a card using common card component styling with optional gradient fade.
@@ -278,6 +282,10 @@ def _draw_card_border_with_fade(surface: Surface, x: int, y: int, width: int, he
     surface.blit(border_surface, (x - border_width, y - border_width))
 
 
+# ============================================================================
+# UI COMPONENTS - Footer
+# ============================================================================
+
 def draw_footer(surface: Surface, color: tuple = (140, 255, 140)):
     """Draw footer with settings card and company name div.
     
@@ -351,6 +359,10 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140)):
     company_y = div_y + (div_height - company_text.get_height()) // 2
     surface.blit(company_text, (company_x, company_y))
 
+
+# ============================================================================
+# UI COMPONENTS - Buttons
+# ============================================================================
 
 def draw_button(surface: Surface, x: int, y: int, container_width: int, text: str, 
                 theme: dict = None, **overrides) -> pygame.Rect:
@@ -446,6 +458,10 @@ def draw_button(surface: Surface, x: int, y: int, container_width: int, text: st
     return pygame.Rect(x, y, button_width, button_height)
 
 
+# ============================================================================
+# UI COMPONENTS - Title Cards
+# ============================================================================
+
 def draw_title_card(surface: Surface, x: int, y: int, width: int, height: int, title: str,
                     theme: dict = None, **overrides) -> pygame.Rect:
     """Draw a card with title overlaying the top border.
@@ -525,6 +541,10 @@ def draw_title_card(surface: Surface, x: int, y: int, width: int, height: int, t
     
     return pygame.Rect(content_x, content_y, content_width, content_height)
 
+
+# ============================================================================
+# UI COMPONENTS - Now Playing
+# ============================================================================
 
 def draw_now_playing(surface: Surface, x: int, y: int, width: int,
                      title: str = "NOW PLAYING",
@@ -674,44 +694,17 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     return pygame.Rect(x, y, width, total_height)
 
 
-def vignette(surface: Surface, strength: float = 0.6):
-    w, h = surface.get_size()
-    vg = pygame.Surface((w, h), pygame.SRCALPHA)
-    cx, cy = w / 2, h / 2
-    maxd = math.hypot(cx, cy)
-    for y in range(h):
-        for x in range(w):
-            d = math.hypot(x - cx, y - cy) / maxd
-            a = int(255 * max(0, min(1, (d ** 2) * strength)))
-            vg.set_at((x, y), (0, 0, 0, a))
-    surface.blit(vg, (0, 0))
+# ============================================================================
+# ICON & SVG LOADING (moved to icons.py)
+# ============================================================================
+
+# Backward-compatible import
+from icons import load_icon
 
 
-def load_icon(path: Path, size: tuple[int, int], fill_color: tuple = None) -> Surface | None:
-    try:
-        if path.suffix.lower() == ".svg" and HAVE_CAIROSVG:
-            # Read SVG and optionally replace fill color
-            svg_content = path.read_text()
-            if fill_color:
-                # Convert RGB tuple to hex
-                hex_color = f"#{fill_color[0]:02x}{fill_color[1]:02x}{fill_color[2]:02x}"
-                # Replace fill attributes (simple approach)
-                import re
-                svg_content = re.sub(r'fill="[^"]*"', f'fill="{hex_color}"', svg_content)
-            png_bytes = cairosvg.svg2png(bytestring=svg_content.encode(), output_width=size[0], output_height=size[1])
-            pil_img = Image.open(BytesIO(png_bytes)).convert("RGBA")
-        else:
-            pil_img = Image.open(path).convert("RGBA")
-        pil_img = pil_img.resize(size, Image.LANCZOS)
-        mode = pil_img.mode
-        data = pil_img.tobytes()
-        return pygame.image.fromstring(data, pil_img.size, mode)
-    except Exception as e:
-        # Suppress cairo write errors (only happen on Ctrl+C interrupt)
-        if "CAIRO_STATUS_WRITE_ERROR" not in str(e):
-            print(f"Error loading icon: {e}")
-        return None
-
+# ============================================================================
+# UI COMPONENTS - Timeclock
+# ============================================================================
 
 def draw_timeclock(surface: Surface, x: int, y: int, width: int, height: int, theme: dict = None) -> pygame.Rect:
     """
@@ -1011,27 +1004,4 @@ def render_text(text: str, size: int = 24, *, mono: bool = True, color=(0, 255, 
     """Convenience: get a font and render one line of text to a surface."""
     font = get_font(size, mono=mono, prefer=prefer)
     return font.render(text, antialias, color)
-
-def measure_text(text: str, size: int = 24, *, mono: bool = True, prefer: str | None = None) -> tuple[int, int]:
-    """Return (width, height) for a string at a given size."""
-    font = get_font(size, mono=mono, prefer=prefer)
-    return font.size(text)
-
-
-# ---------------- Audio helpers (dev fallback) ----------------
-
-def dev_sine_frame(length: int = 2048, sample_rate: int = 48000, freq: float = 220.0) -> np.ndarray:
-    """
-    Generate a mono sine wave frame for development when a live mic buffer isn't wired.
-    Returns float32 in [-1,1].
-    
-    Args:
-        length: Number of samples to generate
-        sample_rate: Sample rate in Hz
-        freq: Frequency of sine wave in Hz
-        
-    Returns:
-        numpy array of float32 audio samples
-    """
-    t = np.arange(length, dtype=np.float32) / float(sample_rate)
     return np.sin(2.0 * math.pi * freq * t).astype(np.float32)
