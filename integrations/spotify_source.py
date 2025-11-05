@@ -53,8 +53,9 @@ class SpotifySource:
         """Initialize Spotify client with OAuth."""
         spotify_config = self.config.get('spotify', {})
         
-        # Required scopes for reading playback state
-        scope = "user-read-playback-state user-read-currently-playing"
+        # Required scopes for reading playback state (including podcasts/audiobooks)
+        # Note: Spotify Free users may not have access to podcast/audiobook metadata via API
+        scope = "user-read-playback-state user-read-currently-playing user-read-playback-position"
         
         auth_manager = SpotifyOAuth(
             client_id=spotify_config.get('client_id'),
@@ -100,23 +101,32 @@ class SpotifySource:
         
         while self.running:
             try:
-                # Get current playback
-                playback = self.sp.current_playback()
+                # Get current playback - use currently_playing() for podcast/audiobook support
+                currently_playing = self.sp.currently_playing()
                 
-                if playback and playback.get('is_playing'):
-                    track = self._parse_playback(playback)
-                    if track:
-                        self.source_manager.set_from('spotify', track)
+                if currently_playing:
+                    is_playing = currently_playing.get('is_playing', False)
+                    item = currently_playing.get('item')
+                    
+                    if is_playing and item:
+                        # Merge device info from current_playback if needed
+                        playback_state = self.sp.current_playback()
+                        if playback_state:
+                            currently_playing['device'] = playback_state.get('device')
+                            currently_playing['progress_ms'] = playback_state.get('progress_ms')
+                        
+                        track = self._parse_playback(currently_playing)
+                        if track:
+                            self.source_manager.set_from('spotify', track)
+                    else:
+                        # Paused or no item
+                        self.source_manager.set_from('spotify', None)
                 else:
-                    # Nothing playing
+                    # No playback data
                     self.source_manager.set_from('spotify', None)
                 
             except Exception as e:
-                import traceback
-                logger.error("Error polling Spotify", 
-                           error=str(e), 
-                           error_type=type(e).__name__,
-                           traceback=traceback.format_exc())
+                logger.error("Error polling Spotify", error=str(e))
             
             # Sleep
             time.sleep(self.poll_interval)
@@ -137,30 +147,100 @@ class SpotifySource:
             if not item:
                 return None
             
-            # Extract track info
-            title = item.get('name', 'Unknown')
-            artists = item.get('artists', [])
-            artist = artists[0].get('name', 'Unknown') if artists else 'Unknown'
-            album_info = item.get('album', {})
-            album = album_info.get('name')
+            # Detect content type
+            item_type = item.get('type', 'track')
             
-            # Get album art (prefer largest image)
-            images = album_info.get('images', [])
-            image_url = images[0].get('url') if images else None
+            # Parse based on content type
+            if item_type == 'episode':
+                # Podcast episode
+                title = item.get('name', 'Unknown')
+                show_info = item.get('show', {})
+                artist = show_info.get('name', 'Unknown Podcast')  # Use show name as artist
+                album = None
+                show_name = show_info.get('name')
+                publisher = show_info.get('publisher')
+                content_type = 'podcast'
+                
+                # Images from show
+                images = show_info.get('images', [])
+                
+            elif item_type == 'audiobook':
+                # Audiobook
+                title = item.get('name', 'Unknown')
+                authors = item.get('authors', [])
+                artist = authors[0].get('name', 'Unknown Author') if authors else 'Unknown Author'
+                album = None
+                show_name = None
+                publisher = item.get('publisher')
+                content_type = 'audiobook'
+                
+                # Images from audiobook
+                images = item.get('images', [])
+                
+            else:
+                # Music track (default)
+                title = item.get('name', 'Unknown')
+                artists = item.get('artists', [])
+                artist = artists[0].get('name', 'Unknown') if artists else 'Unknown'
+                album_info = item.get('album', {})
+                album = album_info.get('name')
+                show_name = None
+                publisher = None
+                content_type = 'music'
+                
+                # Images from album
+                images = album_info.get('images', [])
             
-            # Spotify ID and duration
+            # Common fields
             spotify_id = item.get('id')
             duration_ms = item.get('duration_ms')
+            image_url = images[0].get('url') if images else None
+            
+            # Additional fields
+            release_date = item.get('release_date')
+            is_playing = playback.get('is_playing')
+            progress_ms = playback.get('progress_ms')
+            device_name = playback.get('device', {}).get('name')
+            device_type = playback.get('device', {}).get('type')
+            device_volume = playback.get('device', {}).get('volume_percent')
+            context_type = playback.get('context', {}).get('type')
+            context_uri = playback.get('context', {}).get('uri')
+            
+            # Image sizes
+            image_large = None
+            image_medium = None
+            image_small = None
+            for image in images:
+                if image.get('height') == 640:
+                    image_large = image.get('url')
+                elif image.get('height') == 300:
+                    image_medium = image.get('url')
+                elif image.get('height') == 64:
+                    image_small = image.get('url')
             
             return Track(
                 title=title,
                 artist=artist,
                 album=album,
-                confidence=1.0,  # Spotify metadata is always confident
+                confidence=1.0,
                 source='spotify',
-                image_url=image_url,
                 spotify_id=spotify_id,
-                duration_ms=duration_ms
+                duration_ms=duration_ms,
+                content_type=content_type,
+                show_name=show_name,
+                publisher=publisher,
+                image_url=image_url,
+                image_large=image_large,
+                image_medium=image_medium,
+                image_small=image_small,
+                release_date=release_date,
+                is_playing=is_playing,
+                progress_ms=progress_ms,
+                device_name=device_name,
+                device_type=device_type,
+                device_volume=device_volume,
+                context_type=context_type,
+                context_uri=context_uri
             )
             
         except Exception as e:

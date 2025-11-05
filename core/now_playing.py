@@ -9,14 +9,39 @@ import time
 @dataclass
 class Track:
     """Represents a music track from any source."""
+    # Basic track info
     title: str
     artist: str
     album: Optional[str] = None
     confidence: float = 1.0  # 0.0-1.0, used for ACRCloud matches
     source: Literal["spotify", "sonos", "vinyl"] = "spotify"
-    image_url: Optional[str] = None
     spotify_id: Optional[str] = None
     duration_ms: Optional[int] = None
+    
+    # Content type
+    content_type: Literal["music", "podcast", "audiobook"] = "music"
+    show_name: Optional[str] = None  # For podcasts
+    publisher: Optional[str] = None  # For podcasts/audiobooks
+    
+    # Album art (multiple sizes)
+    image_url: Optional[str] = None  # Default/large image
+    image_large: Optional[str] = None  # 640x640
+    image_medium: Optional[str] = None  # 300x300
+    image_small: Optional[str] = None  # 64x64
+    release_date: Optional[str] = None
+    
+    # Playback state
+    is_playing: bool = True
+    progress_ms: Optional[int] = None
+    
+    # Device info
+    device_name: Optional[str] = None
+    device_type: Optional[str] = None
+    device_volume: Optional[int] = None
+    
+    # Context (what's playing from)
+    context_type: Optional[str] = None  # "playlist", "album", "artist", "show"
+    context_uri: Optional[str] = None
     
     def __eq__(self, other) -> bool:
         """Check if two tracks are the same (ignoring confidence)."""

@@ -3,11 +3,76 @@
 import pygame
 from pygame import Surface
 from pathlib import Path
+import time
 
 # Import from parent ui modules
 from ..fonts import get_theme_font
 from ..icons import load_icon
 from ..components.cards import draw_card
+
+
+class MarqueeText:
+    """Manages scrolling text animation for text that's too long to fit."""
+    
+    def __init__(self, text: str, max_width: int, scroll_speed: float = 50.0, gap: int = 100):
+        """Initialize marquee text.
+        
+        Args:
+            text: Text to scroll
+            max_width: Maximum width before scrolling
+            scroll_speed: Pixels per second to scroll
+            gap: Gap in pixels between end and start of loop
+        """
+        self.text = text
+        self.max_width = max_width
+        self.scroll_speed = scroll_speed
+        self.gap = gap
+        
+        self.offset = 0.0
+        self.last_update = time.time()
+        
+    def update(self, text_width: int) -> tuple[int, bool]:
+        """Update scroll position and return current offset.
+        
+        Args:
+            text_width: Actual rendered width of the text
+            
+        Returns:
+            Tuple of (current x offset, should_draw_second_copy)
+        """
+        current_time = time.time()
+        
+        # If text fits, no scrolling needed
+        if text_width <= self.max_width:
+            return 0, False
+        
+        # Calculate delta time
+        dt = current_time - self.last_update
+        self.last_update = current_time
+        
+        # Update offset (scroll left = increase offset)
+        self.offset += self.scroll_speed * dt
+        
+        # Loop when text has scrolled completely off screen
+        loop_point = text_width + self.gap
+        if self.offset >= loop_point:
+            self.offset -= loop_point
+        
+        # Determine if we need to draw a second copy for seamless loop
+        draw_second = self.offset > 0
+        
+        return int(self.offset), draw_second
+    
+    def reset(self, new_text: str = None):
+        """Reset marquee to beginning.
+        
+        Args:
+            new_text: Optional new text to display
+        """
+        if new_text is not None:
+            self.text = new_text
+        self.offset = 0.0
+        self.last_update = time.time()
 
 
 def draw_timeclock(surface: Surface, x: int, y: int, width: int, height: int, theme: dict = None) -> pygame.Rect:
@@ -148,7 +213,8 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
                      line1: str = "",
                      line2: str = "",
                      theme: dict = None,
-                     border_y: int = None) -> pygame.Rect:
+                     border_y: int = None,
+                     marquee: MarqueeText = None) -> pygame.Rect:
     """Draw a 'Now Playing' component with title, border, and two body lines.
     
     Args:
@@ -160,6 +226,7 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
         line2: Second body line (rank info)
         theme: Dict with 'layout' and 'style' keys
         border_y: Optional override for border Y position
+        marquee: Optional MarqueeText instance for line1 scrolling
     
     Returns:
         pygame.Rect of the entire component
@@ -218,22 +285,29 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     bg_width = width - 40
     max_text_width = bg_width - (padding * 2)
     
-    # Truncate text if needed to fit within max width
-    def truncate_text(font, text, max_width):
-        if not text:
-            return text
-        rendered = font.render(text, True, title_color)
-        if rendered.get_width() <= max_width:
-            return text
-        # Truncate with ellipsis
-        while text and font.render(text + "...", True, title_color).get_width() > max_width:
-            text = text[:-1]
-        return text + "..."
+    # Render line1 (with marquee support)
+    line1_surface = None
+    line1_offset = 0
+    draw_second_copy = False
     
-    line1_text = truncate_text(line1_font, line1, max_text_width) if line1 else ""
-    
-    # Render body line
-    line1_surface = line1_font.render(line1_text, True, title_color) if line1_text else None
+    if line1:
+        # Render full text
+        line1_surface = line1_font.render(line1, True, title_color)
+        line1_width = line1_surface.get_width()
+        
+        # Use marquee if text is too wide and marquee is provided
+        if marquee and line1_width > max_text_width:
+            # Update marquee text if changed
+            if marquee.text != line1:
+                marquee.reset(line1)
+            line1_offset, draw_second_copy = marquee.update(line1_width)
+            line1_offset = -line1_offset  # Negative for left scroll
+        elif line1_width > max_text_width:
+            # No marquee provided, truncate with ellipsis
+            truncated = line1
+            while truncated and line1_font.render(truncated + "...", True, title_color).get_width() > max_text_width:
+                truncated = truncated[:-1]
+            line1_surface = line1_font.render(truncated + "...", True, title_color)
     
     # Calculate content height
     content_height = padding  # Top padding
@@ -260,7 +334,19 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     text_y = content_y + 10
     
     if line1_surface:
-        surface.blit(line1_surface, (text_x, text_y))
+        # Create a clipping rect for marquee scrolling
+        clip_rect = pygame.Rect(text_x, text_y, max_text_width, line1_surface.get_height())
+        surface.set_clip(clip_rect)
+        
+        # Draw first copy
+        surface.blit(line1_surface, (text_x + line1_offset, text_y))
+        
+        # Draw second copy for seamless loop if needed
+        if draw_second_copy and marquee:
+            second_x = text_x + line1_offset + line1_surface.get_width() + marquee.gap
+            surface.blit(line1_surface, (second_x, text_y))
+        
+        surface.set_clip(None)  # Reset clipping
     
     # Draw circle element (80x80px) aligned with border
     circle_size = 80

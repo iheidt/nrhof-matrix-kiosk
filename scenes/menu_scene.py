@@ -8,6 +8,7 @@ from renderers import FrameState, Shape, Text, Image
 from core.theme_loader import get_theme_loader
 from core.app_state import get_app_state
 from core.now_playing import get_now_playing_state
+from ui.components.widgets import MarqueeText
 
 
 @register_scene("MenuScene")
@@ -30,6 +31,7 @@ class MenuScene(Scene):
         self.button_rects = []  # Store button rectangles for click detection
         self.button_spacing = 0
         self.button_start_y = 0
+        self.now_playing_marquee = None
     
     def on_enter(self):
         """Initialize menu display."""
@@ -187,6 +189,7 @@ class MenuScene(Scene):
         
         # Draw title card at top of left column
         from utils import draw_title_card, draw_button
+        from ui.components.widgets import draw_timeclock, draw_d20, draw_now_playing, MarqueeText
         
         # Get layout and style
         layout = self.theme['layout']
@@ -266,11 +269,32 @@ class MenuScene(Scene):
         track = now_playing.get_track()
         
         if track:
-            song_line = f"{track.artist} - {track.title}"
-            album_line = track.album if track.album else f"via {track.source.title()}"
+            # Format based on content type with emojis and lowercase
+            if track.content_type == 'podcast':
+                show = track.show_name.lower() if track.show_name else "unknown podcast"
+                title = track.title.lower() if track.title else "unknown episode"
+                song_line = f"{show} • {title}"
+                album_line = f"podcast • {track.publisher.lower()}" if track.publisher else "podcast"
+            elif track.content_type == 'audiobook':
+                title = track.title.lower() if track.title else "unknown title"
+                author = track.artist.lower() if track.artist else "unknown author"
+                song_line = f"{title} • {author}"
+                album_line = f"audiobook • {track.publisher.lower()}" if track.publisher else "audiobook"
+            else:
+                # Music (default)
+                artist = track.artist.lower() if track.artist else "unknown artist"
+                title = track.title.lower() if track.title else "unknown song"
+                song_line = f"{artist} • {title}"
+                album_line = track.album.lower() if track.album else f"via {track.source}"
         else:
-            song_line = "Listening..."
-            album_line = "No music playing"
+            song_line = "listening"
+            album_line = "none playing"
+        
+        # Initialize marquee if needed
+        bg_width = right_col_width - 40
+        max_text_width = bg_width - (24 * 2)  # 24px padding on each side
+        if self.now_playing_marquee is None:
+            self.now_playing_marquee = MarqueeText(song_line, max_text_width, scroll_speed=50.0, gap=100)
         
         # Pass border_y directly to align with title card top border (adjusted up by 6px)
         now_playing_rect = draw_now_playing(
@@ -282,7 +306,8 @@ class MenuScene(Scene):
             line1=song_line,
             line2=album_line,
             theme={'style': style},
-            border_y=title_card_y - 6  # Move entire component up 6px
+            border_y=title_card_y - 6,  # Move entire component up 6px
+            marquee=self.now_playing_marquee
         )
         
         # Draw d20 component (includes speech_synthesizer inside) 100px below now playing, shifted 50px left
