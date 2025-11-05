@@ -30,60 +30,9 @@ from workers.audio_worker import AudioWorker
 from workers.recognition_worker import RecognitionWorker
 from logger import get_logger
 from renderers import create_renderer
+from intent_handlers import register_all_intents
 
 ROOT = Path(__file__).resolve().parent
-
-
-def register_intents(intent_router: IntentRouter, scene_manager: SceneManager, app_context: AppContext):
-    """Register all application intents.
-    
-    Args:
-        intent_router: IntentRouter instance
-        scene_manager: SceneManager instance
-        app_context: AppContext instance
-    """
-    # Navigation intents
-    intent_router.register(Intents.GO_HOME, lambda **kw: scene_manager.switch_to("MenuScene"))
-    intent_router.register(Intents.GO_TO_EXPERIENCE1_HUB, lambda **kw: scene_manager.switch_to("Experience1HubScene"))
-    intent_router.register(Intents.GO_TO_EXPERIENCE2_HUB, lambda **kw: scene_manager.switch_to("Experience2HubScene"))
-    
-    # Main menu option selection
-    def select_option_handler(index, **kw):
-        if index == 0:
-            # NR-38: Music video (was Experience 2)
-            scene_manager.switch_to("Experience2HubScene")
-        elif index == 1:
-            # NR-18: Not implemented yet
-            print(f"Placeholder: NR-18 not implemented yet")
-        elif index == 2:
-            # Visualizer (was Experience 1)
-            scene_manager.switch_to("Experience1HubScene")
-        elif index == 3:
-            # Fate maker: Not implemented yet
-            print(f"Placeholder: Fate maker not implemented yet")
-        else:
-            print(f"Placeholder: Option {index+1} not implemented yet")
-    intent_router.register(Intents.SELECT_OPTION, select_option_handler)
-    
-    # Sub-experience selection
-    def select_sub_experience_handler(id, **kw):
-        if id == "spectrum_bars":
-            scene_manager.switch_to("Experience1SpectrumBarsScene")
-        elif id == "waveform":
-            scene_manager.switch_to("Experience1WaveformScene")
-        elif id == "lissajous":
-            scene_manager.switch_to("Experience1LissajousScene")
-        elif id == "video_list":
-            scene_manager.switch_to("VideoListScene")
-        elif id.startswith("video:"):
-            # Extract filename from id (format: "video:filename.mp4")
-            filename = id.split(":", 1)[1]
-            # Store filename in app context for the video player to pick up
-            app_context.selected_video = filename
-            scene_manager.switch_to("VideoPlayerScene")
-        else:
-            print(f"Unknown sub-experience: {id}")
-    intent_router.register(Intents.SELECT_SUB_EXPERIENCE, select_sub_experience_handler)
 
 
 def init_pygame_env():
@@ -197,7 +146,7 @@ def main():
     scene_manager.register_lazy('VideoPlayerScene', make_factory('scenes.video_player_scene', 'VideoPlayerScene'))
     
     # Register intent handlers
-    register_intents(intent_router, scene_manager, app_context)
+    register_all_intents(intent_router, scene_manager, app_context)
     
     # Register voice commands for scene navigation (emit intents)
     def register_voice_commands(voice_router: VoiceRouter, intent_router: IntentRouter):
