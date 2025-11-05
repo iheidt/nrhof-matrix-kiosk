@@ -16,3 +16,4 @@ pvporcupine==3.0.2
 
 # Music sources
 spotipy==2.23.0
+soco==0.30.4

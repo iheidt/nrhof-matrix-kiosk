@@ -20,6 +20,7 @@ from workers.wake_word_worker import WakeWordWorker
 from workers.song_recognition_worker import SongRecognitionWorker
 from core.source_manager import SourceManager
 from integrations.spotify_source import SpotifySource
+from integrations.sonos_source import SonosSource
 from core.logger import get_logger
 from renderers import create_renderer
 from routing.intent_handlers import register_all_intents
@@ -172,9 +173,13 @@ def start_workers(cfg, voice_engine=None):
     source_manager = SourceManager(config_dict)
     logger.info("SourceManager initialized")
     
-    # Spotify source (primary music source)
+    # Spotify source (primary music source - priority 1)
     spotify_source = SpotifySource(config_dict, source_manager)
     spotify_source.start()
+    
+    # Sonos source (secondary music source - priority 2)
+    sonos_source = SonosSource(config_dict, source_manager)
+    sonos_source.start()
     
     return {
         'audio_worker': audio_worker,
@@ -182,7 +187,8 @@ def start_workers(cfg, voice_engine=None):
         'wake_word_worker': wake_word_worker,
         'song_recognition_worker': song_recognition_worker,
         'source_manager': source_manager,
-        'spotify_source': spotify_source
+        'spotify_source': spotify_source,
+        'sonos_source': sonos_source
     }
 
 

@@ -53,6 +53,12 @@ spotify:
   cache_path: ".spotify_cache"  # OAuth token cache (gitignored)
   poll_interval_seconds: 2.0  # How often to check for track changes
 
+# Sonos Integration (Secondary music source - local network)
+sonos:
+  enabled: true
+  poll_interval_seconds: 2.0  # How often to check for track changes
+  target_room: null  # null = dynamically follow any playing speaker, or set specific room speaker, or set specific room name room name (e.g., "Living Room"), null = auto-discover
+
 # Source Manager (Music source arbitration)
 source_manager:
   min_change_interval_seconds: 2.0  # Debounce track changes

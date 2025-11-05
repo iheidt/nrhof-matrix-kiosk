@@ -285,7 +285,14 @@ class MenuScene(Scene):
                 artist = track.artist.lower() if track.artist else "unknown artist"
                 title = track.title.lower() if track.title else "unknown song"
                 song_line = f"{artist} • {title}"
-                album_line = track.album.lower() if track.album else f"via {track.source}"
+                
+                # Show Sonos room if available, otherwise album
+                if track.source == 'sonos' and track.sonos_room:
+                    album_line = f"{track.sonos_room.lower()}"
+                    if track.sonos_grouped_rooms:
+                        album_line += f" + {len(track.sonos_grouped_rooms)} more"
+                else:
+                    album_line = track.album.lower() if track.album else f"via {track.source}"
         else:
             song_line = "listening"
             album_line = "none playing"

@@ -43,6 +43,11 @@ class Track:
     context_type: Optional[str] = None  # "playlist", "album", "artist", "show"
     context_uri: Optional[str] = None
     
+    # Sonos-specific info
+    sonos_room: Optional[str] = None  # Room name (e.g., "Living Room")
+    sonos_volume: Optional[int] = None  # Volume level 0-100
+    sonos_grouped_rooms: Optional[list[str]] = None  # Other rooms in group
+    
     def __eq__(self, other) -> bool:
         """Check if two tracks are the same (ignoring confidence)."""
         if not isinstance(other, Track):
