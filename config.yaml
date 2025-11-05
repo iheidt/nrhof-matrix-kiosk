@@ -31,6 +31,10 @@ integrations:
     sync_window: 300.0       # Don't sync same track within 5 minutes
     retry_backoff_max: 300   # Max backoff in seconds
 
+# Localization
+localization:
+  language: "en"  # en (English) | jp (Japanese)
+
 # Feature flags
 flags:
   use_prebaked_video: false
@@ -39,7 +43,7 @@ flags:
   enable_webflow: false
   enable_voice: true
   offline_mode: false
-  skip_intro: true  # Skip intro typewriter scene (for development)
+  skip_intro: false  # Skip intro typewriter scene (for development)
 
 # Note: Scene content (splash, intro, menu) now in content/ directory
 # Note: Scene layouts now in layouts/ directory

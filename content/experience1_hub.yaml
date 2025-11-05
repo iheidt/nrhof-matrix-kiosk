@@ -1,9 +1,12 @@
 # Experience 1 Hub (Visualizers)
-title: "experience 1"
+title_key: "exp1.title"  # Localized: VISUALIZER
 items:
   - id: "spectrum_bars"
-    label: "1. spectrum bars"
+    label_key: "exp1.spectrum"  # Localized: spectrum bars
+    number: "1."
   - id: "waveform"
-    label: "2. waveform"
+    label_key: "exp1.waveform"  # Localized: waveform
+    number: "2."
   - id: "lissajous"
-    label: "3. lissajous"
+    label_key: "exp1.lissajous"  # Localized: lissajous
+    number: "3."

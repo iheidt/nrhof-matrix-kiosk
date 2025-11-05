@@ -166,12 +166,19 @@ class BaseHubScene(Scene):
         # Load theme if content_name provided
         if content_name:
             from theme_loader import get_theme_loader
+            from localization import t
             self.theme_loader = get_theme_loader()
             self.theme = self.theme_loader.load_theme(content_name, theme_name='pipboy')
             # Also load shared hub layout
             self.hub_layout = self.theme_loader.load_layout('hub')
             
-            self.title = self.theme['content']['title']
+            # Use localization for title if title_key exists
+            title_key = self.theme['content'].get('title_key')
+            if title_key:
+                self.title = t(title_key)
+            else:
+                self.title = self.theme['content'].get('title', '')
+            
             self.subtitle = self.theme['content'].get('subtitle', '')
             self.items = self.theme['content']['items']
             self.color = tuple(self.theme['style']['colors']['primary'])
@@ -296,6 +303,7 @@ class BaseHubScene(Scene):
             line_height = items_layout['line_height']
             item_font = get_theme_font(items_layout['font_size'], 'primary')
             
+            from localization import t
             for i, item in enumerate(self.items):
                 if i == self.selected_index:
                     prefix = "> "
@@ -304,7 +312,18 @@ class BaseHubScene(Scene):
                     prefix = "  "
                     color = tuple(style['colors']['dim'])
                 
-                text = item_font.render(f"{prefix}{item['label']}", True, color)
+                # Use localization for label if label_key exists
+                label_key = item.get('label_key')
+                if label_key:
+                    label = t(label_key)
+                else:
+                    label = item.get('label', '')
+                
+                # Add number prefix if exists
+                number = item.get('number', '')
+                full_label = f"{number} {label}" if number else label
+                
+                text = item_font.render(f"{prefix}{full_label}", True, color)
                 screen.blit(text, (items_layout['indent'], start_y + i * line_height))
             
             # Footer for themed layout

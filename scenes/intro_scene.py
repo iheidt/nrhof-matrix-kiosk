@@ -19,7 +19,13 @@ class IntroScene(Scene):
         self.theme = self.theme_loader.load_theme('intro', theme_name='pipboy')
         
         # Extract from theme
-        self.lines = self.theme['content']['lines']
+        from localization import t
+        # Use localization if lines_keys exists
+        lines_keys = self.theme['content'].get('lines_keys')
+        if lines_keys:
+            self.lines = [t(key) for key in lines_keys]
+        else:
+            self.lines = self.theme['content'].get('lines', [])
         self.typewriter_speed = self.theme['content']['timing']['typewriter_speed']
         self.line_pause = self.theme['content']['timing']['line_pause']
         self.color = tuple(self.theme['style']['colors']['primary'])

@@ -107,6 +107,11 @@ def main():
     
     cfg = load_config()
     
+    # Initialize localization
+    import localization
+    lang = cfg.get('localization.language', 'en')
+    localization.set_language(lang)
+    
     # Override config with command-line arguments
     if args.fullscreen:
         cfg.set('render.fullscreen', True)

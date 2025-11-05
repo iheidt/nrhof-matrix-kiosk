@@ -87,10 +87,14 @@ class SplashScene(Scene):
         style = self.theme['style']
         
         # Title text
+        from localization import t
         title_layout = layout['title']
         title_pos = self.theme_loader.resolve_position(title_layout['position'], screen_size)
+        # Use localization if title_key exists
+        title_key = content.get('title_key')
+        title_content = t(title_key) if title_key else content.get('title', 'NRHOF')
         title_text = Text.create(
-            content=content['title'],
+            content=title_content,
             x=title_pos[0],
             y=title_pos[1],
             color=tuple(style['colors']['primary']),
@@ -119,8 +123,11 @@ class SplashScene(Scene):
         # Loading text
         loading_layout = layout['loading_text']
         loading_pos = self.theme_loader.resolve_position(loading_layout['position'], screen_size)
+        # Use localization if loading_text_key exists
+        loading_key = content.get('loading_text_key')
+        loading_content = t(loading_key) if loading_key else content.get('loading_text', 'loading...')
         loading_text = Text.create(
-            content=content['loading_text'],
+            content=loading_content,
             x=loading_pos[0],
             y=loading_pos[1],
             color=tuple(style['colors']['secondary']),

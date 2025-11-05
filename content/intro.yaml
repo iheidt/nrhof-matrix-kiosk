@@ -1,8 +1,8 @@
 # Intro scene content
-lines:
-  - "wake up, NRHOF..."
-  - "the matrix has you..."
-  - "follow the white rabbit..."
+lines_keys:
+  - "intro.line1"  # Localized: wake up, NRHOF...
+  - "intro.line2"  # Localized: the matrix has you...
+  - "intro.line3"  # Localized: follow the white rabbit...
 
 timing:
   typewriter_speed: 0.05  # seconds per character

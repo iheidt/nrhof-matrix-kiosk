@@ -297,10 +297,11 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140)):
                             border_fade_pct=footer_fade_pct)
     
     # Draw "settings" text (left aligned in card)
+    from localization import t
     primary_color = tuple(style['colors']['primary'])
     micro_size = style['typography']['fonts']['micro']
     settings_font = get_theme_font(micro_size, 'primary')
-    settings_text = settings_font.render("settings", True, primary_color)
+    settings_text = settings_font.render(t('footer.settings'), True, primary_color)
     surface.blit(settings_text, (content_rect.x, content_rect.y + (content_rect.height - settings_text.get_height()) // 2))
     
     # Draw version number (right aligned in card)
@@ -319,7 +320,7 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140)):
     div_y = card_y + card_height
     label_size = style['typography']['fonts']['label']
     company_font = get_theme_font(label_size, 'label')
-    company_text = company_font.render("BIG NERD INDUSTRIES INC. 2025", True, primary_color)
+    company_text = company_font.render(t('footer.company'), True, primary_color)
     company_x = (w - company_text.get_width()) // 2
     company_y = div_y + (div_height - company_text.get_height()) // 2
     surface.blit(company_text, (company_x, company_y))

@@ -234,9 +234,15 @@ class MenuScene(Scene):
         button_x = self.left_col_x + adornment_size + adornment_margin
         
         # Start buttons below title card with configured spacing
+        from localization import t
         y = title_card_y + title_card_height + title_card_margin_bottom
         for i, entry in enumerate(self.entries):
-            label = entry.get('label', f'Option {i+1}')
+            # Use localization key if available, otherwise fall back to label
+            label_key = entry.get('label_key')
+            if label_key:
+                label = t(label_key)
+            else:
+                label = entry.get('label', f'Option {i+1}')
             button_rect = draw_button(
                 surface=screen,
                 x=button_x,
