@@ -564,9 +564,28 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     
     content_y = calculated_border_y + border_width  # Content starts immediately after border
     
+    # Calculate background width (40px narrower from right)
+    bg_width = width - 40
+    max_text_width = bg_width - (padding * 2)
+    
+    # Truncate text if needed to fit within max width
+    def truncate_text(font, text, max_width):
+        if not text:
+            return text
+        rendered = font.render(text, True, title_color)
+        if rendered.get_width() <= max_width:
+            return text
+        # Truncate with ellipsis
+        while text and font.render(text + "...", True, title_color).get_width() > max_width:
+            text = text[:-1]
+        return text + "..."
+    
+    line1_text = truncate_text(line1_font, line1, max_text_width) if line1 else ""
+    line2_text = truncate_text(line2_font, line2, max_text_width) if line2 else ""
+    
     # Render body lines
-    line1_surface = line1_font.render(line1, True, title_color) if line1 else None
-    line2_surface = line2_font.render(line2, True, title_color) if line2 else None
+    line1_surface = line1_font.render(line1_text, True, title_color) if line1_text else None
+    line2_surface = line2_font.render(line2_text, True, title_color) if line2_text else None
     
     # Calculate content height
     line_spacing = 12
@@ -575,13 +594,13 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
         content_height += line1_surface.get_height()
     if line2_surface:
         content_height += line_spacing + line2_surface.get_height()
-    content_height += padding  # Bottom padding
+    content_height += padding - 28  # Bottom padding (reduced by 28px)
     
     # Total component height
     total_height = (calculated_border_y - title_y) + border_width + content_height
     
-    # Draw background box (with alpha)
-    bg_surface = pygame.Surface((width, content_height), pygame.SRCALPHA)
+    # Draw background box (with alpha) - 40px narrower from right (bg_width already calculated above)
+    bg_surface = pygame.Surface((bg_width, content_height), pygame.SRCALPHA)
     bg_surface.fill((bg_r, bg_g, bg_b, bg_alpha))
     surface.blit(bg_surface, (x, content_y))
     
@@ -591,9 +610,9 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     # Draw title
     surface.blit(title_surface, (x, title_y))
     
-    # Draw body lines
+    # Draw body lines (add 10px extra padding at top)
     text_x = x + padding
-    text_y = content_y + padding
+    text_y = content_y + 10
     
     if line1_surface:
         surface.blit(line1_surface, (text_x, text_y))
@@ -601,6 +620,33 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     
     if line2_surface:
         surface.blit(line2_surface, (text_x, text_y))
+    
+    # Draw circle element (80x80px) aligned with border
+    circle_size = 80
+    circle_border = 6
+    circle_x = x + width - (circle_size // 2)  # Right edge, half overlapping
+    circle_y = calculated_border_y - (circle_size // 2) + (border_width // 2) + 40  # Centered on border, moved down 40px
+    
+    # Draw outer circle (border)
+    pygame.draw.circle(surface, border_color, (circle_x, circle_y), circle_size // 2, 0)
+    
+    # Draw inner circle (background fill)
+    bg_color_solid = tuple(style['colors'].get('background', (0, 0, 0)))
+    inner_radius = (circle_size // 2) - circle_border
+    pygame.draw.circle(surface, bg_color_solid, (circle_x, circle_y), inner_radius, 0)
+    
+    # Load and draw SVG icon (40x40px)
+    icon_path = Path(__file__).parent / "assets" / "icon_happysad.svg"
+    if icon_path.exists():
+        icon_surface = load_icon(icon_path, (40, 40), fill_color=title_color)
+        if icon_surface:
+            icon_x = circle_x - 20  # Center 40px icon
+            icon_y = circle_y - 20
+            surface.blit(icon_surface, (icon_x, icon_y))
+        else:
+            print(f"Warning: Failed to load icon from {icon_path}")
+    else:
+        print(f"Warning: Icon not found at {icon_path}")
     
     return pygame.Rect(x, y, width, total_height)
 
@@ -618,10 +664,18 @@ def vignette(surface: Surface, strength: float = 0.6):
     surface.blit(vg, (0, 0))
 
 
-def load_icon(path: Path, size: tuple[int, int]) -> Surface | None:
+def load_icon(path: Path, size: tuple[int, int], fill_color: tuple = None) -> Surface | None:
     try:
         if path.suffix.lower() == ".svg" and HAVE_CAIROSVG:
-            png_bytes = cairosvg.svg2png(url=str(path), output_width=size[0], output_height=size[1])
+            # Read SVG and optionally replace fill color
+            svg_content = path.read_text()
+            if fill_color:
+                # Convert RGB tuple to hex
+                hex_color = f"#{fill_color[0]:02x}{fill_color[1]:02x}{fill_color[2]:02x}"
+                # Replace fill attributes (simple approach)
+                import re
+                svg_content = re.sub(r'fill="[^"]*"', f'fill="{hex_color}"', svg_content)
+            png_bytes = cairosvg.svg2png(bytestring=svg_content.encode(), output_width=size[0], output_height=size[1])
             pil_img = Image.open(BytesIO(png_bytes)).convert("RGBA")
         else:
             pil_img = Image.open(path).convert("RGBA")
@@ -629,7 +683,10 @@ def load_icon(path: Path, size: tuple[int, int]) -> Surface | None:
         mode = pil_img.mode
         data = pil_img.tobytes()
         return pygame.image.fromstring(data, pil_img.size, mode)
-    except Exception:
+    except Exception as e:
+        print(f"Error loading icon: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 

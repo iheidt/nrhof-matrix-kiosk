@@ -68,7 +68,10 @@ class SplashScene(Scene):
         preload_done = getattr(self.ctx, 'preload_done', False)
         
         if (preload_done or self.progress >= 1.0) and elapsed >= self._min_secs:
-            self.manager.switch_to('IntroScene')
+            # Check if skip_intro flag is enabled
+            skip_intro = self.ctx.config.get('flags', {}).get('skip_intro', False)
+            next_scene = 'MenuScene' if skip_intro else 'IntroScene'
+            self.manager.switch_to(next_scene)
     
     def draw(self, screen: pygame.Surface):
         """Build frame state for rendering."""
