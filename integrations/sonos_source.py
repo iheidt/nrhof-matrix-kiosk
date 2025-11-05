@@ -6,6 +6,7 @@ import time
 from typing import Optional
 import soco
 from soco.discovery import discover
+import re
 
 from core.now_playing import Track
 from core.source_manager import SourceManager
@@ -41,6 +42,10 @@ class SonosSource:
             logger.info("Sonos integration disabled in config")
             return
         
+        # Spotify integration for progress tracking
+        self.spotify_client = None
+        self._init_spotify()
+        
         # Discover Sonos speakers
         try:
             self._discover_speaker()
@@ -52,6 +57,33 @@ class SonosSource:
         except Exception as e:
             logger.error("Failed to discover Sonos speakers", error=str(e))
             self.enabled = False
+    
+    def _init_spotify(self):
+        """Initialize Spotify client for progress tracking."""
+        try:
+            import spotipy
+            from spotipy.oauth2 import SpotifyOAuth
+            
+            spotify_config = self.config.get('spotify', {})
+            if not spotify_config.get('enabled'):
+                return
+            
+            client_id = spotify_config.get('client_id')
+            client_secret = spotify_config.get('client_secret')
+            redirect_uri = spotify_config.get('redirect_uri', 'http://localhost:8888/callback')
+            
+            if client_id and client_secret:
+                auth_manager = SpotifyOAuth(
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    redirect_uri=redirect_uri,
+                    scope='user-read-playback-state',
+                    cache_path='.spotify_cache_sonos'
+                )
+                self.spotify_client = spotipy.Spotify(auth_manager=auth_manager)
+                logger.info("Spotify client initialized for Sonos progress tracking")
+        except Exception as e:
+            logger.warning("Could not initialize Spotify for Sonos", error=str(e))
     
     def _discover_speaker(self):
         """Discover Sonos speakers on local network."""
@@ -144,8 +176,10 @@ class SonosSource:
                     is_playing = transport_state == 'PLAYING'
                     
                     if is_playing and track_info:
-                        track = self._parse_track_info(track_info)
+                        track = self._parse_track_info(track_info, is_playing)
                         if track:
+                            # Try to get progress from Spotify if playing Spotify
+                            self._enrich_with_spotify_progress(track, track_info)
                             self.source_manager.set_from('sonos', track)
                     else:
                         self.source_manager.set_from('sonos', None)
@@ -164,10 +198,12 @@ class SonosSource:
                                         # Temporarily set speaker for parsing
                                         old_speaker = self.speaker
                                         self.speaker = speaker
-                                        active_track = self._parse_track_info(track_info)
+                                        active_track = self._parse_track_info(track_info, is_playing=True)
                                         self.speaker = old_speaker
                                         
                                         if active_track:
+                                            # Try to get progress from Spotify if playing Spotify
+                                            self._enrich_with_spotify_progress(active_track, track_info)
                                             break
                             except:
                                 continue
@@ -185,11 +221,12 @@ class SonosSource:
         
         logger.info("Sonos poll loop ended")
     
-    def _parse_track_info(self, track_info: dict) -> Optional[Track]:
+    def _parse_track_info(self, track_info: dict, is_playing: bool = True) -> Optional[Track]:
         """Parse Sonos track info into Track.
         
         Args:
             track_info: Sonos track info dict
+            is_playing: Whether the track is currently playing
             
         Returns:
             Track or None
@@ -208,6 +245,18 @@ class SonosSource:
                     if len(parts) == 3:
                         h, m, s = parts
                         duration_ms = (int(h) * 3600 + int(m) * 60 + int(s)) * 1000
+                except:
+                    pass
+            
+            # Get position (progress) from Sonos
+            position = track_info.get('position')  # Format: "0:03:45"
+            progress_ms = None
+            if position:
+                try:
+                    parts = position.split(':')
+                    if len(parts) == 3:
+                        h, m, s = parts
+                        progress_ms = (int(h) * 3600 + int(m) * 60 + int(s)) * 1000
                 except:
                     pass
             
@@ -238,7 +287,9 @@ class SonosSource:
                 confidence=1.0,
                 source='sonos',
                 duration_ms=duration_ms,
+                progress_ms=progress_ms,
                 image_url=album_art,
+                is_playing=is_playing,
                 sonos_room=room_name,
                 sonos_volume=volume,
                 sonos_grouped_rooms=grouped_rooms if grouped_rooms else None
@@ -247,3 +298,50 @@ class SonosSource:
         except Exception as e:
             logger.error("Failed to parse Sonos track info", error=str(e))
             return None
+    
+    def _enrich_with_spotify_progress(self, track: Track, track_info: dict):
+        """Enrich track with Spotify progress if playing from Spotify.
+        
+        Args:
+            track: Track object to enrich
+            track_info: Sonos track info dict
+        """
+        if not self.spotify_client:
+            return
+        
+        try:
+            # Check if this is a Spotify track
+            # Sonos metadata includes URI like: x-sonos-spotify:spotify%3atrack%3a...
+            metadata = track_info.get('metadata', '')
+            uri = track_info.get('uri', '')
+            
+            # Extract Spotify track ID from URI or metadata
+            spotify_id = None
+            
+            # Try to extract from URI
+            if 'spotify' in uri.lower():
+                # Format: x-sonos-spotify:spotify%3atrack%3a{track_id}
+                # Match after %3atrack%3a or :track:
+                match = re.search(r'track(?:%3a|:)([a-zA-Z0-9]+)', uri, re.IGNORECASE)
+                if match:
+                    spotify_id = match.group(1)
+            
+            if not spotify_id:
+                return
+            
+            # Get current playback from Spotify API
+            playback = self.spotify_client.current_playback()
+            if playback and playback.get('item'):
+                item = playback['item']
+                item_id = item.get('id')
+                # Verify it's the same track
+                if item_id == spotify_id:
+                    track.progress_ms = playback.get('progress_ms')
+                    track.is_playing = playback.get('is_playing', True)
+                    track.spotify_id = spotify_id
+                    logger.debug("Enriched Sonos track with Spotify progress",
+                               progress_ms=track.progress_ms,
+                               spotify_id=spotify_id)
+        
+        except Exception as e:
+            logger.debug("Could not enrich with Spotify progress", error=str(e))
