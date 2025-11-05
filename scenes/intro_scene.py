@@ -72,10 +72,10 @@ class IntroScene(Scene):
         """Initialize intro sequence."""
         # Lines and colors already loaded from theme in __init__
         
-        w, h = self.manager.screen.get_size()
-        # Margins from layout or defaults
-        self.margin_x = int(w * 0.08)
-        self.margin_y = int(h * 0.15)
+        # Use standard margins from _base.yaml
+        from utils import MARGIN_LEFT, MARGIN_TOP
+        self.margin_x = MARGIN_LEFT
+        self.margin_y = MARGIN_TOP
         
         # Font settings already loaded from layout in __init__
         # No hardcoded font sizes - all from layout
@@ -177,5 +177,7 @@ class IntroScene(Scene):
                 cursor = font.render("_", True, self.color)
                 screen.blit(cursor, (cursor_x, y_pos))
         
-        # Draw overlays
+        # Draw overlays and footer
         draw_scanlines(screen)
+        from utils import draw_footer
+        draw_footer(screen, self.color)

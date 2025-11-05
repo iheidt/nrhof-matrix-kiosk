@@ -19,12 +19,38 @@ except Exception:
 
 ROOT = Path(__file__).resolve().parent
 
-# Screen margin constants - safe zones where content should not be drawn
-FOOTER_HEIGHT = 50  # pixels from bottom of screen
-MARGIN_TOP = 20     # pixels from top of screen
-MARGIN_LEFT = 20    # pixels from left edge
-MARGIN_RIGHT = 20   # pixels from right edge
-MARGIN_BOTTOM = FOOTER_HEIGHT + 20  # footer + spacing
+# Screen margin constants - loaded from _base.yaml at module import
+def _load_margins_from_yaml():
+    """Load margins from _base.yaml."""
+    try:
+        from theme_loader import get_theme_loader
+        theme_loader = get_theme_loader()
+        base_layout = theme_loader.load_layout('_base')
+        margins = base_layout.get('margins', {})
+        footer = base_layout.get('footer', {})
+        return {
+            'top': margins.get('top', 50),
+            'left': margins.get('left', 50),
+            'right': margins.get('right', 50),
+            'bottom': margins.get('bottom', 130),
+            'footer_height': footer.get('height', 130)
+        }
+    except Exception:
+        # Fallback to defaults if YAML can't be loaded
+        return {
+            'top': 50,
+            'left': 50,
+            'right': 50,
+            'bottom': 130,
+            'footer_height': 130
+        }
+
+_margins = _load_margins_from_yaml()
+MARGIN_TOP = _margins['top']
+MARGIN_LEFT = _margins['left']
+MARGIN_RIGHT = _margins['right']
+MARGIN_BOTTOM = _margins['bottom']
+FOOTER_HEIGHT = _margins['footer_height']
 
 # Hub scene layout constants
 HUB_TITLE_Y_OFFSET = 60      # Title position from top margin
@@ -633,7 +659,7 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     pygame.draw.circle(surface, bg_color_solid, (circle_x, circle_y), inner_radius, 0)
     
     # Load and draw SVG icon (40x40px)
-    icon_path = Path(__file__).parent / "assets" / "icon_happysad.svg"
+    icon_path = Path(__file__).parent / "assets" / "images" / "icon_happysad.svg"
     if icon_path.exists():
         icon_surface = load_icon(icon_path, (40, 40), fill_color=title_color)
         if icon_surface:
@@ -796,7 +822,7 @@ def draw_d20(surface: Surface, x: int, y: int, width: int, height: int = 300, th
     d20_available_height = height - speech_height - margin
     
     # Load d20 SVG
-    d20_path = Path(__file__).parent / "assets" / "d20.svg"
+    d20_path = Path(__file__).parent / "assets" / "images" / "d20.svg"
     if d20_path.exists():
         d20_surface = load_icon(d20_path, (width, d20_available_height), fill_color=primary_color)
         if d20_surface:
@@ -808,7 +834,7 @@ def draw_d20(surface: Surface, x: int, y: int, width: int, height: int = 300, th
             
             # Draw speech_synthesizer below d20 with 30px margin
             speech_y = d20_y + d20_rect.height + margin
-            speech_path = Path(__file__).parent / "assets" / "speech_synthesizer.svg"
+            speech_path = Path(__file__).parent / "assets" / "images" / "speech_synthesizer.svg"
             if speech_path.exists():
                 speech_surface = load_icon(speech_path, (width, speech_height), fill_color=dim_color)
                 if speech_surface:

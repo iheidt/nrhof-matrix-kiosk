@@ -5,5 +5,5 @@ lines_keys:
   - "intro.line3"  # Localized: follow the white rabbit...
 
 timing:
-  typewriter_speed: 0.05  # seconds per character
+  typewriter_speed: .05  # seconds per character
   line_pause: 1.0         # seconds between lines
