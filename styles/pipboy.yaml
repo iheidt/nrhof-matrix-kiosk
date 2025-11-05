@@ -26,7 +26,7 @@ typography:
     body: 48
     micro: 24
     pico: 18
-    footer: 16
+    label: 16
 
     
   # Line height ratios

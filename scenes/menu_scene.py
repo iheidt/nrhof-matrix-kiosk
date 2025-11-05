@@ -2,7 +2,7 @@
 import pygame
 from pathlib import Path
 from scene_manager import Scene, register_scene
-from utils import get_font, get_theme_font, draw_scanlines, draw_footer, render_text, load_icon, launch_command, ROOT
+from utils import get_font, get_theme_font, draw_scanlines, draw_footer, render_text, load_icon, launch_command, draw_now_playing, ROOT
 from intent_router import Intents
 from renderers import FrameState, Shape, Text, Image
 from theme_loader import get_theme_loader
@@ -217,6 +217,9 @@ class MenuScene(Scene):
             border_fade_pct=title_card_fade_pct
         )
         
+        # Get column configuration
+        columns_config = layout.get('columns', {})
+        
         # Draw buttons vertically in left column (below title card)
         buttons_config = layout.get('buttons', {})
         button_width = buttons_config.get('width', '67%')  # Button width override
@@ -245,6 +248,23 @@ class MenuScene(Scene):
             )
             self.button_rects.append(button_rect)
             y += button_rect.height + self.button_spacing
+        
+        # Draw now playing component in right column
+        right_col_x = self.left_col_x + self.left_col_width + columns_config['gutter']
+        right_col_width = columns_config['right']['width']
+        
+        # Pass border_y directly to align with title card top border (adjusted up by 6px)
+        draw_now_playing(
+            surface=screen,
+            x=right_col_x,
+            y=0,  # Not used when border_y is provided
+            width=right_col_width,
+            title="NOW PLAYING",
+            line1="weezer - say it aint",
+            line2="Rnk 1/38",
+            theme={'style': style},
+            border_y=title_card_y - 6  # Move entire component up 6px
+        )
         
         # Draw scanlines and footer
         draw_scanlines(screen)

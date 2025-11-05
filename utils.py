@@ -307,8 +307,8 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140)):
     
     # Draw company name div (50px tall, below card)
     div_y = card_y + card_height
-    footer_size = style['typography']['fonts']['footer']
-    company_font = get_theme_font(footer_size, 'label')
+    label_size = style['typography']['fonts']['label']
+    company_font = get_theme_font(label_size, 'label')
     company_text = company_font.render("BIG NERD INDUSTRIES INC. 2025", True, primary_color)
     company_x = (w - company_text.get_width()) // 2
     company_y = div_y + (div_height - company_text.get_height()) // 2
@@ -487,6 +487,122 @@ def draw_title_card(surface: Surface, x: int, y: int, width: int, height: int, t
     content_height = height - border_width - adjusted_top_padding - padding - border_width
     
     return pygame.Rect(content_x, content_y, content_width, content_height)
+
+
+def draw_now_playing(surface: Surface, x: int, y: int, width: int,
+                     title: str = "NOW PLAYING",
+                     line1: str = "",
+                     line2: str = "",
+                     theme: dict = None,
+                     border_y: int = None) -> pygame.Rect:
+    """Draw a 'Now Playing' component with title, border, and two body lines.
+    
+    Args:
+        surface: Pygame surface to draw on
+        x, y: Component position (top-left)
+        width: Component width
+        title: Title text (default: "NOW PLAYING")
+        line1: First body line (song/artist)
+        line2: Second body line (rank info)
+        theme: Dict with 'layout' and 'style' keys
+    
+    Returns:
+        pygame.Rect of the entire component
+    """
+    from theme_loader import get_theme_loader
+    
+    # Load theme if not provided
+    if theme is None:
+        theme_loader = get_theme_loader()
+        style = theme_loader.load_style('pipboy')
+    else:
+        style = theme.get('style', theme)
+    
+    # Colors
+    title_color = tuple(style['colors'].get('primary', (233, 30, 99)))
+    bg_color_hex = "#1797CD"
+    # Convert hex to RGB with 33% alpha
+    bg_r = int(bg_color_hex[1:3], 16)
+    bg_g = int(bg_color_hex[3:5], 16)
+    bg_b = int(bg_color_hex[5:7], 16)
+    bg_alpha = int(255 * 0.33)
+    
+    # Border
+    border_width = 6
+    border_color = title_color
+    
+    # Fonts
+    # Title: Compadre Extended (label_font), label size (16)
+    title_font_path = Path(__file__).parent / "assets" / "fonts" / "Compadre-Extended.otf"
+    title_font_size = style['typography']['fonts'].get('label', 16)
+    title_font = pygame.font.Font(str(title_font_path), title_font_size)
+    
+    # Line 1: IBM Plex Mono Italic, micro size (24)
+    line1_font_path = Path(__file__).parent / "assets" / "fonts" / "IBMPlexMono-Italic.ttf"
+    line1_font_size = style['typography']['fonts'].get('micro', 24)
+    line1_font = pygame.font.Font(str(line1_font_path), line1_font_size)
+    
+    # Line 2: IBM Plex Mono Regular, pico size (18)
+    line2_font_path = Path(__file__).parent / "assets" / "fonts" / "IBMPlexMono-Regular.ttf"
+    line2_font_size = style['typography']['fonts'].get('pico', 18)
+    line2_font = pygame.font.Font(str(line2_font_path), line2_font_size)
+    
+    # Render title
+    title_surface = title_font.render(title, True, title_color)
+    title_height = title_surface.get_height()
+    
+    # Calculate component dimensions
+    padding = 24  # Internal padding
+    
+    # If border_y parameter is provided, use it directly and calculate title_y backwards
+    if border_y is not None:
+        calculated_border_y = border_y
+        title_y = border_y - title_height - 6  # 6px gap between title and border
+    else:
+        title_y = y
+        calculated_border_y = title_y + title_height + 6  # 6px gap between title and border
+    
+    content_y = calculated_border_y + border_width  # Content starts immediately after border
+    
+    # Render body lines
+    line1_surface = line1_font.render(line1, True, title_color) if line1 else None
+    line2_surface = line2_font.render(line2, True, title_color) if line2 else None
+    
+    # Calculate content height
+    line_spacing = 12
+    content_height = padding  # Top padding
+    if line1_surface:
+        content_height += line1_surface.get_height()
+    if line2_surface:
+        content_height += line_spacing + line2_surface.get_height()
+    content_height += padding  # Bottom padding
+    
+    # Total component height
+    total_height = (calculated_border_y - title_y) + border_width + content_height
+    
+    # Draw background box (with alpha)
+    bg_surface = pygame.Surface((width, content_height), pygame.SRCALPHA)
+    bg_surface.fill((bg_r, bg_g, bg_b, bg_alpha))
+    surface.blit(bg_surface, (x, content_y))
+    
+    # Draw border (solid line)
+    pygame.draw.rect(surface, border_color, (x, calculated_border_y, width, border_width), 0)
+    
+    # Draw title
+    surface.blit(title_surface, (x, title_y))
+    
+    # Draw body lines
+    text_x = x + padding
+    text_y = content_y + padding
+    
+    if line1_surface:
+        surface.blit(line1_surface, (text_x, text_y))
+        text_y += line1_surface.get_height() + line_spacing
+    
+    if line2_surface:
+        surface.blit(line2_surface, (text_x, text_y))
+    
+    return pygame.Rect(x, y, width, total_height)
 
 
 def vignette(surface: Surface, strength: float = 0.6):
