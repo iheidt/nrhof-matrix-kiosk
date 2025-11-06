@@ -45,6 +45,7 @@ class EventType(Enum):
     SHUTDOWN = auto()
     CONFIG_RELOADED = auto()
     HEALTH_CHECK = auto()
+    LANGUAGE_CHANGED = auto()
 
 
 @dataclass
