@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import pygame
 from scenes.scene_manager import Scene, register_scene
-from utils import get_theme_font, draw_scanlines, draw_footer, MARGIN_TOP, MARGIN_LEFT
+from utils import draw_scanlines, draw_footer, MARGIN_TOP, MARGIN_LEFT
+from ui.fonts import get_localized_font
 from routing.intent_router import Intents
 from core.theme_loader import get_theme_loader
 
@@ -23,6 +24,8 @@ class SettingsScene(Scene):
         
         # Layout vars
         self.nav_back_rect = None
+        self.lang_left_rect = None
+        self.lang_right_rect = None
     
     def on_enter(self):
         """Called when scene becomes active."""
@@ -44,10 +47,19 @@ class SettingsScene(Scene):
                 self.trigger_wakeword()
                 return True
         
-        # Click nav_back
+        # Click nav_back or language toggle
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intents.GO_BACK)
+                return True
+            # Toggle language - check which side was clicked
+            if self.lang_left_rect and self.lang_left_rect.collidepoint(event.pos):
+                from core.localization import set_language
+                set_language('en')
+                return True
+            if self.lang_right_rect and self.lang_right_rect.collidepoint(event.pos):
+                from core.localization import set_language
+                set_language('jp')
                 return True
         
         return False
@@ -62,13 +74,20 @@ class SettingsScene(Scene):
         screen.fill(self.bg)
         w, h = screen.get_size()
         
-        # Get style
+        # Get style and layout
         style = self.theme['style']
+        layout = self.theme_loader.load_layout('menu')  # Use menu layout for margins
+        
+        # Get margins
+        margins = layout.get('margins', {})
+        margin_left = margins.get('left', 50)
+        margin_right = margins.get('right', 50)
         
         # Draw nav_back component ("<esc" in top-left corner at margin boundary)
         # Use micro size (24px) from pipboy.yaml
-        nav_back_font = get_theme_font(style['typography']['fonts']['micro'], 'primary')  # IBM Plex Mono 24px
-        nav_back_text = "<esc"
+        from core.localization import t
+        nav_back_text = t('common.esc')
+        nav_back_font = get_localized_font(style['typography']['fonts']['micro'], 'primary', nav_back_text)  # IBM Plex Mono 24px
         nav_back_surface = nav_back_font.render(nav_back_text, True, self.color)
         nav_back_x = MARGIN_LEFT
         nav_back_y = MARGIN_TOP
@@ -82,7 +101,74 @@ class SettingsScene(Scene):
             nav_back_surface.get_height()
         )
         
-        # TODO: Add settings content here
+        # Draw title card 20px below nav_back button, spanning full width
+        from utils import draw_title_card
+        
+        # Calculate title card position
+        title_card_y = nav_back_y + nav_back_surface.get_height() + 20
+        title_card_width = w - margin_left - margin_right
+        title_card_height = 200
+        
+        # Get title font to calculate overlap
+        title_text = t('settings.title')
+        title_font_size = style['typography']['fonts'].get('title', 76)
+        title_font = get_localized_font(title_font_size, 'secondary', title_text)
+        title_surface = title_font.render(title_text, True, (255, 255, 255))
+        title_overlap = title_surface.get_height() // 2
+        
+        # Adjust y position so title overlaps card border
+        title_card_y_adjusted = title_card_y + title_overlap
+        
+        # Move entire card up 21px when in Japanese mode
+        from core.localization import get_language
+        if get_language() == 'jp':
+            title_card_y_adjusted -= 21
+        
+        title_card_rect = draw_title_card(
+            surface=screen,
+            x=margin_left,
+            y=title_card_y_adjusted,
+            width=title_card_width,
+            height=title_card_height,
+            title=t('settings.title'),
+            theme={'layout': layout, 'style': style},
+            border_fade_pct=0.33
+        )
+        
+        # Add language toggle button below title card
+        from ui.components.buttons import draw_toggle_button
+        from core.localization import get_language, t
+        
+        # Get current language
+        current_lang = get_language()
+        
+        # Calculate button position (same as menu page)
+        button_config = layout.get('button', {})
+        adornment_config = button_config.get('adornment', {})
+        adornment_size = adornment_config.get('size', 25)
+        adornment_margin = adornment_config.get('margin_left', 18)
+        
+        # Position with same spacing as menu (adornment space reserved but not drawn)
+        button_x = margin_left + adornment_margin + adornment_size + adornment_margin
+        button_y = title_card_rect.bottom + 70  # Below title card with spacing
+        
+        # Draw toggle button for language (English | 日本語)
+        # Total left spacing = margin_left + adornment_margin + adornment_size + adornment_margin
+        total_left_spacing = button_x - margin_left
+        # Right margin should equal total left spacing
+        toggle_width = title_card_width - total_left_spacing - total_left_spacing
+        selected_side = 'left' if current_lang == 'en' else 'right'
+        
+        self.lang_left_rect, self.lang_right_rect = draw_toggle_button(
+            surface=screen,
+            x=button_x,
+            y=button_y,
+            width=toggle_width,
+            left_text=t('settings.language_english'),
+            right_text=t('settings.language_japanese'),
+            selected=selected_side,
+            theme={'layout': layout, 'style': style}
+        )
         
         # Draw scanlines and footer
         draw_scanlines(screen)

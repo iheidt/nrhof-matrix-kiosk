@@ -5,7 +5,7 @@ from pygame import Surface
 from pathlib import Path
 
 # Import from parent ui modules
-from ..fonts import get_theme_font
+from ..fonts import get_localized_font, get_theme_font
 
 
 def draw_back_arrow(surface: Surface, color: tuple = (140, 255, 140)) -> pygame.Rect:
@@ -24,7 +24,7 @@ def draw_back_arrow(surface: Surface, color: tuple = (140, 255, 140)) -> pygame.
     arrow_color = tuple(int(c * 0.8) for c in color)
     
     # Draw back arrow text
-    font = get_theme_font(24, 'primary')
+    font = get_localized_font(24, 'primary', "< back")
     arrow_text = "< back"
     text_surface = font.render(arrow_text, True, arrow_color)
     
@@ -93,8 +93,9 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140), show_settings:
     settings_rect = None
     if show_settings:
         micro_size = style['typography']['fonts']['micro']
-        settings_font = get_theme_font(micro_size, 'primary')
-        settings_text = settings_font.render(t('footer.settings'), True, primary_color)
+        settings_content = t('footer.settings')
+        settings_font = get_localized_font(micro_size, 'primary', settings_content)
+        settings_text = settings_font.render(settings_content, True, primary_color)
         settings_x = content_rect.x
         settings_y = content_rect.y + (content_rect.height - settings_text.get_height()) // 2
         surface.blit(settings_text, (settings_x, settings_y))
@@ -109,16 +110,20 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140), show_settings:
     else:
         dim_color = tuple(dim_color_hex) if isinstance(dim_color_hex, (list, tuple)) else (44, 64, 91)
     pico_size = style['typography']['fonts']['pico']
+    version_content = f"v{__version__}"
+    # Version always uses IBM Plex Mono (primary font), never Japanese font
     version_font = get_theme_font(pico_size, 'primary')
-    version_text = version_font.render(f"v{__version__}", True, dim_color)
+    version_text = version_font.render(version_content, True, dim_color)
     version_x = content_rect.x + content_rect.width - version_text.get_width()
     surface.blit(version_text, (version_x, content_rect.y + (content_rect.height - version_text.get_height()) // 2))
     
     # Draw company name div (50px tall, below card)
     div_y = card_y + card_height
     label_size = style['typography']['fonts']['label']
+    company_content = t('footer.company')
+    # Company name uses label font which never translates
     company_font = get_theme_font(label_size, 'label')
-    company_text = company_font.render(t('footer.company'), True, primary_color)
+    company_text = company_font.render(company_content, True, primary_color)
     company_x = (w - company_text.get_width()) // 2
     company_y = div_y + (div_height - company_text.get_height()) // 2
     surface.blit(company_text, (company_x, company_y))

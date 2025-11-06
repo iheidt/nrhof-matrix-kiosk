@@ -4,7 +4,7 @@ import pygame
 from pygame import Surface
 
 # Import from parent ui modules  
-from ..fonts import get_theme_font
+from ..fonts import get_localized_font
 
 
 def draw_card(surface: Surface, x: int, y: int, width: int, height: int, theme: dict = None,
@@ -205,16 +205,33 @@ def draw_title_card(surface: Surface, x: int, y: int, width: int, height: int, t
     border_color = tuple(style['colors'].get(border_color_key, style['colors']['primary']))
     
     # Title font - always uses 'title' size and 'miland' (secondary) font
-    title_font_size = style['typography']['fonts'].get('title', 76)
-    title_font = get_theme_font(title_font_size, 'secondary')
+    # Use localized font for Japanese support
+    from ..fonts import get_theme_font, render_mixed_text
+    from core.localization import get_language
     
-    # Render title to get dimensions
-    title_surface = title_font.render(title, True, border_color)
+    title_font_size = style['typography']['fonts'].get('title', 76)
+    
+    # Render title with mixed fonts (numbers use English, Japanese uses localized)
+    title_surface = render_mixed_text(title, title_font_size, 'secondary', border_color)
     title_width = title_surface.get_width()
     title_height = title_surface.get_height()
     
-    # Calculate how much the title overlaps into the card
-    title_overlap = title_height // 2
+    # Always use ENGLISH font height for consistent border positioning
+    english_font = get_theme_font(title_font_size, 'secondary')
+    english_surface = english_font.render('A', True, border_color)
+    english_height = english_surface.get_height()
+    
+    # Calculate overlap based on English font height (keeps border position fixed)
+    title_overlap = english_height // 2
+    
+    # For Japanese, adjust Y position upward to compensate for taller font
+    current_lang = get_language()
+    if current_lang == 'jp':
+        # Move Japanese title up by the difference in heights to align better
+        height_diff = title_height - english_height
+        title_y_offset = -(height_diff // 2 + 13)  # Extra 26px adjustment for better alignment
+    else:
+        title_y_offset = 0
     
     # Adjust card top padding to accommodate title overlap
     adjusted_top_padding = padding + title_overlap
@@ -225,7 +242,7 @@ def draw_title_card(surface: Surface, x: int, y: int, width: int, height: int, t
     
     # Calculate title position
     title_x = x + 35 + 24  # 35px border + 24px gap from left edge
-    title_y = y - title_overlap  # Centered on top border
+    title_y = y - title_overlap + title_y_offset  # Centered on top border, adjusted for Japanese
     
     # Draw background behind title to create gaps (erase the border)
     bg_color = tuple(style['colors']['background'])

@@ -33,6 +33,14 @@ TRANSLATIONS = {
         # Common
         'common.back': 'back',
         'common.home': 'home',
+        'common.esc': '<esc',
+        'common.am': 'AM',
+        'common.pm': 'PM',
+        
+        # Settings
+        'settings.title': 'SETTINGS',
+        'settings.language_english': 'English',
+        'settings.language_japanese': 'Japanese',
         
         # Splash
         'splash.title': 'NRHOF',
@@ -46,17 +54,17 @@ TRANSLATIONS = {
     'jp': {
         # Menu
         'menu.title': 'NRHOF',
-        'menu.option1': 'NR-38',
-        'menu.option2': 'NR-18',
-        'menu.option3': 'visualizador',
-        'menu.option4': 'creador de destino',
+        'menu.option1': 'ナード・38',
+        'menu.option2': 'ナード・18',
+        'menu.option3': 'ビジュアライザ',
+        'menu.option4': '運命師',
         
         # Footer
-        'footer.settings': 'configuración',
+        'footer.settings': '設定',
         'footer.company': 'BIG NERD INDUSTRIES INC. 2025',
         
         # Now Playing
-        'now_playing.title': 'REPRODUCIENDO',
+        'now_playing.title': 'Now Playing',
         
         # Experience 1 Hub
         'exp1.title': 'VISUALIZADOR',
@@ -69,17 +77,25 @@ TRANSLATIONS = {
         'exp2.videos': 'videos musicales',
         
         # Common
-        'common.back': 'atrás',
-        'common.home': 'inicio',
+        'common.back': '<戻る',
+        'common.home': 'ホーム',
+        'common.esc': '<戻る',
+        'common.am': '午前',
+        'common.pm': '午後',
+        
+        # Settings
+        'settings.title': '設定',
+        'settings.language_english': '英語',
+        'settings.language_japanese': '日本語',
         
         # Splash
         'splash.title': 'NRHOF',
-        'splash.loading': '???',
+        'splash.loading': '読み込み中...',
         
         # Intro
-        'intro.line1': '???...',
-        'intro.line2': '???...',
-        'intro.line3': '???...',
+        'intro.line1': '覚えて起きた、NRHOF...',
+        'intro.line2': 'マトリックスはあなたを捕らえていた...',
+        'intro.line3': '白い豚を追っていこう...',
     }
 }
 

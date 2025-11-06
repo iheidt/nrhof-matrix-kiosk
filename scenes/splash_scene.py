@@ -2,7 +2,8 @@
 import time
 import pygame
 from scenes.scene_manager import Scene, register_scene
-from utils import get_font, get_theme_font, draw_scanlines
+from utils import get_font, draw_scanlines
+from ui.fonts import get_localized_font
 from renderers import FrameState, Shape, Text
 from __version__ import __version__
 from core.theme_loader import get_theme_loader
@@ -191,7 +192,8 @@ class SplashScene(Scene):
         """Temporary: render text using pygame (backward compat)."""
         # Use font_type from layout (primary, secondary, or label)
         font_type = getattr(text, 'font_type', 'primary')
-        font = get_theme_font(text.font_size, font_type)
+        # Use localized font for Japanese support
+        font = get_localized_font(text.font_size, font_type, text.content)
         
         color = text.color[:3]
         surface = font.render(text.content, True, color)

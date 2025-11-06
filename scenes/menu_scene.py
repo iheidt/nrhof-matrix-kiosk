@@ -269,8 +269,9 @@ class MenuScene(Scene):
         adornment_size = adornment_config.get('size', 25)
         adornment_margin = adornment_config.get('margin_left', 18)
         
-        # Offset button x to account for adornment (so adornment stays within margin)
-        button_x = self.left_col_x + adornment_size + adornment_margin
+        # Position buttons so spacing from title card border to adornment equals spacing from adornment to button
+        # button_x = left_col_x + margin_to_adornment + adornment_size + margin_to_button
+        button_x = self.left_col_x + adornment_margin + adornment_size + adornment_margin
         
         # Start buttons below title card with configured spacing
         from core.localization import t

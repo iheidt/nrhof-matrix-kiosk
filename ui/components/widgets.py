@@ -116,13 +116,21 @@ def draw_timeclock(surface: Surface, x: int, y: int, width: int, height: int, th
     now = datetime.now()
     
     # Format time
-    ampm = now.strftime("%p")  # AM or PM
+    from core.localization import t
+    from ui.fonts import get_localized_font
+    
+    # Get localized AM/PM
+    hour = now.hour
+    if hour < 12:
+        ampm = t('common.am')
+    else:
+        ampm = t('common.pm')
+    
     time_str = now.strftime("%I:%M")  # 05:30 (with leading zero)
     
-    # Load fonts
-    # AM/PM: Miland 30px
-    ampm_font_path = Path(__file__).parent.parent.parent / "assets" / "fonts" / "miland.otf"
-    ampm_font = pygame.font.Font(str(ampm_font_path), 30)
+    # Load fonts with localization support
+    # AM/PM: Miland 30px (maps to Dela Gothic One for Japanese)
+    ampm_font = get_localized_font(30, 'secondary', ampm)
     
     # Time: IBM Plex Semibold Italic 124px (display size)
     time_font_path = Path(__file__).parent.parent.parent / "assets" / "fonts" / "IBMPlexMono-SemiBoldItalic.ttf"

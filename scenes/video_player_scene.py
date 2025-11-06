@@ -180,7 +180,9 @@ class VideoPlayerScene(Scene):
             text_rect = text.get_rect(center=(screen_size[0] // 2, screen_size[1] // 2))
             screen.blit(text, text_rect)
             
-            hint_font = get_theme_font(24, 'primary')
-            hint_text = hint_font.render("Press ESC to go back", True, tuple(style['colors']['secondary']))
+            from ui.fonts import get_localized_font
+            hint_content = "Press ESC to go back"
+            hint_font = get_localized_font(24, 'primary', hint_content)
+            hint_text = hint_font.render(hint_content, True, tuple(style['colors']['secondary']))
             hint_rect = hint_text.get_rect(center=(screen_size[0] // 2, screen_size[1] // 2 + 50))
             screen.blit(hint_text, hint_rect)

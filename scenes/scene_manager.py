@@ -341,8 +341,10 @@ class BaseHubScene(Scene):
             help_surface = help_font.render(help_text, True, dim_color(tuple(style['colors']['primary']), 0.33))
             screen.blit(help_surface, (80, h - 100))
             
+            from ui.fonts import get_localized_font
             esc_text = "esc: return to main menu"
-            esc_surface = help_font.render(esc_text, True, dim_color(tuple(style['colors']['primary']), 0.33))
+            esc_font = get_localized_font(18, 'primary', esc_text)
+            esc_surface = esc_font.render(esc_text, True, dim_color(tuple(style['colors']['primary']), 0.33))
             screen.blit(esc_surface, (80, h - 75))
             
             draw_scanlines(screen)
@@ -383,8 +385,10 @@ class BaseHubScene(Scene):
             help_surface = help_font.render(help_text, True, dim_color(self.color, 0.33))
             screen.blit(help_surface, (MARGIN_LEFT, h - 100))
             
+            from ui.fonts import get_localized_font
             esc_text = "esc: return to main menu"
-            esc_surface = help_font.render(esc_text, True, dim_color(self.color, 0.33))
+            esc_font = get_localized_font(18, 'primary', esc_text)
+            esc_surface = esc_font.render(esc_text, True, dim_color(self.color, 0.33))
             screen.blit(esc_surface, (MARGIN_LEFT, h - 75))
             
             draw_scanlines(screen)

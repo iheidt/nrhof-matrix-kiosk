@@ -35,6 +35,33 @@ def init_custom_fonts(config: dict):
     # Get parent directory (project root) since this is now in ui/ subfolder
     project_root = Path(__file__).parent.parent
     _FONTS_DIR = project_root / _FONT_CONFIG.get('directory', 'assets/fonts')
+    
+    # Preload Japanese fonts to prevent first-use hang
+    preload_japanese_fonts()
+
+
+def preload_japanese_fonts():
+    """Preload Japanese fonts to avoid lag on first use."""
+    if not _FONTS_DIR:
+        return
+    
+    # Common font sizes used in the app
+    common_sizes = [18, 24, 30, 32, 76, 124]
+    japanese_fonts = [
+        'NotoSansJP-Regular.ttf',
+        'NotoSansJP-SemiBold.ttf',
+        'DelaGothicOne-Regular.ttf'
+    ]
+    
+    for font_file in japanese_fonts:
+        font_path = _FONTS_DIR / font_file
+        if font_path.exists():
+            for size in common_sizes:
+                try:
+                    # Load font into cache
+                    pygame.font.Font(str(font_path), size)
+                except Exception:
+                    pass  # Silently skip if font fails to load
 
 
 def _load_custom_font(filename: str, size: int) -> pygame.font.Font | None:
@@ -157,6 +184,142 @@ def get_theme_font(size: int = 24, font_type: str = 'primary') -> pygame.font.Fo
     
     # Fallback to system font
     return pygame.font.Font(None, size)
+
+
+def get_localized_font(size: int = 24, font_type: str = 'primary', text: str = None) -> pygame.font.Font:
+    """Get a font that supports the current language.
+    
+    For Japanese (jp), maps fonts as follows:
+    - IBM Plex Mono Regular -> Noto Sans JP Regular
+    - IBM Plex Mono Italic -> Noto Sans JP Regular
+    - IBM Plex Mono SemiBold -> Noto Sans JP SemiBold
+    - Miland -> Dela Gothic One-Regular
+    
+    Special rules:
+    - Label fonts (Compadre) always stay English and use the standard font.
+    - "NRHOF" text always uses Miland font (secondary) and is never translated.
+    
+    Args:
+        size: Font size in points
+        font_type: 'primary', 'secondary', or 'label'
+        text: Optional text content to check for special cases like "NRHOF"
+        
+    Returns:
+        pygame.Font object
+    """
+    from core.localization import get_language
+    from core.theme_loader import get_theme_loader
+    
+    try:
+        pygame.font.get_init() or pygame.font.init()
+    except Exception:
+        pass
+    
+    # Get current language
+    current_lang = get_language()
+    
+    # Special rule: "NRHOF" always uses Miland font (never translated, never uses Japanese font)
+    if text and text == 'NRHOF':
+        return get_theme_font(size, font_type)
+    
+    # Special rule: Version strings (e.g., "v0.2.0") always use IBM Plex Mono
+    if text and text.startswith('v') and any(c.isdigit() for c in text):
+        return get_theme_font(size, font_type)
+    
+    # Labels always use English fonts (Compadre)
+    if font_type == 'label':
+        return get_theme_font(size, font_type)
+    
+    # For non-Japanese, use standard fonts
+    if current_lang != 'jp':
+        return get_theme_font(size, font_type)
+    
+    # Japanese font mapping
+    theme_loader = get_theme_loader()
+    style = theme_loader.load_style('pipboy')
+    font_key = f"{font_type}_font"
+    font_filename = style.get('typography', {}).get(font_key, '')
+    
+    # Map to Japanese fonts
+    jp_font_map = {
+        'IBMPlexMono-Regular.ttf': 'NotoSansJP-Regular.ttf',
+        'IBMPlexMono-Italic.ttf': 'NotoSansJP-Regular.ttf',
+        'IBMPlexMono-SemiBoldItalic.ttf': 'NotoSansJP-SemiBold.ttf',
+        'miland.otf': 'DelaGothicOne-Regular.ttf',
+    }
+    
+    jp_font_filename = jp_font_map.get(font_filename, font_filename)
+    
+    # Load the Japanese font
+    project_root = Path(__file__).parent.parent
+    font_path = project_root / "assets" / "fonts" / jp_font_filename
+    if font_path.exists():
+        try:
+            return pygame.font.Font(str(font_path), size)
+        except Exception as e:
+            print(f"Failed to load Japanese font {jp_font_filename}: {e}")
+    
+    # Fallback to standard font
+    return get_theme_font(size, font_type)
+
+
+def render_mixed_text(text: str, size: int, font_type: str, color: tuple, antialias: bool = True) -> pygame.Surface:
+    """Render text with mixed fonts: numbers use English font, other characters use localized font.
+    
+    Args:
+        text: Text to render
+        size: Font size
+        font_type: 'primary', 'secondary', or 'label'
+        color: Text color tuple
+        antialias: Whether to use antialiasing
+        
+    Returns:
+        pygame.Surface with the rendered text
+    """
+    import re
+    from core.localization import get_language
+    
+    # If not Japanese or no numbers in text, use simple rendering
+    if get_language() != 'jp' or not any(c.isdigit() for c in text):
+        font = get_localized_font(size, font_type, text)
+        return font.render(text, antialias, color)
+    
+    # Split text into segments: numbers vs non-numbers
+    # Pattern matches sequences of digits or non-digits
+    segments = re.findall(r'\d+|\D+', text)
+    
+    # Render each segment
+    surfaces = []
+    for segment in segments:
+        if any(c.isdigit() for c in segment):
+            # Numbers use English font
+            font = get_theme_font(size, font_type)
+        else:
+            # Other characters use localized font
+            font = get_localized_font(size, font_type, segment)
+        
+        surface = font.render(segment, antialias, color)
+        surfaces.append(surface)
+    
+    # If only one segment, return it directly
+    if len(surfaces) == 1:
+        return surfaces[0]
+    
+    # Combine surfaces horizontally
+    total_width = sum(s.get_width() for s in surfaces)
+    max_height = max(s.get_height() for s in surfaces)
+    
+    combined = pygame.Surface((total_width, max_height), pygame.SRCALPHA)
+    combined.fill((0, 0, 0, 0))  # Transparent background
+    
+    x_offset = 0
+    for surface in surfaces:
+        # Vertically align to baseline (bottom of surface)
+        y_offset = max_height - surface.get_height()
+        combined.blit(surface, (x_offset, y_offset))
+        x_offset += surface.get_width()
+    
+    return combined
 
 
 def render_text(text: str, size: int = 24, *, mono: bool = True, color=(0, 255, 0), antialias=True, prefer: str | None = None) -> pygame.Surface:

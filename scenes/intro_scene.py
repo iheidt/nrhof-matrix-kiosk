@@ -2,7 +2,8 @@
 import time
 import pygame
 from scenes.scene_manager import Scene, register_scene
-from utils import get_font, get_theme_font, draw_scanlines
+from utils import get_font, draw_scanlines
+from ui.fonts import get_localized_font
 from renderers import FrameState, Text
 from core.theme_loader import get_theme_loader
 
@@ -70,7 +71,11 @@ class IntroScene(Scene):
     
     def on_enter(self):
         """Initialize intro sequence."""
-        # Lines and colors already loaded from theme in __init__
+        # Reload localized lines in case language changed
+        from core.localization import t
+        lines_keys = self.theme['content'].get('lines_keys')
+        if lines_keys:
+            self.lines = [t(key) for key in lines_keys]
         
         # Use standard margins from _base.yaml
         from utils import MARGIN_LEFT, MARGIN_TOP
@@ -159,7 +164,7 @@ class IntroScene(Scene):
         # Draw all completed lines
         for line in self.completed_lines:
             text_with_prompt = f"> {line}"
-            font = get_theme_font(self.base_font_size, self.font_type)
+            font = get_localized_font(self.base_font_size, self.font_type, line)
             img = font.render(text_with_prompt, True, self.color)
             screen.blit(img, (self.margin_x, y_pos))
             y_pos += self.line_height
@@ -167,7 +172,7 @@ class IntroScene(Scene):
         # Draw current line being typed
         if self.shown_text:
             text_with_prompt = f"> {self.shown_text}"
-            font = get_theme_font(self.base_font_size, self.font_type)
+            font = get_localized_font(self.base_font_size, self.font_type, self.shown_text)
             img = font.render(text_with_prompt, True, self.color)
             screen.blit(img, (self.margin_x, y_pos))
             
