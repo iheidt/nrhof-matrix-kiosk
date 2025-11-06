@@ -266,6 +266,8 @@ def get_localized_font(size: int = 24, font_type: str = 'primary', text: str = N
 def render_mixed_text(text: str, size: int, font_type: str, color: tuple, antialias: bool = True) -> pygame.Surface:
     """Render text with mixed fonts: numbers use English font, other characters use localized font.
     
+    Uses the TextRenderer strategy pattern to handle different rendering requirements.
+    
     Args:
         text: Text to render
         size: Font size
@@ -276,50 +278,21 @@ def render_mixed_text(text: str, size: int, font_type: str, color: tuple, antial
     Returns:
         pygame.Surface with the rendered text
     """
-    import re
     from core.localization import get_language
+    from .text_renderer import TextRendererFactory
     
-    # If not Japanese or no numbers in text, use simple rendering
-    if get_language() != 'jp' or not any(c.isdigit() for c in text):
-        font = get_localized_font(size, font_type, text)
-        return font.render(text, antialias, color)
+    # Get current language
+    language = get_language()
     
-    # Split text into segments: numbers vs non-numbers
-    # Pattern matches sequences of digits or non-digits
-    segments = re.findall(r'\d+|\D+', text)
+    # Create appropriate renderer for the language
+    renderer = TextRendererFactory.create_renderer(
+        language=language,
+        localized_font_loader=get_localized_font,
+        english_font_loader=get_theme_font
+    )
     
-    # Render each segment
-    surfaces = []
-    for segment in segments:
-        if any(c.isdigit() for c in segment):
-            # Numbers use English font
-            font = get_theme_font(size, font_type)
-        else:
-            # Other characters use localized font
-            font = get_localized_font(size, font_type, segment)
-        
-        surface = font.render(segment, antialias, color)
-        surfaces.append(surface)
-    
-    # If only one segment, return it directly
-    if len(surfaces) == 1:
-        return surfaces[0]
-    
-    # Combine surfaces horizontally
-    total_width = sum(s.get_width() for s in surfaces)
-    max_height = max(s.get_height() for s in surfaces)
-    
-    combined = pygame.Surface((total_width, max_height), pygame.SRCALPHA)
-    combined.fill((0, 0, 0, 0))  # Transparent background
-    
-    x_offset = 0
-    for surface in surfaces:
-        # Vertically align to baseline (bottom of surface)
-        y_offset = max_height - surface.get_height()
-        combined.blit(surface, (x_offset, y_offset))
-        x_offset += surface.get_width()
-    
-    return combined
+    # Render using the strategy
+    return renderer.render(text, size, font_type, color, antialias)
 
 
 def render_text(text: str, size: int = 24, *, mono: bool = True, color=(0, 255, 0), antialias=True, prefer: str | None = None) -> pygame.Surface:
