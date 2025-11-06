@@ -8,6 +8,7 @@ from ui.components import (
 from ui.fonts import get_localized_font
 from routing.intent_router import Intent
 from core.theme_loader import get_theme_loader
+from ui.tabs import Tabs
 
 # Visualizers will be added here later
 
@@ -36,6 +37,9 @@ class VisualizersScene(Scene):
         self._title_surface = None
         self._title_overlap = None
         self._cached_language = None  # Track language for cache invalidation
+        
+        # Tabs test
+        self.tabs = None
     
     def on_enter(self):
         """Called when scene becomes active."""
@@ -63,6 +67,9 @@ class VisualizersScene(Scene):
             # Check settings click
             if self.settings_rect and self.settings_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intent.GO_TO_SETTINGS)
+                return True
+            # Check tabs click
+            if self.tabs and self.tabs.handle_click(event.pos):
                 return True
         
         return False
@@ -151,7 +158,43 @@ class VisualizersScene(Scene):
         content_width = title_card_width
         content_height = h - content_y - 130  # Subtract footer height
         
-        # Visualizers will be drawn here later
+        # Create/update tabs based on language
+        from core.localization import t, get_language
+        current_language = get_language()
+        if self.tabs is None or self._cached_language != current_language:
+            tab_labels = [
+                t('visualizers.bars'),
+                t('visualizers.wave'),
+                t('visualizers.lissajous')
+            ]
+            # Preserve active tab index when recreating
+            active_index = self.tabs.active_index if self.tabs else 0
+            self.tabs = Tabs(tab_labels, self.color)
+            self.tabs.active_index = active_index
+            self._cached_language = current_language
+        
+        # Draw tabs
+        tabs_x = content_x + 35 + 24  # Match title card padding
+        tabs_y = content_y + 20
+        self.tabs.draw(screen, tabs_x, tabs_y)
+        
+        # Draw content based on active tab
+        content_text_y = tabs_y + 60
+        if self.tabs.active_index == 0:
+            # Bars visualizer
+            content_font = get_localized_font(36, 'primary', 'Hello')
+            content_surface = content_font.render('Bars Visualizer', True, self.color)
+            screen.blit(content_surface, (tabs_x, content_text_y))
+        elif self.tabs.active_index == 1:
+            # Wave visualizer
+            content_font = get_localized_font(36, 'primary', 'Hello')
+            content_surface = content_font.render('Wave Visualizer', True, self.color)
+            screen.blit(content_surface, (tabs_x, content_text_y))
+        elif self.tabs.active_index == 2:
+            # Lissajous visualizer
+            content_font = get_localized_font(36, 'primary', 'Hello')
+            content_surface = content_font.render('Lissajous Visualizer', True, self.color)
+            screen.blit(content_surface, (tabs_x, content_text_y))
         
         # Draw scanlines and footer
         draw_scanlines(screen)

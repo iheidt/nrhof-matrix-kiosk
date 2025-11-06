@@ -34,6 +34,9 @@ TRANSLATIONS = {
         
         # Visualizers
         'visualizers.title': 'VISUALIZERS',
+        'visualizers.bars': 'bars',
+        'visualizers.wave': 'wave',
+        'visualizers.lissajous': 'lissajous',
         
         # Splash
         'splash.title': 'NRHOF',
@@ -73,6 +76,9 @@ TRANSLATIONS = {
         
         # Visualizers
         'visualizers.title': 'ビジュアライザ',
+        'visualizers.bars': 'バー',
+        'visualizers.wave': '波',
+        'visualizers.lissajous': 'リサージュ',
         
         # Splash
         'splash.title': 'NRHOF',
