@@ -46,7 +46,7 @@ class Experience1WaveformScene(BaseAudioScene):
             if self.settings_rect and self.settings_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intents.GO_TO_SETTINGS)
                 return True
-        return self.handle_common_events(event, Intents.GO_TO_EXPERIENCE1_HUB, self.back_arrow_rect)
+        return self.handle_common_events(event, Intents.GO_BACK, self.back_arrow_rect)
     
     def update(self, dt: float):
         """Update visualization."""

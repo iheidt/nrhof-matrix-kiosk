@@ -25,8 +25,6 @@ def _register_navigation_intents(intent_router: IntentRouter, scene_manager: Sce
     """Register navigation intents (go home, go to hub, etc.)."""
     intent_router.register(Intents.GO_HOME, lambda **kw: scene_manager.switch_to("MenuScene"))
     intent_router.register(Intents.GO_BACK, lambda **kw: scene_manager.go_back())
-    intent_router.register(Intents.GO_TO_EXPERIENCE1_HUB, lambda **kw: scene_manager.switch_to("Experience1HubScene"))
-    intent_router.register(Intents.GO_TO_EXPERIENCE2_HUB, lambda **kw: scene_manager.switch_to("Experience2HubScene"))
     intent_router.register(Intents.GO_TO_SETTINGS, lambda **kw: scene_manager.switch_to("SettingsScene"))
 
 
@@ -36,14 +34,14 @@ def _register_selection_intents(intent_router: IntentRouter, scene_manager: Scen
     # Main menu option selection
     def select_option_handler(index, **kw):
         if index == 0:
-            # NR-38: Music video (was Experience 2)
-            scene_manager.switch_to("Experience2HubScene")
+            # NR-38: Not implemented yet
+            print(f"Placeholder: NR-38 not implemented yet")
         elif index == 1:
             # NR-18: Not implemented yet
             print(f"Placeholder: NR-18 not implemented yet")
         elif index == 2:
-            # Visualizer (was Experience 1)
-            scene_manager.switch_to("Experience1HubScene")
+            # Visualizer
+            scene_manager.switch_to("VisualizersScene")
         elif index == 3:
             # Fate maker: Not implemented yet
             print(f"Placeholder: Fate maker not implemented yet")
@@ -60,14 +58,6 @@ def _register_selection_intents(intent_router: IntentRouter, scene_manager: Scen
             scene_manager.switch_to("Experience1WaveformScene")
         elif id == "lissajous":
             scene_manager.switch_to("Experience1LissajousScene")
-        elif id == "video_list":
-            scene_manager.switch_to("VideoListScene")
-        elif id.startswith("video:"):
-            # Extract filename from id (format: "video:filename.mp4")
-            filename = id.split(":", 1)[1]
-            # Store filename in app context for the video player to pick up
-            app_context.selected_video = filename
-            scene_manager.switch_to("VideoPlayerScene")
         else:
             print(f"Unknown sub-experience: {id}")
     

@@ -15,14 +15,11 @@ SCENE_DEFINITIONS = [
     # Lazy-loaded scenes (loaded on demand)
     ('IntroScene', 'scenes.intro_scene', 'IntroScene', False),
     ('MenuScene', 'scenes.menu_scene', 'MenuScene', False),
-    ('Experience1HubScene', 'scenes.experience1_hub_scene', 'Experience1HubScene', False),
     ('Experience1SpectrumBarsScene', 'scenes.experience1_spectrum_bars', 'Experience1SpectrumBarsScene', False),
     ('Experience1WaveformScene', 'scenes.experience1_waveform', 'Experience1WaveformScene', False),
     ('Experience1LissajousScene', 'scenes.experience1_lissajous', 'Experience1LissajousScene', False),
-    ('Experience2HubScene', 'scenes.experience2_hub_scene', 'Experience2HubScene', False),
-    ('VideoListScene', 'scenes.video_list_scene', 'VideoListScene', False),
-    ('VideoPlayerScene', 'scenes.video_player_scene', 'VideoPlayerScene', False),
     ('SettingsScene', 'scenes.settings_scene', 'SettingsScene', False),
+    ('VisualizersScene', 'scenes.visualizers_scene', 'VisualizersScene', False),
 ]
 
 

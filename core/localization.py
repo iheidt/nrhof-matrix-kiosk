@@ -10,7 +10,7 @@ TRANSLATIONS = {
         'menu.title': 'NRHOF',
         'menu.option1': 'NR-38',
         'menu.option2': 'NR-18',
-        'menu.option3': 'visualizer',
+        'menu.option3': 'visualizers',
         'menu.option4': 'fate maker',
         
         # Footer
@@ -41,6 +41,9 @@ TRANSLATIONS = {
         'settings.title': 'SETTINGS',
         'settings.language_english': 'English',
         'settings.language_japanese': 'Japanese',
+        
+        # Visualizers
+        'visualizers.title': 'VISUALIZERS',
         
         # Splash
         'splash.title': 'NRHOF',
@@ -87,6 +90,9 @@ TRANSLATIONS = {
         'settings.title': '設定',
         'settings.language_english': '英語',
         'settings.language_japanese': '日本語',
+        
+        # Visualizers
+        'visualizers.title': 'ビジュアライザ',
         
         # Splash
         'splash.title': 'NRHOF',
