@@ -25,7 +25,7 @@ def register_all_intents(intent_router: IntentRouter, scene_manager: SceneManage
 
 
 def _register_navigation_intents(intent_router: IntentRouter, scene_manager: SceneManager):
-    """Register navigation intents (go home, go to hub, etc.)."""
+    """Register navigation intents (go home, go back, etc.)."""
     intent_router.register(Intents.GO_HOME, lambda **kw: scene_manager.switch_to("MenuScene"))
     intent_router.register(Intents.GO_BACK, lambda **kw: scene_manager.go_back())
     intent_router.register(Intents.GO_TO_SETTINGS, lambda **kw: scene_manager.switch_to("SettingsScene"))

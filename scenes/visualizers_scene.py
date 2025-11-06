@@ -14,7 +14,7 @@ from core.theme_loader import get_theme_loader
 
 @register_scene("VisualizersScene")
 class VisualizersScene(Scene):
-    """Visualizers hub scene."""
+    """Visualizers scene."""
     
     def __init__(self, ctx):
         super().__init__(ctx)

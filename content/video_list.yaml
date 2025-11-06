@@ -1,4 +1,0 @@
-# Video List Scene
-title: "videos"
-subtitle: "select a video:"
-items: []  # Items are dynamically scanned from assets/videos/

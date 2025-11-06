@@ -46,20 +46,10 @@ MARGIN_RIGHT = _margins['right']
 MARGIN_BOTTOM = _margins['bottom']
 FOOTER_HEIGHT = _margins['footer_height']
 
-# Hub scene layout constants (legacy - consider deprecating)
-HUB_TITLE_Y_OFFSET = 60      # Title position from top margin
-HUB_SUBTITLE_Y_OFFSET = 120  # Subtitle position from top margin
-HUB_MENU_START_Y_OFFSET = 180  # Menu items start position from top margin
-HUB_MENU_LINE_HEIGHT = 50    # Spacing between menu items
-
 __all__ = [
     'MARGIN_TOP',
     'MARGIN_LEFT',
     'MARGIN_RIGHT',
     'MARGIN_BOTTOM',
     'FOOTER_HEIGHT',
-    'HUB_TITLE_Y_OFFSET',
-    'HUB_SUBTITLE_Y_OFFSET',
-    'HUB_MENU_START_Y_OFFSET',
-    'HUB_MENU_LINE_HEIGHT',
 ]

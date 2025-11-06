@@ -20,16 +20,6 @@ TRANSLATIONS = {
         # Now Playing
         'now_playing.title': 'NOW PLAYING',
         
-        # Experience 1 Hub
-        'exp1.title': 'VISUALIZER',
-        'exp1.spectrum': 'spectrum bars',
-        'exp1.waveform': 'waveform',
-        'exp1.lissajous': 'lissajous',
-        
-        # Experience 2 Hub
-        'exp2.title': 'NR-38',
-        'exp2.videos': 'music videos',
-        
         # Common
         'common.back': 'back',
         'common.home': 'home',
@@ -68,16 +58,6 @@ TRANSLATIONS = {
         
         # Now Playing
         'now_playing.title': 'Now Playing',
-        
-        # Experience 1 Hub
-        'exp1.title': 'VISUALIZADOR',
-        'exp1.spectrum': 'barras de espectro',
-        'exp1.waveform': 'forma de onda',
-        'exp1.lissajous': 'lissajous',
-        
-        # Experience 2 Hub
-        'exp2.title': 'NR-38',
-        'exp2.videos': 'videos musicales',
         
         # Common
         'common.back': '<戻る',

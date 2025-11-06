@@ -1,6 +1,0 @@
-# Experience 2 Hub (Videos)
-title_key: "exp2.title"  # Localized: NR-38
-items:
-  - id: "video_list"
-    label_key: "exp2.videos"  # Localized: music videos
-    number: "1."
