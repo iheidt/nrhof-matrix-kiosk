@@ -241,6 +241,9 @@ class MenuScene(Scene):
         # Calculate title card position
         title_card_y = self.content_top
         
+        # Manual adjustment: Move NRHOF card down
+        title_card_y += 30  # Move down 30px
+        
         # Calculate card height to fill remaining space (minus footer)
         footer_height = 130
         margins = layout.get('margins', {})

@@ -65,6 +65,18 @@ class Scene:
         """Called when scene is about to be replaced."""
         pass
     
+    def on_pause(self):
+        """Called when scene is paused (backgrounded but not exited)."""
+        pass
+    
+    def on_resume(self):
+        """Called when scene is resumed (foregrounded after pause)."""
+        pass
+    
+    def on_destroy(self):
+        """Called when scene is being permanently destroyed."""
+        pass
+    
     def handle_event(self, event: pygame.event.Event):
         """Handle pygame events. Return True if event was handled."""
         return False
@@ -161,6 +173,16 @@ class SceneManager:
         self.current_scene_name: Optional[str] = None
         self._lazy_factories: Dict[str, Callable] = {}  # Lazy loading factories
         self._scene_history: list = []  # Navigation history stack
+        self._paused_scenes: Dict[str, Scene] = {}  # Scenes that are paused but not destroyed
+        
+        # Import lifecycle manager
+        try:
+            from core.lifecycle import get_lifecycle_manager, LifecyclePhase
+            self._lifecycle = get_lifecycle_manager()
+            self._has_lifecycle = True
+        except ImportError:
+            self._lifecycle = None
+            self._has_lifecycle = False
     
     def register_scene(self, name: str, scene: Scene):
         """Register a scene with a name."""
@@ -218,12 +240,13 @@ class SceneManager:
         thread.start()
         return thread
     
-    def switch_to(self, name: str, add_to_history: bool = True):
+    def switch_to(self, name: str, add_to_history: bool = True, pause_current: bool = False):
         """Switch to a different scene by name.
         
         Args:
             name: Scene name to switch to
             add_to_history: Whether to add current scene to history (default: True)
+            pause_current: If True, pause current scene instead of exiting (default: False)
         """
         # Ensure scene is loaded (lazy loading)
         self._ensure_loaded(name)
@@ -236,11 +259,52 @@ class SceneManager:
             self._scene_history.append(self.current_scene_name)
         
         if self.current_scene:
-            self.current_scene.on_exit()
+            if pause_current:
+                # Pause current scene instead of exiting
+                if self._has_lifecycle:
+                    from core.lifecycle import LifecyclePhase
+                    self._lifecycle.execute(LifecyclePhase.SCENE_PAUSE, 
+                                          scene_name=self.current_scene_name,
+                                          scene=self.current_scene)
+                self.current_scene.on_pause()
+                self._paused_scenes[self.current_scene_name] = self.current_scene
+            else:
+                # Exit current scene
+                if self._has_lifecycle:
+                    from core.lifecycle import LifecyclePhase
+                    self._lifecycle.execute(LifecyclePhase.SCENE_BEFORE_EXIT, 
+                                          scene_name=self.current_scene_name,
+                                          scene=self.current_scene)
+                self.current_scene.on_exit()
+                if self._has_lifecycle:
+                    self._lifecycle.execute(LifecyclePhase.SCENE_AFTER_EXIT, 
+                                          scene_name=self.current_scene_name,
+                                          scene=self.current_scene)
         
-        self.current_scene = self.scenes[name]
+        # Check if resuming a paused scene
+        if name in self._paused_scenes:
+            self.current_scene = self._paused_scenes.pop(name)
+            if self._has_lifecycle:
+                from core.lifecycle import LifecyclePhase
+                self._lifecycle.execute(LifecyclePhase.SCENE_RESUME, 
+                                      scene_name=name,
+                                      scene=self.current_scene)
+            self.current_scene.on_resume()
+        else:
+            # Enter new scene
+            self.current_scene = self.scenes[name]
+            if self._has_lifecycle:
+                from core.lifecycle import LifecyclePhase
+                self._lifecycle.execute(LifecyclePhase.SCENE_BEFORE_ENTER, 
+                                      scene_name=name,
+                                      scene=self.current_scene)
+            self.current_scene.on_enter()
+            if self._has_lifecycle:
+                self._lifecycle.execute(LifecyclePhase.SCENE_AFTER_ENTER, 
+                                      scene_name=name,
+                                      scene=self.current_scene)
+        
         self.current_scene_name = name
-        self.current_scene.on_enter()
     
     def go_back(self):
         """Go back to the previous scene in history."""
@@ -266,3 +330,32 @@ class SceneManager:
         """Draw current scene."""
         if self.current_scene:
             self.current_scene.draw(self.screen)
+    
+    def destroy_scene(self, name: str):
+        """Permanently destroy a scene and free its resources.
+        
+        Args:
+            name: Scene name to destroy
+        """
+        if name in self.scenes:
+            scene = self.scenes[name]
+            if self._has_lifecycle:
+                from core.lifecycle import LifecyclePhase
+                self._lifecycle.execute(LifecyclePhase.SCENE_DESTROY, 
+                                      scene_name=name,
+                                      scene=scene)
+            scene.on_destroy()
+            del self.scenes[name]
+        
+        # Also remove from paused scenes if present
+        if name in self._paused_scenes:
+            del self._paused_scenes[name]
+    
+    def cleanup_all(self):
+        """Cleanup all scenes (called on app shutdown)."""
+        # Destroy all scenes
+        for name in list(self.scenes.keys()):
+            self.destroy_scene(name)
+        
+        # Clear paused scenes
+        self._paused_scenes.clear()

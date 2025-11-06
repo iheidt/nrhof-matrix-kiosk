@@ -60,6 +60,13 @@ class SongRecognitionWorker:
             logger.warning("Song recognition worker already running")
             return
         
+        # Execute lifecycle hook
+        try:
+            from core.lifecycle import execute_hooks, LifecyclePhase
+            execute_hooks(LifecyclePhase.WORKER_START, worker_name="SongRecognitionWorker", worker=self)
+        except ImportError:
+            pass
+        
         self.running = True
         self.thread = threading.Thread(target=self._worker_loop, daemon=True, name="SongRecognitionWorker")
         self.thread.start()
@@ -69,6 +76,13 @@ class SongRecognitionWorker:
         """Stop the song recognition worker."""
         if not self.running:
             return
+        
+        # Execute lifecycle hook
+        try:
+            from core.lifecycle import execute_hooks, LifecyclePhase
+            execute_hooks(LifecyclePhase.WORKER_STOP, worker_name="SongRecognitionWorker", worker=self)
+        except ImportError:
+            pass
         
         logger.info("Stopping song recognition worker...")
         self.running = False

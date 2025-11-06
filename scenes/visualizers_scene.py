@@ -149,7 +149,8 @@ class VisualizersScene(Scene):
             title=title_text,
             theme={'layout': layout, 'style': style},
             border_fade_pct=border_fade_pct,
-            border_height_pct=border_height_pct
+            border_height_pct=border_height_pct,
+            content_margin=-26  # Reduced margin between title and tabs
         )
         
         # Content area for visualizers

@@ -90,6 +90,13 @@ class WakeWordWorker:
             logger.warning("Wake word worker already running")
             return
         
+        # Execute lifecycle hook
+        try:
+            from core.lifecycle import execute_hooks, LifecyclePhase
+            execute_hooks(LifecyclePhase.WORKER_START, worker_name="WakeWordWorker", worker=self)
+        except ImportError:
+            pass
+        
         self.running = True
         self.thread = threading.Thread(target=self._worker_loop, daemon=True, name="WakeWordWorker")
         self.thread.start()
@@ -99,6 +106,13 @@ class WakeWordWorker:
         """Stop the wake word detection worker."""
         if not self.running:
             return
+        
+        # Execute lifecycle hook
+        try:
+            from core.lifecycle import execute_hooks, LifecyclePhase
+            execute_hooks(LifecyclePhase.WORKER_STOP, worker_name="WakeWordWorker", worker=self)
+        except ImportError:
+            pass
         
         logger.info("Stopping wake word worker...")
         self.running = False

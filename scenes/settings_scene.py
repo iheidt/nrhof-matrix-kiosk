@@ -137,7 +137,7 @@ class SettingsScene(Scene):
             title=title_text,
             theme={'layout': layout, 'style': style},
             border_fade_pct=border_fade_pct,
-            border_height_pct=border_height_pct
+            border_height_pct=border_height_pct,
         )
         
         # Content area for settings controls

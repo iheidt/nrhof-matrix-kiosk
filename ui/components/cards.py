@@ -274,7 +274,7 @@ def draw_title_card_container(surface: Surface, x: int, y: int, width: int, heig
     
     This is designed for the new full-width layout pattern with:
     - Title overlapping top border
-    - 50px margin below title
+    - Configurable margin below title (default 50px)
     - Content area for tabs and other elements
     - 30px spacing between elements inside
     
@@ -284,15 +284,15 @@ def draw_title_card_container(surface: Surface, x: int, y: int, width: int, heig
         width, height: Card dimensions
         title: Title text to display
         theme: Dict with 'layout' and 'style' keys
-        **overrides: Override any card settings
+        **overrides: Override any card settings (including 'content_margin')
     
     Returns:
         dict with layout information:
             - 'card_rect': pygame.Rect of the full card
-            - 'content_rect': pygame.Rect of content area (after title + 50px margin)
+            - 'content_rect': pygame.Rect of content area (after title + margin)
             - 'title_bottom_y': Y position where title ends
-            - 'tabs_y': Y position where tabs should be drawn (title_bottom + 50px)
-            - 'content_start_y': Y position where main content starts (tabs + 37px + 50px)
+            - 'tabs_y': Y position where tabs should be drawn (title_bottom + content_margin)
+            - 'content_start_y': Y position where main content starts (tabs + font_size + content_margin)
     """
     from core.theme_loader import get_theme_loader
     
@@ -317,6 +317,7 @@ def draw_title_card_container(surface: Surface, x: int, y: int, width: int, heig
     padding = overrides.get('padding', card_config.get('padding', 24))
     border_fade_pct = overrides.get('border_fade_pct', card_config.get('border_fade_pct', 0.33))
     border_height_pct = overrides.get('border_height_pct', card_config.get('border_height_pct', 1.0))
+    content_margin = overrides.get('content_margin', 20)  # Default 50px margin below title
     
     # Colors
     border_color_key = overrides.get('border_color', card_config.get('border_color', 'primary'))
@@ -366,19 +367,19 @@ def draw_title_card_container(surface: Surface, x: int, y: int, width: int, heig
     surface.blit(title_surface, (title_x, title_y))
     
     # Calculate layout positions
-    # Use ENGLISH font height and base position (before title_y_offset) for consistent spacing
+    # Use actual title position + ENGLISH font height for consistent spacing
     # This prevents the content from shifting when switching to Japanese
+    # Note: We use (y - title_overlap) instead of title_y to ignore title_y_offset
+    # This keeps tabs in same position regardless of language
     title_visual_bottom_y = (y - title_overlap) + english_height
     
-    # Tabs should be exactly 50px from the visual bottom of the title text
-    # Subtract 28px to correct for the excess space identified in feedback
-    tabs_y = title_visual_bottom_y + 50 - 28  # 50px margin minus 28px excess
+    # Tabs positioned with content_margin from title bottom
+    tabs_y = title_visual_bottom_y + content_margin
     
-    # Content starts after tabs + 50px margin
-    # Tabs use 48px font (body size) but have 37px line height
-    # We need to measure from the visual bottom of the tab text (48px) + 50px margin
-    tab_font_size = 48  # Body size from pipboy.yaml
-    content_start_y = tabs_y + tab_font_size + 50  # 48px tab font + 50px margin
+    # Content starts after tabs + content_margin
+    # Tabs use body font size from theme
+    tab_font_size = style['typography']['fonts'].get('body', 48)
+    content_start_y = tabs_y + tab_font_size + content_margin
     
     # Content area inside the card (with padding)
     content_x = x + border_width + padding

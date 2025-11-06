@@ -51,6 +51,13 @@ class RecognitionWorker:
         if self._running:
             return
         
+        # Execute lifecycle hook
+        try:
+            from core.lifecycle import execute_hooks, LifecyclePhase
+            execute_hooks(LifecyclePhase.WORKER_START, worker_name="RecognitionWorker", worker=self)
+        except ImportError:
+            pass
+        
         self._running = True
         self._thread = threading.Thread(
             target=self._worker_loop,
@@ -64,6 +71,13 @@ class RecognitionWorker:
         """Stop the recognition worker thread."""
         if not self._running:
             return
+        
+        # Execute lifecycle hook
+        try:
+            from core.lifecycle import execute_hooks, LifecyclePhase
+            execute_hooks(LifecyclePhase.WORKER_STOP, worker_name="RecognitionWorker", worker=self)
+        except ImportError:
+            pass
         
         self._running = False
         if self._thread:

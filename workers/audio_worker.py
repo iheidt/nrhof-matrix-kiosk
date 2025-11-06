@@ -48,6 +48,13 @@ class AudioWorker:
         if self._running:
             return
         
+        # Execute lifecycle hook
+        try:
+            from core.lifecycle import execute_hooks, LifecyclePhase
+            execute_hooks(LifecyclePhase.WORKER_START, worker_name="AudioWorker", worker=self)
+        except ImportError:
+            pass
+        
         self._running = True
         self._thread = threading.Thread(target=self._worker_loop, daemon=True, name="AudioWorker")
         self._thread.start()
@@ -57,6 +64,13 @@ class AudioWorker:
         """Stop the audio worker thread."""
         if not self._running:
             return
+        
+        # Execute lifecycle hook
+        try:
+            from core.lifecycle import execute_hooks, LifecyclePhase
+            execute_hooks(LifecyclePhase.WORKER_STOP, worker_name="AudioWorker", worker=self)
+        except ImportError:
+            pass
         
         self._running = False
         if self._thread:
