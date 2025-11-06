@@ -30,10 +30,11 @@ title_card:
 
 # Button component - reusable button styling
 button:
-  width: 67%  # Percentage of container width
+  width: 100%  # Percentage of container width
   border: 6
   border_color: primary
   padding: 24
+  spacing: 30  # Vertical spacing between buttons
   font_size: body  # Maps to 48px from pipboy.yaml
   font_color: primary
   bg_alpha: 0.33  # Background alpha (0.0-1.0)
@@ -42,4 +43,3 @@ button:
     size: 25  # Square size in pixels
     color: primary
     margin_left: 18
-  border_fade_pct: 0.33  # Percentage of border that fades (0.0-1.0)

@@ -12,17 +12,17 @@ title_card:
   height: 120  # Card height
   title: "NRHOF"  # Card title text
   margin_bottom: 50  # Space below title card before buttons
- 
+
 buttons:
   layout: vertical
   count: 4
-  spacing: 30  # Vertical spacing between buttons
-  width: 67%  # Button width as percentage of column
+  width: 67%  # Button width as percentage of column (overrides _base.yaml 100%)
   column: left  # Place buttons in left column
+  # spacing inherited from _base.yaml button.spacing
 
 timeclock:
   height: 100  # Card height
- 
-footer:
-  height: 130  # Total footer height (card + company div)
+  # border settings inherited from _base.yaml card config
+
+# footer.height inherited from _base.yaml
  

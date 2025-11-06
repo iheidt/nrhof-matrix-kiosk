@@ -120,11 +120,6 @@ class VisualizersScene(Scene):
         # Adjust y position so title overlaps card border
         title_card_y_adjusted = title_card_y + title_overlap
         
-        # Move entire card up 21px when in Japanese mode
-        from core.localization import get_language
-        if get_language() == 'jp':
-            title_card_y_adjusted -= 21
-        
         # Draw the full-width title card container
         layout_info = draw_title_card_container(
             surface=screen,

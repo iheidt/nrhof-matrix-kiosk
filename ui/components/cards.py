@@ -306,6 +306,11 @@ def draw_title_card_container(surface: Surface, x: int, y: int, width: int, heig
         layout = theme['layout']
         style = theme['style']
     
+    # Move entire card up 21px when in Japanese mode (card-level adjustment)
+    from core.localization import get_language
+    if get_language() == 'jp':
+        y -= 21
+    
     # Get card config
     card_config = layout.get('card', {})
     border_width = overrides.get('border', card_config.get('border', 6))
@@ -336,7 +341,7 @@ def draw_title_card_container(surface: Surface, x: int, y: int, width: int, heig
     # Calculate overlap based on English font height
     title_overlap = english_height // 2
     
-    # For Japanese, adjust Y position upward
+    # For Japanese, adjust title Y position based on height difference
     current_lang = get_language()
     if current_lang == 'jp':
         height_diff = title_height - english_height
@@ -361,10 +366,9 @@ def draw_title_card_container(surface: Surface, x: int, y: int, width: int, heig
     surface.blit(title_surface, (title_x, title_y))
     
     # Calculate layout positions
-    # The title is rendered at title_y, and its visual bottom is title_y + title_height
-    # However, we need to account for the baseline and descenders
-    # The actual visual bottom where we measure from is the baseline of the text
-    title_visual_bottom_y = title_y + title_height
+    # Use ENGLISH font height and base position (before title_y_offset) for consistent spacing
+    # This prevents the content from shifting when switching to Japanese
+    title_visual_bottom_y = (y - title_overlap) + english_height
     
     # Tabs should be exactly 50px from the visual bottom of the title text
     # Subtract 28px to correct for the excess space identified in feedback

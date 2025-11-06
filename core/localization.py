@@ -37,7 +37,7 @@ TRANSLATIONS = {
         
         # Splash
         'splash.title': 'NRHOF',
-        'splash.loading': 'loading...',
+        'splash.loading': 'glow plugs starting...',
         
         # Intro
         'intro.line1': 'wake up, NRHOF...',
