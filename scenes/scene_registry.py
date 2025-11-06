@@ -1,64 +1,62 @@
 #!/usr/bin/env python3
 """Scene registry - centralized scene definitions and registration."""
 
-import importlib
-from typing import List, Tuple
+from typing import List
 from scenes.scene_manager import SceneManager
+from scenes.scene_factory import SceneFactory, SceneDefinition
 from core.app_context import AppContext
 
 
-# Scene definitions: (name, module_path, class_name, eager_load)
+# Scene definitions using SceneDefinition objects
 SCENE_DEFINITIONS = [
     # Eager-loaded scenes (loaded immediately)
-    ('SplashScene', 'scenes.splash_scene', 'SplashScene', True),
+    SceneDefinition('SplashScene', 'scenes.splash_scene', 'SplashScene', eager_load=True),
     
     # Lazy-loaded scenes (loaded on demand)
-    ('IntroScene', 'scenes.intro_scene', 'IntroScene', False),
-    ('MenuScene', 'scenes.menu_scene', 'MenuScene', False),
-    ('Experience1SpectrumBarsScene', 'scenes.experience1_spectrum_bars', 'Experience1SpectrumBarsScene', False),
-    ('Experience1WaveformScene', 'scenes.experience1_waveform', 'Experience1WaveformScene', False),
-    ('Experience1LissajousScene', 'scenes.experience1_lissajous', 'Experience1LissajousScene', False),
-    ('SettingsScene', 'scenes.settings_scene', 'SettingsScene', False),
-    ('VisualizersScene', 'scenes.visualizers_scene', 'VisualizersScene', False),
+    SceneDefinition('IntroScene', 'scenes.intro_scene', 'IntroScene'),
+    SceneDefinition('MenuScene', 'scenes.menu_scene', 'MenuScene'),
+    SceneDefinition('Experience1SpectrumBarsScene', 'scenes.experience1_spectrum_bars', 'Experience1SpectrumBarsScene'),
+    SceneDefinition('Experience1WaveformScene', 'scenes.experience1_waveform', 'Experience1WaveformScene'),
+    SceneDefinition('Experience1LissajousScene', 'scenes.experience1_lissajous', 'Experience1LissajousScene'),
+    SceneDefinition('SettingsScene', 'scenes.settings_scene', 'SettingsScene'),
+    SceneDefinition('VisualizersScene', 'scenes.visualizers_scene', 'VisualizersScene'),
 ]
 
 
-def _make_scene_factory(module_name: str, class_name: str, app_context: AppContext):
-    """Create a factory function for lazy-loading a scene.
+def create_scene_factory(app_context: AppContext) -> SceneFactory:
+    """Create and configure the scene factory.
     
     Args:
-        module_name: Module path (e.g., 'scenes.intro_scene')
-        class_name: Class name (e.g., 'IntroScene')
         app_context: AppContext instance
         
     Returns:
-        Factory function that creates the scene when called
+        Configured SceneFactory instance
     """
-    def factory():
-        module = importlib.import_module(module_name)
-        scene_class = getattr(module, class_name)
-        return scene_class(app_context)
+    factory = SceneFactory(app_context)
+    factory.register_definitions(SCENE_DEFINITIONS)
     return factory
 
 
 def register_all_scenes(scene_manager: SceneManager, app_context: AppContext):
-    """Register all scenes with the scene manager.
+    """Register all scenes with the scene manager using SceneFactory.
     
     Args:
         scene_manager: SceneManager instance
         app_context: AppContext instance
     """
-    for name, module_path, class_name, eager_load in SCENE_DEFINITIONS:
-        if eager_load:
-            # Eager load: import and instantiate immediately
-            module = importlib.import_module(module_path)
-            scene_class = getattr(module, class_name)
-            scene_instance = scene_class(app_context)
-            scene_manager.register_scene(name, scene_instance)
+    # Create scene factory
+    factory = create_scene_factory(app_context)
+    
+    # Register scenes
+    for definition in SCENE_DEFINITIONS:
+        if definition.eager_load:
+            # Eager load: create instance immediately
+            scene_instance = factory.create(definition.name)
+            scene_manager.register_scene(definition.name, scene_instance)
         else:
             # Lazy load: register factory for later instantiation
-            factory = _make_scene_factory(module_path, class_name, app_context)
-            scene_manager.register_lazy(name, factory)
+            scene_factory = factory.create_factory(definition.name)
+            scene_manager.register_lazy(definition.name, scene_factory)
 
 
 def get_preload_list() -> List[str]:
@@ -68,6 +66,6 @@ def get_preload_list() -> List[str]:
         List of scene names (excludes eager-loaded scenes)
     """
     return [
-        name for name, _, _, eager_load in SCENE_DEFINITIONS
-        if not eager_load
+        definition.name for definition in SCENE_DEFINITIONS
+        if not definition.eager_load
     ]
