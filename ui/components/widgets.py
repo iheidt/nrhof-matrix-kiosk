@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Widget components - timeclock, d20, now playing."""
+import os
 import pygame
 from pygame import Surface
 from pathlib import Path
@@ -219,17 +220,18 @@ def draw_d20(surface: Surface, x: int, y: int, width: int, height: int = 300, th
         try:
             from renderers.model_renderer import ModelRenderer
             import numpy as np
-            
+                
             print(f"Initializing 3D renderer (version {_d20_renderer_version})...")
             _d20_renderer = ModelRenderer(width=512, height=512)
-            
+                
             # Load D20 model
-            d20_model_path = Path(__file__).parent.parent.parent / "assets" / "models" / "d20.glb"
-            if d20_model_path.exists():
-                _d20_renderer.load_model(str(d20_model_path))
+            model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
+                                     'assets', 'models', 'd21.glb')
+            if os.path.exists(model_path):
+                _d20_renderer.load_model(model_path)
                 _d20_renderer.set_rotation(h=45, p=15, r=0)  # Nice viewing angle
             else:
-                print(f"Warning: D20 model not found at {d20_model_path}")
+                print(f"Warning: D20 model not found at {model_path}")
                 _d20_renderer = None
         except Exception as e:
             print(f"Warning: Could not initialize 3D renderer: {e}")

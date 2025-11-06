@@ -5,8 +5,10 @@ from typing import Callable, Dict
 class Intents:
     """Intent name constants to prevent typos."""
     GO_HOME = "go_home"
+    GO_BACK = "go_back"
     GO_TO_EXPERIENCE1_HUB = "go_to_experience1_hub"
     GO_TO_EXPERIENCE2_HUB = "go_to_experience2_hub"
+    GO_TO_SETTINGS = "go_to_settings"
     SELECT_OPTION = "select_option"
     SELECT_SUB_EXPERIENCE = "select_sub_experience"
 

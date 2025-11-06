@@ -22,6 +22,7 @@ SCENE_DEFINITIONS = [
     ('Experience2HubScene', 'scenes.experience2_hub_scene', 'Experience2HubScene', False),
     ('VideoListScene', 'scenes.video_list_scene', 'VideoListScene', False),
     ('VideoPlayerScene', 'scenes.video_player_scene', 'VideoPlayerScene', False),
+    ('SettingsScene', 'scenes.settings_scene', 'SettingsScene', False),
 ]
 
 

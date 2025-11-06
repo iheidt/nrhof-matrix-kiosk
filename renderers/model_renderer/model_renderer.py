@@ -159,13 +159,39 @@ class ModelRenderer:
             
             self.model.reparentTo(self.app.render)
             
-            # Apply PBR-like material settings (matching sandbox: metalness 0.24, glossiness 0.45)
-            # Use color scale to simulate metalness and glossiness
-            self.model.setColorScale(8.0, 8.0, 8.0, 1.0)  # Moderate brightness for PBR look
-            self.model.setColor(1.0, 1.0, 1.0, 1.0)  # Neutral base
+            # Debug: Print model structure and materials
+            print("\n=== Model Structure ===")
+            self.model.ls()
             
-            # Enable shader for better material response
-            from panda3d.core import ShaderAttrib
+            # Inspect and fix materials
+            from panda3d.core import Material, TextureAttrib, LVecBase4f
+            for node in self.model.findAllMatches('**/+GeomNode'):
+                print(f"\nGeomNode: {node.getName()}")
+                
+                # Check material
+                if node.hasMaterial():
+                    mat = node.getMaterial()
+                    print(f"  Original Material: ambient={mat.getAmbient()}, diffuse={mat.getDiffuse()}")
+                    
+                    # Create a new bright material (keep textures for 3D number details)
+                    new_mat = Material()
+                    new_mat.setAmbient(LVecBase4f(1.0, 1.0, 1.0, 1.0))  # Bright ambient
+                    new_mat.setDiffuse(LVecBase4f(1.0, 1.0, 1.0, 1.0))  # Bright diffuse (was 0.125!)
+                    new_mat.setSpecular(LVecBase4f(0.5, 0.5, 0.5, 1.0))  # Some shine
+                    new_mat.setShininess(32)  # Moderate shininess
+                    node.setMaterial(new_mat, 1)  # Priority 1 to override
+                    print(f"  Applied bright material")
+                
+                # Check textures (keep them - they have the 3D number details)
+                if node.hasTexture():
+                    tex_attrib = node.getAttrib(TextureAttrib)
+                    if tex_attrib:
+                        print(f"  Keeping {tex_attrib.getNumOnStages()} texture(s) for detail")
+            
+            # Apply bright color scale to make it glow
+            self.model.setColorScale(12.0, 12.0, 12.0, 1.0)
+            
+            # Enable auto-shader for proper lighting
             self.model.setShaderAuto()
             
             # Center and scale to fill frame

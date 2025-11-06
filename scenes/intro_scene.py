@@ -180,4 +180,4 @@ class IntroScene(Scene):
         # Draw overlays and footer
         draw_scanlines(screen)
         from utils import draw_footer
-        draw_footer(screen, self.color)
+        draw_footer(screen, self.color, show_settings=False)  # Hide settings in intro

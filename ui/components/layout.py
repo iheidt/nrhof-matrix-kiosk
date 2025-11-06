@@ -38,7 +38,7 @@ def draw_back_arrow(surface: Surface, color: tuple = (140, 255, 140)) -> pygame.
     return pygame.Rect(x, y, text_surface.get_width(), text_surface.get_height())
 
 
-def draw_footer(surface: Surface, color: tuple = (140, 255, 140)):
+def draw_footer(surface: Surface, color: tuple = (140, 255, 140), show_settings: bool = True):
     """Draw footer with settings card and company name div.
     
     Footer structure:
@@ -48,6 +48,10 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140)):
     Args:
         surface: Pygame surface to draw on
         color: RGB color tuple (not used, colors from theme)
+        show_settings: Whether to show the settings text (default: True)
+        
+    Returns:
+        pygame.Rect: Rectangle for the settings text (for click detection), or None if hidden
     """
     from core.theme_loader import get_theme_loader
     from __version__ import __version__
@@ -83,13 +87,20 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140)):
                             border_solid='bottom',
                             border_fade_pct=footer_fade_pct)
     
-    # Draw "settings" text (left aligned in card)
+    # Draw "settings" text (left aligned in card) - only if show_settings is True
     from core.localization import t
     primary_color = tuple(style['colors']['primary'])
-    micro_size = style['typography']['fonts']['micro']
-    settings_font = get_theme_font(micro_size, 'primary')
-    settings_text = settings_font.render(t('footer.settings'), True, primary_color)
-    surface.blit(settings_text, (content_rect.x, content_rect.y + (content_rect.height - settings_text.get_height()) // 2))
+    settings_rect = None
+    if show_settings:
+        micro_size = style['typography']['fonts']['micro']
+        settings_font = get_theme_font(micro_size, 'primary')
+        settings_text = settings_font.render(t('footer.settings'), True, primary_color)
+        settings_x = content_rect.x
+        settings_y = content_rect.y + (content_rect.height - settings_text.get_height()) // 2
+        surface.blit(settings_text, (settings_x, settings_y))
+        
+        # Create rect for click detection
+        settings_rect = pygame.Rect(settings_x, settings_y, settings_text.get_width(), settings_text.get_height())
     
     # Draw version number (right aligned in card)
     dim_color_hex = style['colors'].get('dim', '#2C405B')
@@ -111,3 +122,5 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140)):
     company_x = (w - company_text.get_width()) // 2
     company_y = div_y + (div_height - company_text.get_height()) // 2
     surface.blit(company_text, (company_x, company_y))
+    
+    return settings_rect

@@ -36,6 +36,11 @@ class Experience1LissajousScene(Scene):
     
     def handle_event(self, event: pygame.event.Event):
         """Handle input events."""
+        # Check settings click first
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.settings_rect and self.settings_rect.collidepoint(event.pos):
+                self.ctx.intent_router.emit(Intents.GO_TO_SETTINGS)
+                return True
         return self.handle_common_events(event, Intents.GO_TO_EXPERIENCE1_HUB, self.back_arrow_rect)
     
     def update(self, dt: float):
@@ -59,4 +64,4 @@ class Experience1LissajousScene(Scene):
         # Draw UI overlays
         self.back_arrow_rect = draw_back_arrow(screen, self.color)
         draw_scanlines(screen)
-        draw_footer(screen, self.color)
+        self.settings_rect = draw_footer(screen, self.color)

@@ -126,6 +126,7 @@ class BaseAudioScene(Scene):
         self.fft_size = fft_size
         self.audio_buffer = np.zeros(self.fft_size)
         self.back_arrow_rect = None
+        self.settings_rect = None  # Store settings text rect for click detection
     
     def start_audio_stream(self):
         """Start the audio input stream (now handled by audio_source)."""
@@ -197,6 +198,7 @@ class BaseHubScene(Scene):
         self.back_intent = back_intent
         self.selected_index = 0
         self.back_arrow_rect = None
+        self.settings_rect = None  # Store settings text rect for click detection
     
     def on_enter(self):
         """Initialize hub scene."""
@@ -236,6 +238,12 @@ class BaseHubScene(Scene):
         # Mouse/touch selection
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mx, my = event.pos
+            
+            # Check if click is on settings text
+            if self.settings_rect and self.settings_rect.collidepoint(mx, my):
+                from routing.intent_router import Intents
+                self.ctx.intent_router.emit(Intents.GO_TO_SETTINGS)
+                return True
             
             # Check if click is on back arrow
             if self.back_arrow_rect and self.back_arrow_rect.collidepoint(mx, my):
@@ -338,7 +346,7 @@ class BaseHubScene(Scene):
             screen.blit(esc_surface, (80, h - 75))
             
             draw_scanlines(screen)
-            draw_footer(screen, tuple(style['colors']['primary']))
+            self.settings_rect = draw_footer(screen, tuple(style['colors']['primary']))
         else:
             # Backward compatibility - use old constants
             from utils import (MARGIN_TOP, MARGIN_LEFT, HUB_TITLE_Y_OFFSET, HUB_SUBTITLE_Y_OFFSET,
@@ -380,7 +388,7 @@ class BaseHubScene(Scene):
             screen.blit(esc_surface, (MARGIN_LEFT, h - 75))
             
             draw_scanlines(screen)
-            draw_footer(screen, self.color)
+            self.settings_rect = draw_footer(screen, self.color)
 
 
 class SceneManager:
@@ -393,6 +401,7 @@ class SceneManager:
         self.current_scene: Optional[Scene] = None
         self.current_scene_name: Optional[str] = None
         self._lazy_factories: Dict[str, Callable] = {}  # Lazy loading factories
+        self._scene_history: list = []  # Navigation history stack
     
     def register_scene(self, name: str, scene: Scene):
         """Register a scene with a name."""
@@ -450,13 +459,22 @@ class SceneManager:
         thread.start()
         return thread
     
-    def switch_to(self, name: str):
-        """Switch to a different scene by name."""
+    def switch_to(self, name: str, add_to_history: bool = True):
+        """Switch to a different scene by name.
+        
+        Args:
+            name: Scene name to switch to
+            add_to_history: Whether to add current scene to history (default: True)
+        """
         # Ensure scene is loaded (lazy loading)
         self._ensure_loaded(name)
         
         if name not in self.scenes:
             raise ValueError(f"Scene '{name}' not registered")
+        
+        # Add current scene to history before switching (if requested)
+        if add_to_history and self.current_scene_name and self.current_scene_name != name:
+            self._scene_history.append(self.current_scene_name)
         
         if self.current_scene:
             self.current_scene.on_exit()
@@ -464,6 +482,15 @@ class SceneManager:
         self.current_scene = self.scenes[name]
         self.current_scene_name = name
         self.current_scene.on_enter()
+    
+    def go_back(self):
+        """Go back to the previous scene in history."""
+        if self._scene_history:
+            previous_scene = self._scene_history.pop()
+            self.switch_to(previous_scene, add_to_history=False)  # Don't add to history when going back
+        else:
+            # No history, go to menu as fallback
+            self.switch_to("MenuScene", add_to_history=False)
     
     def handle_event(self, event: pygame.event.Event):
         """Pass event to current scene."""

@@ -33,6 +33,7 @@ class MenuScene(Scene):
         self.button_rects = []  # Store button rectangles for click detection
         self.button_spacing = 0
         self.button_start_y = 0
+        self.settings_rect = None  # Store settings text rect for click detection
         # Marquee for now playing text
         self.now_playing_marquee = None
         
@@ -148,6 +149,11 @@ class MenuScene(Scene):
             pos = self.get_event_position(event)
             if pos:
                 mx, my = pos
+                # Check settings text click
+                if self.settings_rect and self.settings_rect.collidepoint(mx, my):
+                    self.ctx.intent_router.emit(Intents.GO_TO_SETTINGS)
+                    return True
+                # Check button clicks
                 for i, rect in enumerate(self.button_rects):
                     if rect.collidepoint(mx, my):
                         self.ctx.intent_router.emit(Intents.SELECT_OPTION, index=i)
@@ -301,12 +307,14 @@ class MenuScene(Scene):
             if track.source == 'spotify':
                 # SPOTIFY . DEVICE NAME
                 device = track.device_name if track.device_name else "unknown"
-                device_formatted = device.upper().replace('-', '.')
+                # Remove all apostrophe variants (straight ', curly ' ', and Unicode 8217)
+                device_formatted = device.upper().replace('-', '.').replace("'", "").replace("'", "").replace("'", "").replace(chr(8217), "")
                 now_playing_title = f"SPOTIFY . {device_formatted}"
             elif track.source == 'sonos':
                 # SONOS . ROOM NAME
                 room = track.sonos_room if track.sonos_room else "unknown"
-                room_formatted = room.upper().replace('-', '.')
+                # Remove all apostrophe variants (straight ', curly ' ', and Unicode 8217)
+                room_formatted = room.upper().replace('-', '.').replace("'", "").replace("'", "").replace("'", "").replace(chr(8217), "")
                 now_playing_title = f"SONOS . {room_formatted}"
             elif track.source == 'vinyl':
                 # RECORD PLAYER
@@ -314,9 +322,9 @@ class MenuScene(Scene):
             else:
                 now_playing_title = "NOW PLAYING"
             
-            # Truncate title to prevent overlap with circle (max ~30 chars)
-            if len(now_playing_title) > 30:
-                now_playing_title = now_playing_title[:27] + "..."
+            # Truncate title to prevent overlap with circle (max ~22 chars to avoid border)
+            if len(now_playing_title) > 22:
+                now_playing_title = now_playing_title[:19] + "..."
         else:
             now_playing_title = "NOW PLAYING"
         
@@ -489,4 +497,4 @@ class MenuScene(Scene):
         
         # Draw scanlines and footer
         draw_scanlines(screen)
-        draw_footer(screen, self.color)
+        self.settings_rect = draw_footer(screen, self.color)
