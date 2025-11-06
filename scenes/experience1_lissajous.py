@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import pygame
 from scenes.scene_manager import Scene, register_scene
-from utils import draw_scanlines, draw_footer, draw_back_arrow
+from ui.components import draw_scanlines, draw_footer, draw_back_arrow
 from routing.intent_router import Intent
 from visualizers import LissajousVisualizer
 

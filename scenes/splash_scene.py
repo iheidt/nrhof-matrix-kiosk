@@ -2,7 +2,7 @@
 import time
 import pygame
 from scenes.scene_manager import Scene, register_scene
-from utils import get_font, draw_scanlines
+from ui.components import draw_scanlines
 from ui.fonts import get_localized_font
 from renderers import FrameState, Shape, Text
 from __version__ import __version__

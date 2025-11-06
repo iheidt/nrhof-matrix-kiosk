@@ -2,7 +2,7 @@
 import time
 import pygame
 from scenes.scene_manager import Scene, register_scene
-from utils import get_font, draw_scanlines
+from ui.components import draw_scanlines, draw_footer, MARGIN_LEFT, MARGIN_TOP
 from ui.fonts import get_localized_font
 from renderers import FrameState, Text
 from core.theme_loader import get_theme_loader
@@ -78,7 +78,6 @@ class IntroScene(Scene):
             self.lines = [t(key) for key in lines_keys]
         
         # Use standard margins from _base.yaml
-        from utils import MARGIN_LEFT, MARGIN_TOP
         self.margin_x = MARGIN_LEFT
         self.margin_y = MARGIN_TOP
         
@@ -184,5 +183,4 @@ class IntroScene(Scene):
         
         # Draw overlays and footer
         draw_scanlines(screen)
-        from utils import draw_footer
         draw_footer(screen, self.color, show_settings=False)  # Hide settings in intro

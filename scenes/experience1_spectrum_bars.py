@@ -2,7 +2,7 @@
 import numpy as np
 import pygame
 from scenes.scene_manager import BaseAudioScene, register_scene
-from utils import draw_back_arrow, draw_scanlines, draw_footer
+from ui.components import draw_back_arrow, draw_scanlines, draw_footer
 from routing.intent_router import Intent
 from visualizers import SpectrumBarsVisualizer
 from renderers import FrameState

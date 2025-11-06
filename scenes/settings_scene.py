@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import pygame
 from scenes.scene_manager import Scene, register_scene
-from utils import draw_scanlines, draw_footer, MARGIN_TOP, MARGIN_LEFT
+from ui.components import draw_scanlines, draw_footer, draw_title_card, MARGIN_TOP, MARGIN_LEFT
 from ui.fonts import get_localized_font
 from routing.intent_router import Intent
 from core.theme_loader import get_theme_loader
@@ -102,7 +102,6 @@ class SettingsScene(Scene):
         )
         
         # Draw title card 20px below nav_back button, spanning full width
-        from utils import draw_title_card
         
         # Calculate title card position
         title_card_y = nav_back_y + nav_back_surface.get_height() + 20

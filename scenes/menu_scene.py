@@ -3,7 +3,11 @@ import pygame
 import time
 from pathlib import Path
 from scenes.scene_manager import Scene, register_scene
-from utils import draw_scanlines, draw_footer, MARGIN_TOP, MARGIN_LEFT
+from ui.components import (
+    draw_scanlines, draw_footer, draw_title_card, draw_button,
+    MARGIN_TOP, MARGIN_LEFT
+)
+from ui.components.widgets import draw_timeclock, draw_d20, draw_now_playing, MarqueeText
 from ui.fonts import get_localized_font, get_theme_font
 from routing.intent_router import Intent
 from renderers import FrameState, Shape, Text, Image
@@ -223,8 +227,6 @@ class MenuScene(Scene):
                 screen.blit(surface, (int(text.position[0]), int(text.position[1])))
         
         # Draw title card at top of left column
-        from utils import draw_title_card, draw_button
-        from ui.components.widgets import draw_timeclock, draw_d20, draw_now_playing, MarqueeText
         
         # Get layout and style
         layout = self.theme['layout']

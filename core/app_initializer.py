@@ -99,7 +99,7 @@ def initialize_fonts(cfg, logger):
         cfg: Config object
         logger: Logger instance
     """
-    from utils import init_custom_fonts
+    from ui.fonts import init_custom_fonts
     init_custom_fonts(cfg.to_dict())
     logger.info("Custom fonts initialized")
 

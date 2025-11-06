@@ -251,7 +251,7 @@ class BaseHubScene(Scene):
                 return True
             
             # Check if click is on an item (matching draw layout)
-            from utils import MARGIN_TOP, MARGIN_LEFT, HUB_MENU_START_Y_OFFSET, HUB_MENU_LINE_HEIGHT
+            from ui.constants import MARGIN_TOP, MARGIN_LEFT, HUB_MENU_START_Y_OFFSET, HUB_MENU_LINE_HEIGHT
             w, h = self.manager.screen.get_size()
             start_y = MARGIN_TOP + HUB_MENU_START_Y_OFFSET
             
@@ -277,7 +277,8 @@ class BaseHubScene(Scene):
     
     def draw(self, screen: pygame.Surface):
         """Draw the ASCII-style hub menu."""
-        from utils import get_font, get_theme_font, draw_back_arrow
+        from ui.components import draw_back_arrow
+        from ui.fonts import get_theme_font
         
         screen.fill(self.bg)
         w, h = screen.get_size()
@@ -335,7 +336,8 @@ class BaseHubScene(Scene):
                 screen.blit(text, (items_layout['indent'], start_y + i * line_height))
             
             # Footer for themed layout
-            from utils import dim_color, draw_scanlines, draw_footer
+            from ui.components import draw_scanlines, draw_footer
+            from ui.colors import dim_color
             help_font = get_theme_font(18, 'primary')
             help_text = "press 1-3, arrow keys + enter, click, or use voice"
             help_surface = help_font.render(help_text, True, dim_color(tuple(style['colors']['primary']), 0.33))
@@ -351,9 +353,10 @@ class BaseHubScene(Scene):
             self.settings_rect = draw_footer(screen, tuple(style['colors']['primary']))
         else:
             # Backward compatibility - use old constants
-            from utils import (MARGIN_TOP, MARGIN_LEFT, HUB_TITLE_Y_OFFSET, HUB_SUBTITLE_Y_OFFSET,
-                              HUB_MENU_START_Y_OFFSET, HUB_MENU_LINE_HEIGHT, dim_color,
-                              draw_scanlines, draw_footer)
+            from ui.components import draw_scanlines, draw_footer
+            from ui.constants import (MARGIN_TOP, MARGIN_LEFT, HUB_TITLE_Y_OFFSET, HUB_SUBTITLE_Y_OFFSET,
+                                      HUB_MENU_START_Y_OFFSET, HUB_MENU_LINE_HEIGHT)
+            from ui.colors import dim_color
             
             self.back_arrow_rect = draw_back_arrow(screen, self.color)
             

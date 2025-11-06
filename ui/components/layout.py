@@ -6,6 +6,22 @@ from pathlib import Path
 
 # Import from parent ui modules
 from ..fonts import get_localized_font, get_theme_font
+from ..constants import MARGIN_LEFT, MARGIN_TOP
+
+
+def draw_scanlines(surface: pygame.Surface, strength: float = 0.15):
+    """Draw CRT-style scanlines over the surface.
+    
+    Args:
+        surface: Surface to draw scanlines on
+        strength: Darkness of scanlines (0.0-1.0)
+    """
+    w, h = surface.get_size()
+    scan = pygame.Surface((w, h), pygame.SRCALPHA)
+    dark = int(255 * strength)
+    for y in range(0, h, 2):
+        pygame.draw.line(scan, (0, 0, 0, dark), (0, y), (w, y))
+    surface.blit(scan, (0, 0), special_flags=pygame.BLEND_SUB)
 
 
 def draw_back_arrow(surface: Surface, color: tuple = (140, 255, 140)) -> pygame.Rect:
@@ -18,7 +34,7 @@ def draw_back_arrow(surface: Surface, color: tuple = (140, 255, 140)) -> pygame.
     Returns:
         pygame.Rect: Clickable area for the back arrow
     """
-    from utils import MARGIN_LEFT, MARGIN_TOP
+    from ui.components import MARGIN_LEFT, MARGIN_TOP
     
     # Dim the color slightly for subtle appearance
     arrow_color = tuple(int(c * 0.8) for c in color)
