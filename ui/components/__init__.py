@@ -59,15 +59,6 @@ from .widgets import (
 )
 
 # ============================================================================
-# TABS
-# ============================================================================
-try:
-    from .tabs import draw_tabs
-except ImportError:
-    # tabs.py not created yet
-    draw_tabs = None
-
-# ============================================================================
 # CONSTANTS AND UTILITIES
 # ============================================================================
 from ..constants import (
@@ -105,9 +96,6 @@ __all__ = [
     'draw_d20',
     'draw_now_playing',
     'MarqueeText',
-    
-    # Tabs
-    'draw_tabs',
     
     # Utilities
     'dim_color',

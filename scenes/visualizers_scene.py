@@ -30,6 +30,12 @@ class VisualizersScene(Scene):
         # Layout vars
         self.nav_back_rect = None
         self.settings_rect = None  # Store settings text rect for click detection
+        
+        # Cache rendered surfaces to prevent re-rendering every frame
+        self._nav_back_surface = None
+        self._title_surface = None
+        self._title_overlap = None
+        self._cached_language = None  # Track language for cache invalidation
     
     def on_enter(self):
         """Called when scene becomes active."""
@@ -81,24 +87,27 @@ class VisualizersScene(Scene):
         margin_right = margins.get('right', MARGIN_RIGHT)
         
         # Draw nav_back component ("<esc" in top-left corner at margin boundary)
-        from core.localization import t
-        nav_back_text = t('common.esc')
-        nav_back_font = get_localized_font(style['typography']['fonts']['micro'], 'primary', nav_back_text)
-        nav_back_surface = nav_back_font.render(nav_back_text, True, self.color)
+        # Cache to prevent re-rendering every frame
+        from core.localization import t, get_language
+        current_language = get_language()
+        if self._nav_back_surface is None or self._cached_language != current_language:
+            nav_back_text = t('common.esc')
+            nav_back_font = get_localized_font(style['typography']['fonts']['micro'], 'primary', nav_back_text)
+            self._nav_back_surface = nav_back_font.render(nav_back_text, True, self.color)
         nav_back_x = MARGIN_LEFT
         nav_back_y = MARGIN_TOP
-        screen.blit(nav_back_surface, (nav_back_x, nav_back_y))
+        screen.blit(self._nav_back_surface, (nav_back_x, nav_back_y))
         
         # Store rect for click detection
         self.nav_back_rect = pygame.Rect(
             nav_back_x,
             nav_back_y,
-            nav_back_surface.get_width(),
-            nav_back_surface.get_height()
+            self._nav_back_surface.get_width(),
+            self._nav_back_surface.get_height()
         )
         
         # Calculate title card position (20px below nav_back)
-        title_card_y = nav_back_y + nav_back_surface.get_height() + 20
+        title_card_y = nav_back_y + self._nav_back_surface.get_height() + 20
         title_card_width = w - margin_left - margin_right
         
         # Calculate card height to fill remaining space (minus footer)
@@ -110,12 +119,15 @@ class VisualizersScene(Scene):
         border_fade_pct = title_card_config.get('border_fade_pct', 0.9)
         border_height_pct = title_card_config.get('border_height_pct', 0.15)
         
-        # Get title font to calculate overlap
-        title_text = t('visualizers.title')
-        title_font_size = style['typography']['fonts'].get('title', 76)
-        title_font = get_localized_font(title_font_size, 'secondary', title_text)
-        title_surface = title_font.render(title_text, True, (255, 255, 255))
-        title_overlap = title_surface.get_height() // 2
+        # Get title font to calculate overlap (cached)
+        if self._title_surface is None or self._cached_language != current_language:
+            title_text = t('visualizers.title')
+            title_font_size = style['typography']['fonts'].get('title', 76)
+            title_font = get_localized_font(title_font_size, 'secondary', title_text)
+            self._title_surface = title_font.render(title_text, True, (255, 255, 255))
+            self._title_overlap = self._title_surface.get_height() // 2
+        title_text = t('visualizers.title')  # Still need text for draw_title_card_container
+        title_overlap = self._title_overlap
         
         # Adjust y position so title overlaps card border
         title_card_y_adjusted = title_card_y + title_overlap
@@ -133,7 +145,7 @@ class VisualizersScene(Scene):
             border_height_pct=border_height_pct
         )
         
-        # Content area for future visualizers
+        # Content area for visualizers
         content_y = layout_info['content_start_y']
         content_x = margin_left
         content_width = title_card_width

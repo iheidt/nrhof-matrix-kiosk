@@ -8,6 +8,9 @@ import time
 
 # Import from parent ui modules
 from ..fonts import get_theme_font
+
+# Font cache to prevent reloading on every frame
+_font_cache = {}
 from ..icons import load_icon
 from ..components.cards import draw_card
 
@@ -133,9 +136,12 @@ def draw_timeclock(surface: Surface, x: int, y: int, width: int, height: int, th
     # AM/PM: Miland 30px (maps to Dela Gothic One for Japanese)
     ampm_font = get_localized_font(30, 'secondary', ampm)
     
-    # Time: IBM Plex Semibold Italic 124px (display size)
-    time_font_path = Path(__file__).parent.parent.parent / "assets" / "fonts" / "IBMPlexMono-SemiBoldItalic.ttf"
-    time_font = pygame.font.Font(str(time_font_path), 124)
+    # Time: IBM Plex Semibold Italic 124px (display size) - cached
+    time_cache_key = "timeclock_time_124"
+    if time_cache_key not in _font_cache:
+        time_font_path = Path(__file__).parent.parent.parent / "assets" / "fonts" / "IBMPlexMono-SemiBoldItalic.ttf"
+        _font_cache[time_cache_key] = pygame.font.Font(str(time_font_path), 124)
+    time_font = _font_cache[time_cache_key]
     
     # Render text
     ampm_surface = ampm_font.render(ampm, True, dim_color)
@@ -515,16 +521,22 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     else:
         border_color = primary_color
     
-    # Fonts
+    # Fonts - cached to prevent loading every frame
     # Title: Compadre Extended (label_font), label size (16)
-    title_font_path = Path(__file__).parent.parent.parent / "assets" / "fonts" / "Compadre-Extended.otf"
     title_font_size = style['typography']['fonts'].get('label', 16)
-    title_font = pygame.font.Font(str(title_font_path), title_font_size)
+    title_cache_key = f"now_playing_title_{title_font_size}"
+    if title_cache_key not in _font_cache:
+        title_font_path = Path(__file__).parent.parent.parent / "assets" / "fonts" / "Compadre-Extended.otf"
+        _font_cache[title_cache_key] = pygame.font.Font(str(title_font_path), title_font_size)
+    title_font = _font_cache[title_cache_key]
     
     # Line 1: IBM Plex Mono Italic, body size (48)
-    line1_font_path = Path(__file__).parent.parent.parent / "assets" / "fonts" / "IBMPlexMono-Italic.ttf"
     line1_font_size = style['typography']['fonts'].get('body', 48)
-    line1_font = pygame.font.Font(str(line1_font_path), line1_font_size)
+    line1_cache_key = f"now_playing_line1_{line1_font_size}"
+    if line1_cache_key not in _font_cache:
+        line1_font_path = Path(__file__).parent.parent.parent / "assets" / "fonts" / "IBMPlexMono-Italic.ttf"
+        _font_cache[line1_cache_key] = pygame.font.Font(str(line1_font_path), line1_font_size)
+    line1_font = _font_cache[line1_cache_key]
     
     # Render title
     title_surface = title_font.render(title, True, title_color)
