@@ -1,4 +1,0 @@
-# Splash screen content
-title_key: "splash.title"  # Localized: NRHOF
-loading_text_key: "splash.loading"  # Localized: loading...
-min_seconds: 0.0

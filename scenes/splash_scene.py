@@ -91,9 +91,8 @@ class SplashScene(Scene):
         from core.localization import t
         title_layout = layout['title']
         title_pos = self.theme_loader.resolve_position(title_layout['position'], screen_size)
-        # Use localization if title_key exists
-        title_key = content.get('title_key')
-        title_content = t(title_key) if title_key else content.get('title', 'NRHOF')
+        # Use localization for title
+        title_content = t('splash.title')
         title_text = Text.create(
             content=title_content,
             x=title_pos[0],
@@ -124,9 +123,8 @@ class SplashScene(Scene):
         # Loading text
         loading_layout = layout['loading_text']
         loading_pos = self.theme_loader.resolve_position(loading_layout['position'], screen_size)
-        # Use localization if loading_text_key exists
-        loading_key = content.get('loading_text_key')
-        loading_content = t(loading_key) if loading_key else content.get('loading_text', 'loading...')
+        # Use localization for loading text
+        loading_content = t('splash.loading')
         loading_text = Text.create(
             content=loading_content,
             x=loading_pos[0],

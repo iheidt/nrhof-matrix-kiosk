@@ -21,12 +21,12 @@ class IntroScene(Scene):
         
         # Extract from theme
         from core.localization import t
-        # Use localization if lines_keys exists
-        lines_keys = self.theme['content'].get('lines_keys')
-        if lines_keys:
-            self.lines = [t(key) for key in lines_keys]
-        else:
-            self.lines = self.theme['content'].get('lines', [])
+        # Hardcoded intro line keys
+        self.lines = [
+            t('intro.line1'),
+            t('intro.line2'),
+            t('intro.line3')
+        ]
         self.typewriter_speed = self.theme['content']['timing']['typewriter_speed']
         self.line_pause = self.theme['content']['timing']['line_pause']
         self.color = tuple(self.theme['style']['colors']['primary'])
@@ -43,39 +43,30 @@ class IntroScene(Scene):
         self.pause_timer = 0
         self.state = "typing"  # typing, lingering, pausing, done
         
-        # Load font settings from layout (already resolved by theme_loader)
-        text_area = self.theme['layout']['text_area']
+        # Font settings (hardcoded since layout file was removed)
         typography = self.theme['style'].get('typography', {})
+        fonts = typography.get('fonts', {})
         
-        # Font size already resolved by theme_loader ('body' → 32)
-        self.base_font_size = text_area.get('font_size')
-        self.font_type = text_area.get('font_type', 'primary')
+        # Use 'body' font size (32px)
+        self.base_font_size = fonts.get('body', 32)
+        self.font_type = 'primary'
         self.margin_x = 0
         self.margin_y = 0
         
         # Calculate line_height: font_size × ratio from pipboy.yaml
-        # Need to find which size name this is (32 = body)
-        fonts = typography.get('fonts', {})
-        size_name = None
-        for name, size in fonts.items():
-            if size == self.base_font_size:
-                size_name = name
-                break
-        
-        if size_name:
-            line_height_ratios = typography.get('line_height', {})
-            ratio = line_height_ratios.get(size_name, 1.5)
-            self.line_height = int(self.base_font_size * ratio)
-        else:
-            raise ValueError(f"Font size {self.base_font_size} not found in pipboy.yaml fonts scale")
+        line_height_ratios = typography.get('line_height', {})
+        ratio = line_height_ratios.get('body', 1.5)
+        self.line_height = int(self.base_font_size * ratio)
     
     def on_enter(self):
         """Initialize intro sequence."""
         # Reload localized lines in case language changed
         from core.localization import t
-        lines_keys = self.theme['content'].get('lines_keys')
-        if lines_keys:
-            self.lines = [t(key) for key in lines_keys]
+        self.lines = [
+            t('intro.line1'),
+            t('intro.line2'),
+            t('intro.line3')
+        ]
         
         # Use standard margins from _base.yaml
         self.margin_x = MARGIN_LEFT

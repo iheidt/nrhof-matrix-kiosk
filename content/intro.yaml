@@ -1,9 +1,4 @@
 # Intro scene content
-lines_keys:
-  - "intro.line1"  # Localized: wake up, NRHOF...
-  - "intro.line2"  # Localized: the matrix has you...
-  - "intro.line3"  # Localized: follow the white rabbit...
-
 timing:
-  typewriter_speed: .0005  # seconds per character default 0.5
-  line_pause: .005         # seconds between lines default 1.0
+  typewriter_speed: .005  # seconds per character default 0.5
+  line_pause: .05         # seconds between lines default 1.0

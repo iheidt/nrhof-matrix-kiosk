@@ -3,20 +3,12 @@
 items:
   - id: "nr_38"
     label_key: "menu.option1"  # Localized: NR-38
-    description: "Music video player"
-    action: "music_video"  # Maps to previous music_video action
     
   - id: "nr_18"
     label_key: "menu.option2"  # Localized: NR-18
-    description: "Coming soon"
-    action: null  # Does nothing for now
     
   - id: "visualizer"
     label_key: "menu.option3"  # Localized: visualizer
-    description: "Audio visualizations"
-    action: "visualizer"
     
   - id: "fate_maker"
     label_key: "menu.option4"  # Localized: fate maker
-    description: "Interactive experience"
-    action: null  # Does nothing for now
