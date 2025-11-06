@@ -45,18 +45,14 @@ class VisualizersScene(Scene):
         # ESC key to return to previous scene
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-                print("[VisualizersScene] ESC key detected, emitting GO_BACK intent")
                 self.ctx.intent_router.emit(Intent.GO_BACK)
-                print("[VisualizersScene] GO_BACK intent emitted")
                 return True
         
         # Handle mouse clicks
         if event.type == pygame.MOUSEBUTTONDOWN:
             # Check nav_back click
             if self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos):
-                print("[VisualizersScene] nav_back clicked, emitting GO_BACK intent")
                 self.ctx.intent_router.emit(Intent.GO_BACK)
-                print("[VisualizersScene] GO_BACK intent emitted")
                 return True
             # Check settings click
             if self.settings_rect and self.settings_rect.collidepoint(event.pos):
@@ -109,6 +105,11 @@ class VisualizersScene(Scene):
         footer_height = 130
         title_card_height = h - title_card_y - margin_left - footer_height  # Use margin_left as bottom margin (50px)
         
+        # Get title card border settings from layout
+        title_card_config = layout.get('title_card', {})
+        border_fade_pct = title_card_config.get('border_fade_pct', 0.9)
+        border_height_pct = title_card_config.get('border_height_pct', 0.15)
+        
         # Get title font to calculate overlap
         title_text = t('visualizers.title')
         title_font_size = style['typography']['fonts'].get('title', 76)
@@ -133,7 +134,8 @@ class VisualizersScene(Scene):
             height=title_card_height,
             title=title_text,
             theme={'layout': layout, 'style': style},
-            border_fade_pct=0.1
+            border_fade_pct=border_fade_pct,
+            border_height_pct=border_height_pct
         )
         
         # Content area for future visualizers

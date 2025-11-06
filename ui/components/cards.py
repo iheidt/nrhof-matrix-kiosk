@@ -8,7 +8,7 @@ from ..fonts import get_localized_font
 
 
 def draw_card(surface: Surface, x: int, y: int, width: int, height: int, theme: dict = None,
-             border_solid: str = None, border_fade_pct: float = None):
+             border_solid: str = None, border_fade_pct: float = None, border_height_pct: float = None):
     """Draw a card using common card component styling with optional gradient fade.
     
     Args:
@@ -20,6 +20,7 @@ def draw_card(surface: Surface, x: int, y: int, width: int, height: int, theme: 
         theme: Theme dictionary with layout and style (optional)
         border_solid: Override for which side stays solid ('top' or 'bottom')
         border_fade_pct: Override for fade percentage (0.0-1.0)
+        border_height_pct: Override for left/right border height as percentage of card height (0.0-1.0)
     
     Returns:
         Rect of the card's content area (inside padding)
@@ -43,6 +44,8 @@ def draw_card(surface: Surface, x: int, y: int, width: int, height: int, theme: 
         border_solid = card_settings.get('border_solid', 'top')  # 'top' or 'bottom'
     if border_fade_pct is None:
         border_fade_pct = card_settings.get('border_fade_pct', 0.33)  # 0.0-1.0
+    if border_height_pct is None:
+        border_height_pct = card_settings.get('border_height_pct', 1.0)  # 0.0-1.0, default full height
     
     # Get border color from style
     border_color_name = card_settings.get('border_color', 'primary')
@@ -51,7 +54,7 @@ def draw_card(surface: Surface, x: int, y: int, width: int, height: int, theme: 
     # Draw card border with gradient fade
     if border_fade_pct > 0:
         _draw_card_border_with_fade(surface, x, y, width, height, border_width, 
-                                   border_color, border_solid, border_fade_pct)
+                                   border_color, border_solid, border_fade_pct, border_height_pct)
     else:
         # Simple solid border
         pygame.draw.rect(surface, border_color, (x, y, width, height), border_width)
@@ -66,7 +69,8 @@ def draw_card(surface: Surface, x: int, y: int, width: int, height: int, theme: 
 
 
 def _draw_card_border_with_fade(surface: Surface, x: int, y: int, width: int, height: int,
-                                border_width: int, color: tuple, solid_side: str, fade_pct: float):
+                                border_width: int, color: tuple, solid_side: str, fade_pct: float,
+                                border_height_pct: float = 1.0):
     """Draw a card border with gradient fade to transparent using surfarray for per-pixel alpha.
     
     Args:
@@ -83,6 +87,9 @@ def _draw_card_border_with_fade(surface: Surface, x: int, y: int, width: int, he
         base_color = (int(color[0]), int(color[1]), int(color[2]))
     else:
         base_color = (255, 255, 255)
+    
+    # Calculate effective height for left/right borders
+    effective_height = int(height * border_height_pct)
     
     # Create a surface with alpha channel for transparency
     border_surface = pygame.Surface((width + border_width * 2, height + border_width * 2), pygame.SRCALPHA)
@@ -125,21 +132,23 @@ def _draw_card_border_with_fade(surface: Surface, x: int, y: int, width: int, he
                     pixels_rgb[:, i] = base_color
                     pixels_alpha[:, i] = alpha
     else:
-        # Top is solid, left/right fade down for fade_pct of height, no bottom border
-        fade_height = int(height * fade_pct)  # Only fade for this many pixels (33% of height)
+        # Top is solid, left/right fade down starting at (1.0 - fade_pct) of effective height
+        # For example, with fade_pct=0.1, solid until 90% of effective height, then fade over last 10%
+        fade_start = int(effective_height * (1.0 - fade_pct))  # Start fading at this height
+        fade_distance = effective_height - fade_start  # Distance over which to fade
         
         # Set alpha channel using surfarray
-        for i in range(height + border_width):
-            # Calculate alpha based on position within fade zone
-            if i < fade_height:
-                # Solid at top (255), fading to transparent at fade_height
+        for i in range(effective_height + border_width):
+            # Calculate alpha based on position
+            if i < fade_start:
+                # Solid portion (top to fade_start)
                 alpha = 255
-            elif i < fade_height + fade_height:  # Within fade zone
-                # Fade from 255 to 0 over the fade_height distance
-                progress = (i - fade_height) / fade_height if fade_height > 0 else 1
+            elif i < effective_height:
+                # Fading portion (fade_start to effective_height)
+                progress = (i - fade_start) / fade_distance if fade_distance > 0 else 1
                 alpha = max(0, int(255 * (1.0 - progress)))
             else:
-                # Below fade zone - transparent
+                # Below effective height - transparent
                 alpha = 0
             
             # Top border (always solid)
@@ -302,6 +311,7 @@ def draw_title_card_container(surface: Surface, x: int, y: int, width: int, heig
     border_width = overrides.get('border', card_config.get('border', 6))
     padding = overrides.get('padding', card_config.get('padding', 24))
     border_fade_pct = overrides.get('border_fade_pct', card_config.get('border_fade_pct', 0.33))
+    border_height_pct = overrides.get('border_height_pct', card_config.get('border_height_pct', 1.0))
     
     # Colors
     border_color_key = overrides.get('border_color', card_config.get('border_color', 'primary'))
@@ -336,7 +346,7 @@ def draw_title_card_container(surface: Surface, x: int, y: int, width: int, heig
     
     # Draw card border with fade
     draw_card(surface, x, y, width, height, theme=theme, 
-              border_solid='top', border_fade_pct=border_fade_pct)
+              border_solid='top', border_fade_pct=border_fade_pct, border_height_pct=border_height_pct)
     
     # Calculate title position
     title_x = x + 35 + 24  # 35px border + 24px gap from left edge

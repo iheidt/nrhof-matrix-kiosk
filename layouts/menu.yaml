@@ -12,8 +12,7 @@ title_card:
   height: 120  # Card height
   title: "NRHOF"  # Card title text
   margin_bottom: 50  # Space below title card before buttons
-  border_fade_pct: 0.9  # Percentage of border that fades (0.0-1.0)
-
+ 
 buttons:
   layout: vertical
   count: 4
@@ -23,8 +22,7 @@ buttons:
 
 timeclock:
   height: 100  # Card height
-  border_fade_pct: 0.9  # Percentage of border that fades (0.0-1.0)
-
+ 
 footer:
   height: 130  # Total footer height (card + company div)
-  border_fade_pct: 0.9  # Percentage of border that fades (0.0-1.0)
+ 

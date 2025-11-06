@@ -4,8 +4,8 @@ import time
 from pathlib import Path
 from scenes.scene_manager import Scene, register_scene
 from ui.components import (
-    draw_scanlines, draw_footer, draw_title_card, draw_button,
-    MARGIN_TOP, MARGIN_LEFT
+    draw_scanlines, draw_footer, draw_title_card_container, draw_button,
+    MARGIN_TOP, MARGIN_LEFT, MARGIN_RIGHT
 )
 from ui.components.widgets import draw_timeclock, draw_d20, draw_now_playing, MarqueeText
 from ui.fonts import get_localized_font, get_theme_font
@@ -226,7 +226,7 @@ class MenuScene(Scene):
             else:
                 screen.blit(surface, (int(text.position[0]), int(text.position[1])))
         
-        # Draw title card at top of left column
+        # Draw title card container at top of left column
         
         # Get layout and style
         layout = self.theme['layout']
@@ -234,10 +234,18 @@ class MenuScene(Scene):
         
         # Title card configuration from layout
         title_card_config = layout.get('title_card', {})
-        title_card_height = title_card_config.get('height', 120)
         title_card_title = title_card_config.get('title', 'NRHOF')
-        title_card_margin_bottom = title_card_config.get('margin_bottom', 70)
-        title_card_fade_pct = title_card_config.get('border_fade_pct', 0.33)
+        border_fade_pct = title_card_config.get('border_fade_pct', 0.9)
+        border_height_pct = title_card_config.get('border_height_pct', 0.15)
+        
+        # Calculate title card position
+        title_card_y = self.content_top
+        
+        # Calculate card height to fill remaining space (minus footer)
+        footer_height = 130
+        margins = layout.get('margins', {})
+        margin_left = margins.get('left', MARGIN_LEFT)
+        title_card_height = screen.get_height() - title_card_y - margin_left - footer_height
         
         # Calculate title font size to determine overlap
         title_font_size = style['typography']['fonts'].get('title', 76)
@@ -245,24 +253,32 @@ class MenuScene(Scene):
         title_surface = title_font.render(title_card_title, True, (255, 255, 255))
         title_overlap = title_surface.get_height() // 2
         
-        # Adjust card y position so title top respects margin
-        title_card_y = self.content_top + title_overlap
+        # Adjust y position so title overlaps card border
+        title_card_y_adjusted = title_card_y + title_overlap
         
-        title_card_rect = draw_title_card(
+        # Draw the full-height title card container
+        layout_info = draw_title_card_container(
             surface=screen,
             x=self.left_col_x,
-            y=title_card_y,
+            y=title_card_y_adjusted,
             width=self.left_col_width,
             height=title_card_height,
             title=title_card_title,
             theme={'layout': layout, 'style': style},
-            border_fade_pct=title_card_fade_pct
+            border_fade_pct=border_fade_pct,
+            border_height_pct=border_height_pct
         )
+        
+        # Content area for buttons (inside title card)
+        content_y = layout_info['content_start_y']
+        content_x = self.left_col_x
+        content_width = self.left_col_width
+        content_height = screen.get_height() - content_y - footer_height
         
         # Get column configuration
         columns_config = layout.get('columns', {})
         
-        # Draw buttons vertically in left column (below title card)
+        # Draw buttons vertically inside content area
         buttons_config = layout.get('buttons', {})
         button_width = buttons_config.get('width', '67%')  # Button width override
         
@@ -272,13 +288,13 @@ class MenuScene(Scene):
         adornment_size = adornment_config.get('size', 25)
         adornment_margin = adornment_config.get('margin_left', 18)
         
-        # Position buttons so spacing from title card border to adornment equals spacing from adornment to button
-        # button_x = left_col_x + margin_to_adornment + adornment_size + margin_to_button
-        button_x = self.left_col_x + adornment_margin + adornment_size + adornment_margin
+        # Position buttons relative to content area
+        total_left_spacing = adornment_margin + adornment_size + adornment_margin
+        button_x = content_x + total_left_spacing
         
-        # Start buttons below title card with configured spacing
+        # Start buttons at top of content area with 30px spacing
         from core.localization import t
-        y = title_card_y + title_card_height + title_card_margin_bottom
+        y = content_y + 30
         for i, entry in enumerate(self.entries):
             # Use localization key if available, otherwise fall back to label
             label_key = entry.get('label_key')
@@ -290,7 +306,7 @@ class MenuScene(Scene):
                 surface=screen,
                 x=button_x,
                 y=y,
-                container_width=self.left_col_width - (adornment_size + adornment_margin),
+                container_width=content_width - total_left_spacing,
                 text=label,
                 theme={'layout': self.theme['layout'], 'style': self.theme['style']},
                 width_pct=button_width  # Override button width
@@ -472,8 +488,8 @@ class MenuScene(Scene):
         timeclock_y = d20_rect.bottom + 40
         timeclock_settings = layout.get('timeclock', {})
         timeclock_height = timeclock_settings.get('height', 300)
-        timeclock_width = right_col_width + 50  # Extend by 50px
-        timeclock_x = right_col_x - 50  # Shift 50px to the left
+        timeclock_width = right_col_width + 44  # Extend by 44px (50px - 6px border)
+        timeclock_x = right_col_x - 44  # Shift 44px to the left (50px - 6px border)
         draw_timeclock(
             surface=screen,
             x=timeclock_x,

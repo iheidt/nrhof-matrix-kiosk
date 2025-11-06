@@ -20,6 +20,13 @@ card:
   border_color: primary  # References colors.primary from pipboy.yaml
   padding: 24
   border_solid: top  # Which side stays solid: 'top' or 'bottom'
+  border_fade_pct: 0.9  # Percentage of border that fades (0.0-1.0)
+  border_height_pct: 0.15  # Height of left/right borders as percentage (0.0-1.0)
+
+# Title card - for 1-column layouts
+title_card:
+  border_fade_pct: 0.9  # Percentage of border that fades
+  border_height_pct: 0.15  # Height of left/right borders
 
 # Button component - reusable button styling
 button:
