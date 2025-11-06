@@ -3,8 +3,9 @@ import pygame
 import time
 from pathlib import Path
 from scenes.scene_manager import Scene, register_scene
-from utils import get_font, get_theme_font, draw_scanlines, draw_footer, render_text, load_icon, launch_command, draw_now_playing, draw_d20, draw_timeclock, ROOT
-from routing.intent_router import Intents
+from utils import draw_scanlines, draw_footer, MARGIN_TOP, MARGIN_LEFT
+from ui.fonts import get_localized_font, get_theme_font
+from routing.intent_router import Intent
 from renderers import FrameState, Shape, Text, Image
 from core.theme_loader import get_theme_loader
 from core.app_state import get_app_state
@@ -135,13 +136,13 @@ class MenuScene(Scene):
                 self.trigger_wakeword()
                 return True
             elif event.key in (pygame.K_1, pygame.K_KP1):
-                self.ctx.intent_router.emit(Intents.SELECT_OPTION, index=0)
+                self.ctx.intent_router.emit(Intent.SELECT_OPTION, index=0)
                 return True
             elif event.key in (pygame.K_2, pygame.K_KP2):
-                self.ctx.intent_router.emit(Intents.SELECT_OPTION, index=1)
+                self.ctx.intent_router.emit(Intent.SELECT_OPTION, index=1)
                 return True
             elif event.key in (pygame.K_3, pygame.K_KP3):
-                self.ctx.intent_router.emit(Intents.SELECT_OPTION, index=2)
+                self.ctx.intent_router.emit(Intent.SELECT_OPTION, index=2)
                 return True
         
         # Touch/Mouse selection - immediate on tap
@@ -151,19 +152,19 @@ class MenuScene(Scene):
                 mx, my = pos
                 # Check settings text click
                 if self.settings_rect and self.settings_rect.collidepoint(mx, my):
-                    self.ctx.intent_router.emit(Intents.GO_TO_SETTINGS)
+                    self.ctx.intent_router.emit(Intent.GO_TO_SETTINGS)
                     return True
                 # Check button clicks
                 for i, rect in enumerate(self.button_rects):
                     if rect.collidepoint(mx, my):
-                        self.ctx.intent_router.emit(Intents.SELECT_OPTION, index=i)
+                        self.ctx.intent_router.emit(Intent.SELECT_OPTION, index=i)
                         return True
         
         return False
     
     def select_option(self, index: int):
         """Public method to select an option by index (for voice commands)."""
-        self.ctx.intent_router.emit(Intents.SELECT_OPTION, index=index)
+        self.ctx.intent_router.emit(Intent.SELECT_OPTION, index=index)
     
     
     def update(self, dt: float):

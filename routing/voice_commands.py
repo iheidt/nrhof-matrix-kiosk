@@ -2,7 +2,10 @@
 """Voice command registration for the application."""
 
 from routing.voice_router import VoiceRouter
-from routing.intent_router import IntentRouter, Intents
+from routing.intent_router import IntentRouter, Intent
+
+# Backward compatibility alias
+Intents = Intent
 
 
 def register_all_voice_commands(voice_router: VoiceRouter, intent_router: IntentRouter):

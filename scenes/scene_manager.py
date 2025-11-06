@@ -241,8 +241,8 @@ class BaseHubScene(Scene):
             
             # Check if click is on settings text
             if self.settings_rect and self.settings_rect.collidepoint(mx, my):
-                from routing.intent_router import Intents
-                self.ctx.intent_router.emit(Intents.GO_TO_SETTINGS)
+                from routing.intent_router import Intent
+                self.ctx.intent_router.emit(Intent.GO_TO_SETTINGS)
                 return True
             
             # Check if click is on back arrow
@@ -266,10 +266,10 @@ class BaseHubScene(Scene):
     
     def _select_item(self, index: int):
         """Select a sub-experience by index."""
-        from routing.intent_router import Intents
+        from routing.intent_router import Intent
         if 0 <= index < len(self.items):
             item = self.items[index]
-            self.ctx.intent_router.emit(Intents.SELECT_SUB_EXPERIENCE, id=item["id"])
+            self.ctx.intent_router.emit(Intent.SELECT_SUB_EXPERIENCE, id=item["id"])
     
     def update(self, dt: float):
         """Update hub state."""

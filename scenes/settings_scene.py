@@ -3,7 +3,7 @@ import pygame
 from scenes.scene_manager import Scene, register_scene
 from utils import draw_scanlines, draw_footer, MARGIN_TOP, MARGIN_LEFT
 from ui.fonts import get_localized_font
-from routing.intent_router import Intents
+from routing.intent_router import Intent
 from core.theme_loader import get_theme_loader
 
 
@@ -40,7 +40,7 @@ class SettingsScene(Scene):
         # ESC or click nav_back to return to previous scene
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-                self.ctx.intent_router.emit(Intents.GO_BACK)
+                self.ctx.intent_router.emit(Intent.GO_BACK)
                 return True
             elif event.key == pygame.K_w:
                 # Trigger wakeword for testing
@@ -50,7 +50,7 @@ class SettingsScene(Scene):
         # Click nav_back or language toggle
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos):
-                self.ctx.intent_router.emit(Intents.GO_BACK)
+                self.ctx.intent_router.emit(Intent.GO_BACK)
                 return True
             # Toggle language - check which side was clicked
             if self.lang_left_rect and self.lang_left_rect.collidepoint(event.pos):

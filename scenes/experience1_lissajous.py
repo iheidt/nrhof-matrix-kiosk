@@ -2,7 +2,7 @@
 import pygame
 from scenes.scene_manager import Scene, register_scene
 from utils import draw_scanlines, draw_footer, draw_back_arrow
-from routing.intent_router import Intents
+from routing.intent_router import Intent
 from visualizers import LissajousVisualizer
 
 
@@ -39,9 +39,9 @@ class Experience1LissajousScene(Scene):
         # Check settings click first
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.settings_rect and self.settings_rect.collidepoint(event.pos):
-                self.ctx.intent_router.emit(Intents.GO_TO_SETTINGS)
+                self.ctx.intent_router.emit(Intent.GO_TO_SETTINGS)
                 return True
-        return self.handle_common_events(event, Intents.GO_BACK, self.back_arrow_rect)
+        return self.handle_common_events(event, Intent.GO_BACK, self.back_arrow_rect)
     
     def update(self, dt: float):
         """Update visualization."""
