@@ -76,12 +76,6 @@ TRANSLATIONS = {
         'settings.language_english': 'English',
         'settings.language_japanese': 'Japanese',
         
-        # Visualizers
-        'visualizers.title': 'VISUALIZERS',
-        'visualizers.bars': 'bars',
-        'visualizers.wave': 'wave',
-        'visualizers.lissajous': 'lissajous',
-        
         # Splash
         'splash.title': 'NRHOF',
         'splash.loading': 'glow plugs starting...',
@@ -90,6 +84,22 @@ TRANSLATIONS = {
         'intro.line1': 'wake up, NRHOF...',
         'intro.line2': 'the matrix has you...',
         'intro.line3': 'follow the white rabbit...',
+
+        # NR-38
+        'nr38.title': 'NR-38',
+        
+        # NR-18
+        'nr18.title': 'NR-18',
+
+         # Visualizers
+        'visualizers.title': 'VISUALIZERS',
+        'visualizers.bars': 'bars',
+        'visualizers.wave': 'wave',
+        'visualizers.lissajous': 'lissajous',
+
+        # Fate Maker
+        'fate_maker.title': 'FATE MAKER',
+        
     },
     'jp': {
         # Menu
@@ -132,6 +142,15 @@ TRANSLATIONS = {
         'intro.line1': '覚えて起きた、NRHOF...',
         'intro.line2': 'マトリックスはあなたを捕らえていた...',
         'intro.line3': '白い豚を追っていこう...',
+        
+        # NR-38
+        'nr38.title': 'ナード・38',
+        
+        # NR-18
+        'nr18.title': 'ナード・18',
+
+        # Fate Maker
+        'fate_maker.title': '運命師',
     }
 }
 

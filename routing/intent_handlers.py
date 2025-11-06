@@ -37,8 +37,8 @@ def _register_selection_intents(intent_router: IntentRouter, scene_manager: Scen
     # Main menu option selection
     def select_option_handler(index, **kw):
         if index == 0:
-            # NR-38: Not implemented yet
-            print(f"Placeholder: NR-38 not implemented yet")
+            # NR-38
+            scene_manager.switch_to("NR38Scene")
         elif index == 1:
             # NR-18: Not implemented yet
             print(f"Placeholder: NR-18 not implemented yet")

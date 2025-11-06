@@ -15,6 +15,7 @@ SCENE_DEFINITIONS = [
     # Lazy-loaded scenes (loaded on demand)
     SceneDefinition('IntroScene', 'scenes.intro_scene', 'IntroScene'),
     SceneDefinition('MenuScene', 'scenes.menu_scene', 'MenuScene'),
+    SceneDefinition('NR38Scene', 'scenes.nr38_scene', 'NR38Scene'),
     # Visualizer scenes are now embedded in VisualizersScene, not standalone
     SceneDefinition('SettingsScene', 'scenes.settings_scene', 'SettingsScene'),
     SceneDefinition('VisualizersScene', 'scenes.visualizers_scene', 'VisualizersScene'),
