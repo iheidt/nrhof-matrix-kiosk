@@ -22,7 +22,8 @@ buttons:
 
 timeclock:
   height: 100  # Card height
-  # border settings inherited from _base.yaml card config
+  border_fade_pct: 0.9  # Percentage of border that fades (0.0-1.0)
+  border_height_pct: 0.5  # Height percentage of left/right borders (0.0-1.0)
 
 # footer.height inherited from _base.yaml
  

@@ -106,10 +106,11 @@ def draw_timeclock(surface: Surface, x: int, y: int, width: int, height: int, th
     # Get timeclock settings from layout
     timeclock_settings = layout.get('timeclock', {})
     border_fade_pct = timeclock_settings.get('border_fade_pct', 0.9)
+    border_height_pct = timeclock_settings.get('border_height_pct', 1.0)
     
     # Draw card border with fade (top solid, bottom/sides fade)
     draw_card(surface, x, y, width, height, theme=theme, 
-              border_solid='top', border_fade_pct=border_fade_pct)
+              border_solid='top', border_fade_pct=border_fade_pct, border_height_pct=border_height_pct)
     
     # Get current time and date
     from datetime import datetime

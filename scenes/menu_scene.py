@@ -464,7 +464,7 @@ class MenuScene(Scene):
             line1=song_line,
             line2=album_line,
             theme={'style': style},
-            border_y=title_card_y - 6,  # Move entire component up 6px
+            border_y=title_card_y_adjusted - 6,  # Use adjusted position to follow title card
             marquee=self.now_playing_marquee,
             progress_ms=progress_ms,
             duration_ms=duration_ms,
