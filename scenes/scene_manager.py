@@ -492,11 +492,14 @@ class SceneManager:
     
     def go_back(self):
         """Go back to the previous scene in history."""
+        print(f"[SceneManager] go_back() called, history: {self._scene_history}")
         if self._scene_history:
             previous_scene = self._scene_history.pop()
+            print(f"[SceneManager] Going back to: {previous_scene}")
             self.switch_to(previous_scene, add_to_history=False)  # Don't add to history when going back
         else:
             # No history, go to menu as fallback
+            print("[SceneManager] No history, going to MenuScene")
             self.switch_to("MenuScene", add_to_history=False)
     
     def handle_event(self, event: pygame.event.Event):

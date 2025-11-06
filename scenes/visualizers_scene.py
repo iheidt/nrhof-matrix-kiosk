@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 import pygame
 from scenes.scene_manager import Scene, register_scene
-from ui.components import draw_scanlines, draw_footer, draw_title_card, MARGIN_TOP, MARGIN_LEFT
+from ui.components import (
+    draw_scanlines, draw_footer, draw_title_card_container,
+    MARGIN_TOP, MARGIN_LEFT, MARGIN_RIGHT
+)
 from ui.fonts import get_localized_font
 from routing.intent_router import Intent
 from core.theme_loader import get_theme_loader
+
+# Visualizers will be added here later
 
 
 @register_scene("VisualizersScene")
@@ -30,24 +35,30 @@ class VisualizersScene(Scene):
         """Called when scene becomes active."""
         pass
     
+    
     def on_exit(self):
         """Called when scene is about to be replaced."""
         pass
     
     def handle_event(self, event: pygame.event.Event):
         """Handle visualizers input."""
-        # ESC or click nav_back to return to previous scene
+        # ESC key to return to previous scene
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
+                print("[VisualizersScene] ESC key detected, emitting GO_BACK intent")
                 self.ctx.intent_router.emit(Intent.GO_BACK)
+                print("[VisualizersScene] GO_BACK intent emitted")
                 return True
         
-        # Click nav_back or settings
+        # Handle mouse clicks
         if event.type == pygame.MOUSEBUTTONDOWN:
+            # Check nav_back click
             if self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos):
+                print("[VisualizersScene] nav_back clicked, emitting GO_BACK intent")
                 self.ctx.intent_router.emit(Intent.GO_BACK)
+                print("[VisualizersScene] GO_BACK intent emitted")
                 return True
-            # Check settings text click
+            # Check settings click
             if self.settings_rect and self.settings_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intent.GO_TO_SETTINGS)
                 return True
@@ -55,7 +66,7 @@ class VisualizersScene(Scene):
         return False
     
     def update(self, dt: float):
-        """Update visualizers state."""
+        """Update visualizer state."""
         pass
     
     def draw(self, screen: pygame.Surface):
@@ -70,8 +81,8 @@ class VisualizersScene(Scene):
         
         # Get margins
         margins = layout.get('margins', {})
-        margin_left = margins.get('left', 50)
-        margin_right = margins.get('right', 50)
+        margin_left = margins.get('left', MARGIN_LEFT)
+        margin_right = margins.get('right', MARGIN_RIGHT)
         
         # Draw nav_back component ("<esc" in top-left corner at margin boundary)
         from core.localization import t
@@ -90,12 +101,13 @@ class VisualizersScene(Scene):
             nav_back_surface.get_height()
         )
         
-        # Draw title card 20px below nav_back button, spanning full width
-        
-        # Calculate title card position
+        # Calculate title card position (20px below nav_back)
         title_card_y = nav_back_y + nav_back_surface.get_height() + 20
         title_card_width = w - margin_left - margin_right
-        title_card_height = 200
+        
+        # Calculate card height to fill remaining space (minus footer)
+        footer_height = 130
+        title_card_height = h - title_card_y - margin_left - footer_height  # Use margin_left as bottom margin (50px)
         
         # Get title font to calculate overlap
         title_text = t('visualizers.title')
@@ -112,21 +124,25 @@ class VisualizersScene(Scene):
         if get_language() == 'jp':
             title_card_y_adjusted -= 21
         
-        title_card_rect = draw_title_card(
+        # Draw the full-width title card container
+        layout_info = draw_title_card_container(
             surface=screen,
             x=margin_left,
             y=title_card_y_adjusted,
             width=title_card_width,
             height=title_card_height,
-            title=t('visualizers.title'),
+            title=title_text,
             theme={'layout': layout, 'style': style},
-            border_fade_pct=0.33
+            border_fade_pct=0.1
         )
         
-        # TODO: Add visualizer option buttons here
-        # - Spectrum Bars
-        # - Waveform
-        # - Lissajous
+        # Content area for future visualizers
+        content_y = layout_info['content_start_y']
+        content_x = margin_left
+        content_width = title_card_width
+        content_height = h - content_y - 130  # Subtract footer height
+        
+        # Visualizers will be drawn here later
         
         # Draw scanlines and footer
         draw_scanlines(screen)

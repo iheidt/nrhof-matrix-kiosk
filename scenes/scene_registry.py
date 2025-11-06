@@ -15,9 +15,7 @@ SCENE_DEFINITIONS = [
     # Lazy-loaded scenes (loaded on demand)
     SceneDefinition('IntroScene', 'scenes.intro_scene', 'IntroScene'),
     SceneDefinition('MenuScene', 'scenes.menu_scene', 'MenuScene'),
-    SceneDefinition('Experience1SpectrumBarsScene', 'scenes.experience1_spectrum_bars', 'Experience1SpectrumBarsScene'),
-    SceneDefinition('Experience1WaveformScene', 'scenes.experience1_waveform', 'Experience1WaveformScene'),
-    SceneDefinition('Experience1LissajousScene', 'scenes.experience1_lissajous', 'Experience1LissajousScene'),
+    # Visualizer scenes are now embedded in VisualizersScene, not standalone
     SceneDefinition('SettingsScene', 'scenes.settings_scene', 'SettingsScene'),
     SceneDefinition('VisualizersScene', 'scenes.visualizers_scene', 'VisualizersScene'),
 ]
