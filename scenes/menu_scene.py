@@ -301,7 +301,7 @@ class MenuScene(Scene):
             if track.source == 'spotify':
                 # SPOTIFY . DEVICE NAME
                 device = track.device_name if track.device_name else "unknown"
-                device_formatted = device.upper().replace(' ', '.').replace('-', '.')
+                device_formatted = device.upper().replace('-', '.')
                 now_playing_title = f"SPOTIFY . {device_formatted}"
             elif track.source == 'sonos':
                 # SONOS . ROOM NAME
