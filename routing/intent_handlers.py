@@ -5,9 +5,6 @@ from routing.intent_router import IntentRouter, Intent
 from scenes.scene_manager import SceneManager
 from core.app_context import AppContext
 
-# Backward compatibility alias
-Intents = Intent
-
 
 def register_all_intents(intent_router: IntentRouter, scene_manager: SceneManager, app_context: AppContext):
     """Register all application intents.
@@ -26,9 +23,9 @@ def register_all_intents(intent_router: IntentRouter, scene_manager: SceneManage
 
 def _register_navigation_intents(intent_router: IntentRouter, scene_manager: SceneManager):
     """Register navigation intents (go home, go back, etc.)."""
-    intent_router.register(Intents.GO_HOME, lambda **kw: scene_manager.switch_to("MenuScene"))
-    intent_router.register(Intents.GO_BACK, lambda **kw: scene_manager.go_back())
-    intent_router.register(Intents.GO_TO_SETTINGS, lambda **kw: scene_manager.switch_to("SettingsScene"))
+    intent_router.register(Intent.GO_HOME, lambda **kw: scene_manager.switch_to("MenuScene"))
+    intent_router.register(Intent.GO_BACK, lambda **kw: scene_manager.go_back())
+    intent_router.register(Intent.GO_TO_SETTINGS, lambda **kw: scene_manager.switch_to("SettingsScene"))
 
 
 def _register_selection_intents(intent_router: IntentRouter, scene_manager: SceneManager, app_context: AppContext):
@@ -51,7 +48,7 @@ def _register_selection_intents(intent_router: IntentRouter, scene_manager: Scen
         else:
             print(f"Placeholder: Option {index+1} not implemented yet")
     
-    intent_router.register(Intents.SELECT_OPTION, select_option_handler)
+    intent_router.register(Intent.SELECT_OPTION, select_option_handler)
     
     # Sub-experience selection
     def select_sub_experience_handler(id, **kw):
@@ -64,4 +61,4 @@ def _register_selection_intents(intent_router: IntentRouter, scene_manager: Scen
         else:
             print(f"Unknown sub-experience: {id}")
     
-    intent_router.register(Intents.SELECT_SUB_EXPERIENCE, select_sub_experience_handler)
+    intent_router.register(Intent.SELECT_SUB_EXPERIENCE, select_sub_experience_handler)

@@ -4,9 +4,6 @@
 from routing.voice_router import VoiceRouter
 from routing.intent_router import IntentRouter, Intent
 
-# Backward compatibility alias
-Intents = Intent
-
 
 def register_all_voice_commands(voice_router: VoiceRouter, intent_router: IntentRouter):
     """Register all voice commands.
@@ -17,7 +14,7 @@ def register_all_voice_commands(voice_router: VoiceRouter, intent_router: Intent
     """
     # Navigation commands - all emit go_home intent
     for cmd in ["menu", "home", "main"]:
-        voice_router.register_command(cmd, lambda: intent_router.emit(Intents.GO_HOME))
+        voice_router.register_command(cmd, lambda: intent_router.emit(Intent.GO_HOME))
     
     # Option selection with variants
     options = [
@@ -29,5 +26,5 @@ def register_all_voice_commands(voice_router: VoiceRouter, intent_router: Intent
         for variant in variants:
             voice_router.register_command(
                 variant,
-                lambda idx=index: intent_router.emit(Intents.SELECT_OPTION, index=idx)
+                lambda idx=index: intent_router.emit(Intent.SELECT_OPTION, index=idx)
             )

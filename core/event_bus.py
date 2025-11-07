@@ -32,19 +32,14 @@ class EventType(Enum):
     
     # Scene events
     SCENE_CHANGED = auto()
-    SCENE_TRANSITION_START = auto()
-    SCENE_TRANSITION_END = auto()
+    # Note: SCENE_TRANSITION_START and SCENE_TRANSITION_END removed (unused)
     
     # Network events
-    NET_FAILED = auto()
-    NET_OK = auto()
-    WEBFLOW_SYNC_SUCCESS = auto()
-    WEBFLOW_SYNC_FAILED = auto()
+    # Note: NET_FAILED, NET_OK, WEBFLOW_SYNC_* removed (unused)
     
     # System events
     SHUTDOWN = auto()
-    CONFIG_RELOADED = auto()
-    HEALTH_CHECK = auto()
+    # Note: CONFIG_RELOADED and HEALTH_CHECK removed (unused)
     LANGUAGE_CHANGED = auto()
 
 
