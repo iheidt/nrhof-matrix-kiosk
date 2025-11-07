@@ -22,21 +22,14 @@ class Tabs:
         
         # Get body font size from theme
         from core.theme_loader import get_theme_loader
-        from core.localization import get_language
+        from ui.fonts import get_localized_font
         theme_loader = get_theme_loader()
         style = theme_loader.load_style('pipboy')
         font_size = style['typography']['fonts'].get('body', 48)
         
-        # Font substitution: use Japanese font for Japanese, IBM Plex Mono Italic for English
-        project_root = Path(__file__).parent.parent
-        current_lang = get_language()
-        if current_lang == 'jp':
-            # Use Noto Sans JP Regular for Japanese (maps from IBM Plex Mono Italic)
-            font_path = project_root / "assets" / "fonts" / "NotoSansJP-Regular.ttf"
-        else:
-            # Use IBM Plex Mono Italic for English
-            font_path = project_root / "assets" / "fonts" / "IBMPlexMono-Italic.ttf"
-        self.font = pygame.font.Font(str(font_path), font_size)
+        # Use cached localized font (automatically handles Japanese/English)
+        # Pass a sample character to ensure proper font selection
+        self.font = get_localized_font(font_size, 'primary', self.labels[0] if self.labels else '')
         
         # Pre-render all tab surfaces once
         self.active_surfaces = []

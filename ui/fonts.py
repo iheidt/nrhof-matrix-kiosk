@@ -263,10 +263,39 @@ def get_localized_font(size: int = 24, font_type: str = 'primary', text: str = N
     return get_theme_font(size, font_type)
 
 
+@lru_cache(maxsize=256)
+def _render_mixed_text_cached(text: str, size: int, font_type: str, color: tuple, antialias: bool, language: str) -> pygame.Surface:
+    """Internal cached version of render_mixed_text.
+    
+    Args:
+        text: Text to render
+        size: Font size
+        font_type: 'primary', 'secondary', or 'label'
+        color: Text color tuple
+        antialias: Whether to use antialiasing
+        language: Current language (for cache key)
+        
+    Returns:
+        pygame.Surface with the rendered text
+    """
+    from .text_renderer import TextRendererFactory
+    
+    # Create appropriate renderer for the language
+    renderer = TextRendererFactory.create_renderer(
+        language=language,
+        localized_font_loader=get_localized_font,
+        english_font_loader=get_theme_font
+    )
+    
+    # Render using the strategy
+    return renderer.render(text, size, font_type, color, antialias)
+
+
 def render_mixed_text(text: str, size: int, font_type: str, color: tuple, antialias: bool = True) -> pygame.Surface:
     """Render text with mixed fonts: numbers use English font, other characters use localized font.
     
     Uses the TextRenderer strategy pattern to handle different rendering requirements.
+    Results are cached to prevent recreating surfaces for the same text.
     
     Args:
         text: Text to render
@@ -279,20 +308,12 @@ def render_mixed_text(text: str, size: int, font_type: str, color: tuple, antial
         pygame.Surface with the rendered text
     """
     from core.localization import get_language
-    from .text_renderer import TextRendererFactory
     
-    # Get current language
+    # Get current language for cache key
     language = get_language()
     
-    # Create appropriate renderer for the language
-    renderer = TextRendererFactory.create_renderer(
-        language=language,
-        localized_font_loader=get_localized_font,
-        english_font_loader=get_theme_font
-    )
-    
-    # Render using the strategy
-    return renderer.render(text, size, font_type, color, antialias)
+    # Use cached version
+    return _render_mixed_text_cached(text, size, font_type, color, antialias, language)
 
 
 def render_text(text: str, size: int = 24, *, mono: bool = True, color=(0, 255, 0), antialias=True, prefer: str | None = None) -> pygame.Surface:

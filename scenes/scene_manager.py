@@ -456,8 +456,14 @@ class SceneManager:
         self._transition_from_name = None
         self._transition_to_scene = None
         self._transition_to_name = None
-        self._from_surface = None
-        self._to_surface = None
+        
+        # Explicitly delete transition surfaces to free memory immediately
+        if self._from_surface is not None:
+            del self._from_surface
+            self._from_surface = None
+        if self._to_surface is not None:
+            del self._to_surface
+            self._to_surface = None
     
     def draw(self):
         """Draw current scene with slide transition if active."""

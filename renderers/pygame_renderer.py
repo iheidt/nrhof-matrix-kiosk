@@ -23,6 +23,7 @@ class PygameRenderer(RendererBase):
         super().__init__(config)
         self.screen: pygame.Surface = None
         self.font_cache = {}  # Cache fonts by (size, family)
+        self.font_cache_max_size = 50  # Limit cache size
     
     def initialize(self):
         """Initialize pygame and create display."""
@@ -61,6 +62,10 @@ class PygameRenderer(RendererBase):
         """
         key = (size, family, bold)
         if key not in self.font_cache:
+            # Evict oldest entry if cache is full
+            if len(self.font_cache) >= self.font_cache_max_size:
+                self.font_cache.pop(next(iter(self.font_cache)))
+            
             if family == "monospace":
                 self.font_cache[key] = pygame.font.Font(pygame.font.match_font('courier', bold=bold), size)
             else:

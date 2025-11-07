@@ -9,8 +9,9 @@ import time
 # Import from parent ui modules
 from ..fonts import get_theme_font
 
-# Font cache to prevent reloading on every frame
+# Font cache to prevent reloading on every frame (with max size limit)
 _font_cache = {}
+_FONT_CACHE_MAX_SIZE = 20  # Reasonable limit for widget fonts
 from ..icons import load_icon
 from ..components.cards import draw_card
 
@@ -139,6 +140,9 @@ def draw_timeclock(surface: Surface, x: int, y: int, width: int, height: int, th
     # Time: IBM Plex Semibold Italic 124px (display size) - cached
     time_cache_key = "timeclock_time_124"
     if time_cache_key not in _font_cache:
+        # Evict oldest entry if cache is full
+        if len(_font_cache) >= _FONT_CACHE_MAX_SIZE:
+            _font_cache.pop(next(iter(_font_cache)))
         time_font_path = Path(__file__).parent.parent.parent / "assets" / "fonts" / "IBMPlexMono-SemiBoldItalic.ttf"
         _font_cache[time_cache_key] = pygame.font.Font(str(time_font_path), 124)
     time_font = _font_cache[time_cache_key]
@@ -526,6 +530,9 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     title_font_size = style['typography']['fonts'].get('label', 16)
     title_cache_key = f"now_playing_title_{title_font_size}"
     if title_cache_key not in _font_cache:
+        # Evict oldest entry if cache is full
+        if len(_font_cache) >= _FONT_CACHE_MAX_SIZE:
+            _font_cache.pop(next(iter(_font_cache)))
         title_font_path = Path(__file__).parent.parent.parent / "assets" / "fonts" / "Compadre-Extended.otf"
         _font_cache[title_cache_key] = pygame.font.Font(str(title_font_path), title_font_size)
     title_font = _font_cache[title_cache_key]
@@ -534,6 +541,9 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     line1_font_size = style['typography']['fonts'].get('body', 48)
     line1_cache_key = f"now_playing_line1_{line1_font_size}"
     if line1_cache_key not in _font_cache:
+        # Evict oldest entry if cache is full
+        if len(_font_cache) >= _FONT_CACHE_MAX_SIZE:
+            _font_cache.pop(next(iter(_font_cache)))
         line1_font_path = Path(__file__).parent.parent.parent / "assets" / "fonts" / "IBMPlexMono-Italic.ttf"
         _font_cache[line1_cache_key] = pygame.font.Font(str(line1_font_path), line1_font_size)
     line1_font = _font_cache[line1_cache_key]
