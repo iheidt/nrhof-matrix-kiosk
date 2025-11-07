@@ -319,8 +319,8 @@ def main():
     # Start voice engine
     components['voice_engine'].start()
     
-    # Start with splash screen
-    components['scene_manager'].switch_to("SplashScene")
+    # Start with splash screen (no transition on app start)
+    components['scene_manager'].switch_to("SplashScene", use_transition=False)
     
     # Start background preload
     start_preload(components['scene_manager'], components['app_context'])

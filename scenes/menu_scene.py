@@ -118,8 +118,8 @@ class MenuScene(Scene):
         # Keyboard shortcuts
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-                # Return to intro
-                self.manager.switch_to("IntroScene")
+                # Return to intro (no transition for intro scene)
+                self.manager.switch_to("IntroScene", use_transition=False)
                 return True
             elif event.key == pygame.K_w:
                 # Trigger wakeword for testing

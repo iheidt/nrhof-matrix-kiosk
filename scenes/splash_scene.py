@@ -72,7 +72,8 @@ class SplashScene(Scene):
             # Check if skip_intro flag is enabled
             skip_intro = self.ctx.config.get('flags', {}).get('skip_intro', False)
             next_scene = 'MenuScene' if skip_intro else 'IntroScene'
-            self.manager.switch_to(next_scene)
+            # Disable transition from splash screen
+            self.manager.switch_to(next_scene, use_transition=False)
     
     def draw(self, screen: pygame.Surface):
         """Build frame state for rendering."""

@@ -175,6 +175,21 @@ class SceneManager:
         self._scene_history: list = []  # Navigation history stack
         self._paused_scenes: Dict[str, Scene] = {}  # Scenes that are paused but not destroyed
         
+        # Slide transition state
+        self._transition_active = False
+        self._transition_progress = 0.0  # 0.0 to 1.0
+        self._transition_duration = 0.4  # seconds (adjust for speed)
+        self._transition_start_time = 0.0
+        self._transition_from_scene: Optional[Scene] = None
+        self._transition_from_name: Optional[str] = None
+        self._transition_to_scene: Optional[Scene] = None
+        self._transition_to_name: Optional[str] = None
+        self._transition_direction = 1  # 1 = left to right (forward), -1 = right to left (back)
+        
+        # Offscreen surfaces for smooth transitions
+        self._from_surface: Optional[pygame.Surface] = None
+        self._to_surface: Optional[pygame.Surface] = None
+        
         # Import lifecycle manager
         try:
             from core.lifecycle import get_lifecycle_manager, LifecyclePhase
@@ -196,6 +211,31 @@ class SceneManager:
             factory: Callable that returns a Scene instance when called
         """
         self._lazy_factories[name] = factory
+    
+    def _ease_out_cubic(self, t: float) -> float:
+        """Cubic easing out - decelerating to zero velocity.
+        
+        Args:
+            t: Progress from 0.0 to 1.0
+            
+        Returns:
+            Eased value from 0.0 to 1.0
+        """
+        return 1 - pow(1 - t, 3)
+    
+    def _ease_in_out_cubic(self, t: float) -> float:
+        """Cubic easing in/out - acceleration until halfway, then deceleration.
+        
+        Args:
+            t: Progress from 0.0 to 1.0
+            
+        Returns:
+            Eased value from 0.0 to 1.0
+        """
+        if t < 0.5:
+            return 4 * t * t * t
+        else:
+            return 1 - pow(-2 * t + 2, 3) / 2
     
     def _ensure_loaded(self, name: str):
         """Ensure a scene is loaded, instantiating from factory if needed.
@@ -240,13 +280,14 @@ class SceneManager:
         thread.start()
         return thread
     
-    def switch_to(self, name: str, add_to_history: bool = True, pause_current: bool = False):
-        """Switch to a different scene by name.
+    def switch_to(self, name: str, add_to_history: bool = True, pause_current: bool = False, use_transition: bool = True):
+        """Switch to a different scene by name with optional slide transition.
         
         Args:
             name: Scene name to switch to
             add_to_history: Whether to add current scene to history (default: True)
             pause_current: If True, pause current scene instead of exiting (default: False)
+            use_transition: If True, use slide transition (default: True)
         """
         # Ensure scene is loaded (lazy loading)
         self._ensure_loaded(name)
@@ -254,57 +295,106 @@ class SceneManager:
         if name not in self.scenes:
             raise ValueError(f"Scene '{name}' not registered")
         
+        # Skip if already transitioning
+        if self._transition_active:
+            return
+        
+        # Skip if trying to switch to the same scene (unless it's the first scene)
+        if name == self.current_scene_name and self.current_scene is not None:
+            return
+        
         # Add current scene to history before switching (if requested)
         if add_to_history and self.current_scene_name and self.current_scene_name != name:
             self._scene_history.append(self.current_scene_name)
         
-        if self.current_scene:
-            if pause_current:
-                # Pause current scene instead of exiting
-                if self._has_lifecycle:
-                    from core.lifecycle import LifecyclePhase
-                    self._lifecycle.execute(LifecyclePhase.SCENE_PAUSE, 
-                                          scene_name=self.current_scene_name,
-                                          scene=self.current_scene)
-                self.current_scene.on_pause()
-                self._paused_scenes[self.current_scene_name] = self.current_scene
+        # Determine transition direction (forward = 1, back = -1)
+        is_going_back = not add_to_history
+        transition_direction = -1 if is_going_back else 1
+        
+        if use_transition and self.current_scene:
+            # Start slide transition
+            self._transition_active = True
+            self._transition_progress = 0.0
+            self._transition_start_time = time.time()
+            self._transition_direction = transition_direction
+            
+            # Store from scene
+            self._transition_from_scene = self.current_scene
+            self._transition_from_name = self.current_scene_name
+            
+            # Prepare to scene
+            if name in self._paused_scenes:
+                self._transition_to_scene = self._paused_scenes.pop(name)
             else:
-                # Exit current scene
+                self._transition_to_scene = self.scenes[name]
+                # Call on_enter for new scene
                 if self._has_lifecycle:
                     from core.lifecycle import LifecyclePhase
-                    self._lifecycle.execute(LifecyclePhase.SCENE_BEFORE_EXIT, 
-                                          scene_name=self.current_scene_name,
-                                          scene=self.current_scene)
-                self.current_scene.on_exit()
+                    self._lifecycle.execute(LifecyclePhase.SCENE_BEFORE_ENTER, 
+                                          scene_name=name,
+                                          scene=self._transition_to_scene)
+                self._transition_to_scene.on_enter()
                 if self._has_lifecycle:
-                    self._lifecycle.execute(LifecyclePhase.SCENE_AFTER_EXIT, 
-                                          scene_name=self.current_scene_name,
-                                          scene=self.current_scene)
-        
-        # Check if resuming a paused scene
-        if name in self._paused_scenes:
-            self.current_scene = self._paused_scenes.pop(name)
-            if self._has_lifecycle:
-                from core.lifecycle import LifecyclePhase
-                self._lifecycle.execute(LifecyclePhase.SCENE_RESUME, 
-                                      scene_name=name,
-                                      scene=self.current_scene)
-            self.current_scene.on_resume()
+                    self._lifecycle.execute(LifecyclePhase.SCENE_AFTER_ENTER, 
+                                          scene_name=name,
+                                          scene=self._transition_to_scene)
+            
+            self._transition_to_name = name
+            
+            # Create offscreen surfaces for smooth rendering
+            screen_size = self.screen.get_size()
+            self._from_surface = pygame.Surface(screen_size)
+            self._to_surface = pygame.Surface(screen_size)
+            
         else:
-            # Enter new scene
-            self.current_scene = self.scenes[name]
-            if self._has_lifecycle:
-                from core.lifecycle import LifecyclePhase
-                self._lifecycle.execute(LifecyclePhase.SCENE_BEFORE_ENTER, 
-                                      scene_name=name,
-                                      scene=self.current_scene)
-            self.current_scene.on_enter()
-            if self._has_lifecycle:
-                self._lifecycle.execute(LifecyclePhase.SCENE_AFTER_ENTER, 
-                                      scene_name=name,
-                                      scene=self.current_scene)
-        
-        self.current_scene_name = name
+            # Instant switch (no transition)
+            if self.current_scene:
+                if pause_current:
+                    # Pause current scene instead of exiting
+                    if self._has_lifecycle:
+                        from core.lifecycle import LifecyclePhase
+                        self._lifecycle.execute(LifecyclePhase.SCENE_PAUSE, 
+                                              scene_name=self.current_scene_name,
+                                              scene=self.current_scene)
+                    self.current_scene.on_pause()
+                    self._paused_scenes[self.current_scene_name] = self.current_scene
+                else:
+                    # Exit current scene
+                    if self._has_lifecycle:
+                        from core.lifecycle import LifecyclePhase
+                        self._lifecycle.execute(LifecyclePhase.SCENE_BEFORE_EXIT, 
+                                              scene_name=self.current_scene_name,
+                                              scene=self.current_scene)
+                    self.current_scene.on_exit()
+                    if self._has_lifecycle:
+                        self._lifecycle.execute(LifecyclePhase.SCENE_AFTER_EXIT, 
+                                              scene_name=self.current_scene_name,
+                                              scene=self.current_scene)
+            
+            # Check if resuming a paused scene
+            if name in self._paused_scenes:
+                self.current_scene = self._paused_scenes.pop(name)
+                if self._has_lifecycle:
+                    from core.lifecycle import LifecyclePhase
+                    self._lifecycle.execute(LifecyclePhase.SCENE_RESUME, 
+                                          scene_name=name,
+                                          scene=self.current_scene)
+                self.current_scene.on_resume()
+            else:
+                # Enter new scene
+                self.current_scene = self.scenes[name]
+                if self._has_lifecycle:
+                    from core.lifecycle import LifecyclePhase
+                    self._lifecycle.execute(LifecyclePhase.SCENE_BEFORE_ENTER, 
+                                          scene_name=name,
+                                          scene=self.current_scene)
+                self.current_scene.on_enter()
+                if self._has_lifecycle:
+                    self._lifecycle.execute(LifecyclePhase.SCENE_AFTER_ENTER, 
+                                          scene_name=name,
+                                          scene=self.current_scene)
+            
+            self.current_scene_name = name
     
     def go_back(self):
         """Go back to the previous scene in history."""
@@ -322,13 +412,83 @@ class SceneManager:
         return False
     
     def update(self, dt: float):
-        """Update current scene."""
-        if self.current_scene:
+        """Update current scene and handle transitions."""
+        if self._transition_active:
+            # Update transition progress
+            elapsed = time.time() - self._transition_start_time
+            self._transition_progress = min(1.0, elapsed / self._transition_duration)
+            
+            # Update both scenes during transition
+            if self._transition_from_scene:
+                self._transition_from_scene.update(dt)
+            if self._transition_to_scene:
+                self._transition_to_scene.update(dt)
+            
+            # Check if transition is complete
+            if self._transition_progress >= 1.0:
+                self._finish_transition()
+        elif self.current_scene:
             self.current_scene.update(dt)
     
+    def _finish_transition(self):
+        """Complete the transition and clean up."""
+        # Exit/cleanup the from scene
+        if self._transition_from_scene:
+            if self._has_lifecycle:
+                from core.lifecycle import LifecyclePhase
+                self._lifecycle.execute(LifecyclePhase.SCENE_BEFORE_EXIT, 
+                                      scene_name=self._transition_from_name,
+                                      scene=self._transition_from_scene)
+            self._transition_from_scene.on_exit()
+            if self._has_lifecycle:
+                self._lifecycle.execute(LifecyclePhase.SCENE_AFTER_EXIT, 
+                                      scene_name=self._transition_from_name,
+                                      scene=self._transition_from_scene)
+        
+        # Set new current scene
+        self.current_scene = self._transition_to_scene
+        self.current_scene_name = self._transition_to_name
+        
+        # Reset transition state
+        self._transition_active = False
+        self._transition_progress = 0.0
+        self._transition_from_scene = None
+        self._transition_from_name = None
+        self._transition_to_scene = None
+        self._transition_to_name = None
+        self._from_surface = None
+        self._to_surface = None
+    
     def draw(self):
-        """Draw current scene."""
-        if self.current_scene:
+        """Draw current scene with slide transition if active."""
+        if self._transition_active:
+            # Apply easing to progress
+            eased_progress = self._ease_in_out_cubic(self._transition_progress)
+            
+            # Render both scenes to offscreen surfaces
+            if self._transition_from_scene and self._from_surface:
+                self._transition_from_scene.draw(self._from_surface)
+            if self._transition_to_scene and self._to_surface:
+                self._transition_to_scene.draw(self._to_surface)
+            
+            # Calculate slide positions
+            screen_width = self.screen.get_width()
+            
+            if self._transition_direction == 1:
+                # Forward: from slides left, to slides in from right
+                from_x = int(-screen_width * eased_progress)
+                to_x = int(screen_width * (1.0 - eased_progress))
+            else:
+                # Back: from slides right, to slides in from left
+                from_x = int(screen_width * eased_progress)
+                to_x = int(-screen_width * (1.0 - eased_progress))
+            
+            # Draw both scenes at their slide positions
+            if self._from_surface:
+                self.screen.blit(self._from_surface, (from_x, 0))
+            if self._to_surface:
+                self.screen.blit(self._to_surface, (to_x, 0))
+        elif self.current_scene:
             self.current_scene.draw(self.screen)
     
     def destroy_scene(self, name: str):

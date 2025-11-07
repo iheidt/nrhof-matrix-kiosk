@@ -110,7 +110,8 @@ class IntroScene(Scene):
         """Update typewriter animation."""
         if self.current_line_idx >= len(self.lines):
             # All lines done, switch to menu
-            self.manager.switch_to("MenuScene")
+            # Disable transition from intro screen
+            self.manager.switch_to("MenuScene", use_transition=False)
             return
         
         current_line = self.lines[self.current_line_idx]
