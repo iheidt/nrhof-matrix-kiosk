@@ -24,10 +24,10 @@ recognizer:
   confidence_threshold: 0.7   # Minimum confidence to accept result
   same_track_window: 30.0    # Seconds to suppress duplicate recognition
 
-# Integrations (placeholder for future)
+# Integrations
 integrations:
   webflow:
-    enabled: false
+    enabled: true
     sync_window: 300.0       # Don't sync same track within 5 minutes
     retry_backoff_max: 300   # Max backoff in seconds
 

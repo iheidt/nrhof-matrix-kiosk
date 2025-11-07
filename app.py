@@ -22,7 +22,8 @@ from core.app_initializer import (
     create_app_components,
     start_workers,
     register_all_handlers,
-    start_preload
+    start_preload,
+    start_webflow_refresh
 )
 
 # Global state for Now Playing overlay
@@ -324,6 +325,10 @@ def main():
     
     # Start background preload
     start_preload(components['scene_manager'], components['app_context'])
+    
+    # Start Webflow cache refresh in background
+    if components.get('webflow_cache_manager'):
+        start_webflow_refresh(components['webflow_cache_manager'])
     
     # Execute APP_READY hooks
     execute_hooks(LifecyclePhase.APP_READY, 

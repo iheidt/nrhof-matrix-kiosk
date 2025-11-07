@@ -26,6 +26,8 @@ from renderers import create_renderer
 from routing.intent_handlers import register_all_intents
 from routing.voice_commands import register_all_voice_commands
 from scenes.scene_registry import register_all_scenes, get_preload_list
+from integrations.webflow_client import create_webflow_client
+from integrations.webflow_cache import WebflowCache, WebflowCacheManager
 
 
 def init_pygame_env():
@@ -114,6 +116,8 @@ def create_app_components(cfg, screen):
     Returns:
         dict: Dictionary of components
     """
+    logger = get_logger('app_initializer')
+    
     voice_router = VoiceRouter()
     intent_router = IntentRouter()
     voice_engine = VoiceEngine(voice_router)
@@ -122,6 +126,16 @@ def create_app_components(cfg, screen):
     event_bus = get_event_bus()
     app_state = get_app_state()
     
+    # Initialize Webflow cache manager
+    webflow_cache_manager = None
+    webflow_client = create_webflow_client(cfg.to_dict(), logger)
+    if webflow_client:
+        cache = WebflowCache(logger=logger)
+        webflow_cache_manager = WebflowCacheManager(webflow_client, cache, logger)
+        # Attach to app context for easy access
+        app_context.webflow_cache_manager = webflow_cache_manager
+        logger.info("Webflow cache manager initialized")
+    
     return {
         'voice_router': voice_router,
         'intent_router': intent_router,
@@ -129,7 +143,8 @@ def create_app_components(cfg, screen):
         'scene_manager': scene_manager,
         'app_context': app_context,
         'event_bus': event_bus,
-        'app_state': app_state
+        'app_state': app_state,
+        'webflow_cache_manager': webflow_cache_manager
     }
 
 
@@ -232,5 +247,32 @@ def start_preload(scene_manager, app_context):
     
     waiter_thread = threading.Thread(target=_waiter, daemon=True)
     waiter_thread.start()
+
+
+def start_webflow_refresh(webflow_cache_manager):
+    """Start background Webflow cache refresh.
+    
+    Args:
+        webflow_cache_manager: WebflowCacheManager instance
+        
+    Returns:
+        threading.Thread: Refresh thread
+    """
+    if webflow_cache_manager is None:
+        return None
+    
+    logger = get_logger('app_initializer')
+    
+    def _refresh():
+        logger.info("Starting Webflow cache refresh in background...")
+        success = webflow_cache_manager.refresh_all(force=False)
+        if success:
+            logger.info("Webflow cache refresh complete")
+        else:
+            logger.warning("Webflow cache refresh failed or skipped")
+    
+    refresh_thread = threading.Thread(target=_refresh, daemon=True)
+    refresh_thread.start()
+    return refresh_thread
     
     return waiter_thread

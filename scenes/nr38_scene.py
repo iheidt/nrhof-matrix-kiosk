@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 import pygame
+import threading
+import logging
+from typing import List, Dict, Any, Optional
 from scenes.scene_manager import Scene, register_scene
 from ui.components import (
     draw_scanlines, draw_footer, draw_title_card_container,
@@ -8,6 +11,9 @@ from ui.components import (
 from ui.fonts import get_localized_font
 from routing.intent_router import Intent
 from core.theme_loader import get_theme_loader
+from integrations.webflow_client import create_webflow_client
+from integrations.webflow_cache import WebflowCache, WebflowCacheManager
+from integrations.webflow_constants import NR38_LIST_UUID
 
 
 @register_scene("NR38Scene")
@@ -16,6 +22,9 @@ class NR38Scene(Scene):
     
     def __init__(self, ctx):
         super().__init__(ctx)
+        
+        # Logger
+        self.logger = logging.getLogger(__name__)
         
         # Load theme
         self.theme_loader = get_theme_loader()
@@ -34,10 +43,21 @@ class NR38Scene(Scene):
         self._title_surface = None
         self._title_overlap = None
         self._cached_language = None  # Track language for cache invalidation
+        
+        # Webflow data
+        self._bands: List[Dict[str, Any]] = []
+        self._loading = False
+        self._loaded = False
+        self._cache_manager: Optional[WebflowCacheManager] = None
     
     def on_enter(self):
         """Called when scene becomes active."""
-        pass
+        # Initialize Webflow client and fetch bands if not already loaded
+        if not self._loaded and not self._loading:
+            self._loading = True
+            # Fetch bands in background thread
+            thread = threading.Thread(target=self._fetch_bands, daemon=True)
+            thread.start()
     
     def on_exit(self):
         """Called when scene is about to be replaced."""
@@ -63,6 +83,78 @@ class NR38Scene(Scene):
                 return True
         
         return False
+    
+    def _fetch_bands(self):
+        """Fetch NR-38 bands from cache (runs in background thread)."""
+        import time
+        
+        try:
+            # Initialize cache manager if not exists
+            if self._cache_manager is None:
+                # Get cache manager from app context if available
+                if hasattr(self.ctx, 'webflow_cache_manager'):
+                    self._cache_manager = self.ctx.webflow_cache_manager
+                else:
+                    # Create new cache manager
+                    webflow_client = create_webflow_client(
+                        self.ctx.config,
+                        self.logger
+                    )
+                    
+                    if webflow_client is None:
+                        self.logger.warning("Webflow client not available")
+                        self._loading = False
+                        return
+                    
+                    cache = WebflowCache(logger=self.logger)
+                    self._cache_manager = WebflowCacheManager(
+                        webflow_client,
+                        cache,
+                        self.logger
+                    )
+            
+            # Retry logic to wait for cache to be populated
+            all_bands = None
+            max_retries = 3
+            retry_delay = 0.5  # seconds
+            
+            for attempt in range(max_retries):
+                # Get bands from cache (filtered for NR-38 UUID reference)
+                # The nerd-rock-list field contains a UUID reference, not a string
+                all_bands = self._cache_manager.get_bands(filter_list=NR38_LIST_UUID)
+                
+                if all_bands:
+                    break
+                
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+            
+            if all_bands:
+                # Extract and format band data
+                nr38_bands = []
+                for band in all_bands:
+                    field_data = band.get('fieldData', {})
+                    name = field_data.get('name', 'Unknown')
+                    rank = field_data.get('rank', 999)
+                    nr38_bands.append({
+                        'name': name.lower(),
+                        'rank': rank
+                    })
+                
+                # Sort by rank
+                nr38_bands.sort(key=lambda x: x['rank'])
+                
+                # Store bands
+                self._bands = nr38_bands
+                self._loaded = True
+                self.logger.info(f"Loaded {len(self._bands)} NR-38 bands from cache")
+            else:
+                self.logger.warning("No NR-38 bands in cache")
+                
+        except Exception as e:
+            self.logger.error(f"Error loading NR-38 bands: {e}")
+        finally:
+            self._loading = False
     
     def update(self, dt: float):
         """Update NR-38 state."""
@@ -171,30 +263,65 @@ class NR38Scene(Scene):
         col2_x = col1_x + col_width + gutter_width
         col3_x = col2_x + col_width + gutter_width
         
-        # Font for numbers
+        # Font for numbers and band names
         number_font = get_localized_font(32, 'primary', '1.')
+        band_font = get_localized_font(28, 'primary', 'band name')
         
-        # Draw three columns with numbers 1-38
-        # Column 1: 1-13
-        for i in range(1, 14):
-            number_text = f"{i}."
-            number_surface = number_font.render(number_text, True, self.color)
-            y_pos = content_y + 20 + (i - 1) * line_height
-            screen.blit(number_surface, (col1_x, y_pos))
-        
-        # Column 2: 14-26
-        for i in range(14, 27):
-            number_text = f"{i}."
-            number_surface = number_font.render(number_text, True, self.color)
-            y_pos = content_y + 20 + (i - 14) * line_height
-            screen.blit(number_surface, (col2_x, y_pos))
-        
-        # Column 3: 27-38
-        for i in range(27, 39):
-            number_text = f"{i}."
-            number_surface = number_font.render(number_text, True, self.color)
-            y_pos = content_y + 20 + (i - 27) * line_height
-            screen.blit(number_surface, (col3_x, y_pos))
+        # Show loading message if still fetching
+        if self._loading:
+            loading_text = "Loading bands from Webflow..."
+            loading_surface = band_font.render(loading_text, True, self.color)
+            screen.blit(loading_surface, (content_x, content_y + 20))
+        elif not self._bands:
+            # Show message if no bands loaded
+            error_text = "No bands available. Check Webflow connection."
+            error_surface = band_font.render(error_text, True, self.color)
+            screen.blit(error_surface, (content_x, content_y + 20))
+        else:
+            # Draw three columns with ranked bands
+            # Column 1: 1-13
+            for i in range(min(13, len(self._bands))):
+                band = self._bands[i]
+                rank = i + 1
+                number_text = f"{rank}."
+                band_name = band['name']
+                
+                # Render number
+                number_surface = number_font.render(number_text, True, self.color)
+                y_pos = content_y + 20 + i * line_height
+                screen.blit(number_surface, (col1_x, y_pos))
+                
+                # Render band name (offset to the right of number)
+                band_surface = band_font.render(band_name, True, self.color)
+                screen.blit(band_surface, (col1_x + 50, y_pos + 2))
+            
+            # Column 2: 14-26
+            for i in range(13, min(26, len(self._bands))):
+                band = self._bands[i]
+                rank = i + 1
+                number_text = f"{rank}."
+                band_name = band['name']
+                
+                number_surface = number_font.render(number_text, True, self.color)
+                y_pos = content_y + 20 + (i - 13) * line_height
+                screen.blit(number_surface, (col2_x, y_pos))
+                
+                band_surface = band_font.render(band_name, True, self.color)
+                screen.blit(band_surface, (col2_x + 50, y_pos + 2))
+            
+            # Column 3: 27-38
+            for i in range(26, min(38, len(self._bands))):
+                band = self._bands[i]
+                rank = i + 1
+                number_text = f"{rank}."
+                band_name = band['name']
+                
+                number_surface = number_font.render(number_text, True, self.color)
+                y_pos = content_y + 20 + (i - 26) * line_height
+                screen.blit(number_surface, (col3_x, y_pos))
+                
+                band_surface = band_font.render(band_name, True, self.color)
+                screen.blit(band_surface, (col3_x + 50, y_pos + 2))
         
         # Draw scanlines and footer
         draw_scanlines(screen)
