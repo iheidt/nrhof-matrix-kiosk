@@ -8,9 +8,10 @@ from ui.components import (
     draw_scanlines, draw_footer, draw_title_card_container,
     MARGIN_TOP, MARGIN_LEFT, MARGIN_RIGHT
 )
-from ui.fonts import get_localized_font
+from ui.fonts import get_localized_font, get_theme_font
 from routing.intent_router import Intent
 from core.theme_loader import get_theme_loader
+from core.localization import get_language
 from integrations.webflow_client import create_webflow_client
 from integrations.webflow_cache import WebflowCache, WebflowCacheManager
 from integrations.webflow_constants import NR38_LIST_UUID
@@ -52,9 +53,10 @@ class NR38Scene(Scene):
     
     def on_enter(self):
         """Called when scene becomes active."""
-        # Initialize Webflow client and fetch bands if not already loaded
-        if not self._loaded and not self._loading:
+        # Always reload bands to pick up fresh cache data
+        if not self._loading:
             self._loading = True
+            self._loaded = False  # Reset loaded flag to force refresh
             # Fetch bands in background thread
             thread = threading.Thread(target=self._fetch_bands, daemon=True)
             thread.start()
@@ -134,10 +136,11 @@ class NR38Scene(Scene):
                 nr38_bands = []
                 for band in all_bands:
                     field_data = band.get('fieldData', {})
-                    name = field_data.get('name', 'Unknown')
+                    # Use display-name-2 if available, fallback to name
+                    display_name = field_data.get('display-name-2') or field_data.get('name', 'Unknown')
                     rank = field_data.get('rank', 999)
                     nr38_bands.append({
-                        'name': name.lower(),
+                        'name': display_name.lower(),  # Store display name as 'name' for rendering (lowercase)
                         'rank': rank
                     })
                 
@@ -240,32 +243,82 @@ class NR38Scene(Scene):
             content_margin=0  # Reduced margin between title and content
         )
         
-        # Content area for NR-38
+        # Content area for NR-38 with custom horizontal margins
+        content_horizontal_margin = 16  # Adjustable dial for left/right content margin
         content_y = layout_info['content_start_y']
-        content_x = margin_left + 35 + 24  # Match title card padding
-        content_width = title_card_width - (35 + 24) * 2  # Account for padding on both sides
+        content_x = margin_left + content_horizontal_margin  # Start with custom margin
+        content_width = title_card_width - (content_horizontal_margin * 2)  # Subtract margins from both sides
         content_height = h - content_y - 130  # Subtract footer height
         
-        # Calculate 5-column layout
-        # col 1 width = 33% of container - 100px
-        # col 2 width = 50px (gutter)
-        # col 3 width = 33% of container - 100px
-        # col 4 width = 50px (gutter)
-        # col 5 width = 33% of container - 100px
+        # Calculate 3-column layout with adjustable dials
+        # Layout configuration dials
+        line_height = 50  # Spacing between numbers
+        gutter1_width = 30  # Space between column 1 and 2
+        gutter2_width = -10  # Space between column 2 and 3
         
-        # Layout configuration
-        line_height = 50  # Spacing between numbers (adjust this to change spacing)
-        gutter_width = 50
+        # Individual column width dials (as percentage of content_width)
+        col1_width_pct = 0.33  # Column 1 width as % of content width
+        col2_width_pct = 0.33  # Column 2 width as % of content width
+        col3_width_pct = 0.33  # Column 3 width as % of content width
         
-        col_width = (content_width - 100) / 3  # 33% minus 100px total, divided by 3 columns
+        # Calculate actual column widths
+        col1_width = content_width * col1_width_pct
+        col2_width = content_width * col2_width_pct
+        col3_width = content_width * col3_width_pct
         
+        # Calculate column x positions
         col1_x = content_x
-        col2_x = col1_x + col_width + gutter_width
-        col3_x = col2_x + col_width + gutter_width
+        col2_x = col1_x + col1_width + gutter1_width
+        col3_x = col2_x + col2_width + gutter2_width
         
-        # Font for numbers and band names
-        number_font = get_localized_font(32, 'primary', '1.')
-        band_font = get_localized_font(28, 'primary', 'band name')
+        # Font for numbers and band names (hardcoded 28 for NR38)
+        # Numbers always use English font (IBM Plex)
+        # Band names use English font (Webflow data always in English)
+        font_size = 28
+        japanese_suffix_size = 22  # Smaller size for 位 to match English height
+        japanese_double_digit_spacing = 16  # Extra spacing for Japanese ranks >= 10
+        english_font = get_theme_font(font_size, 'primary')  # IBM Plex for numbers
+        japanese_font = get_localized_font(japanese_suffix_size, 'primary', '位')  # For 位 suffix
+        band_font = get_theme_font(font_size, 'primary')
+        
+        # Helper function to render rank number with mixed fonts
+        def render_rank_number(rank: int, x: int, y: int):
+            """Render rank number with mixed fonts: English for number, localized for suffix.
+            
+            Returns:
+                Width of the rendered number (for positioning band name)
+            """
+            current_lang = get_language()
+            
+            # Render the number part (always English font)
+            number_text = str(rank)
+            number_surface = english_font.render(number_text, True, self.color)
+            number_width = number_surface.get_width()
+            
+            # Render the suffix
+            if current_lang == 'jp':
+                # Japanese: independent vertical offset dials
+                japanese_number_offset = 2  # Dial to move number up/down
+                japanese_suffix_offset = -2  # Dial to move 位 up/down (relative to baseline calculation)
+                screen.blit(number_surface, (x, y + japanese_number_offset))
+                
+                # Japanese: use 位 with Japanese font (smaller size, baseline aligned)
+                suffix_surface = japanese_font.render('位', True, self.color)
+                # Calculate vertical offset to align baseline
+                # Japanese font is smaller, so offset down to align with English baseline
+                suffix_height = suffix_surface.get_height()
+                number_height = number_surface.get_height()
+                y_offset = number_height - suffix_height + japanese_number_offset + japanese_suffix_offset
+                screen.blit(suffix_surface, (x + number_width, y + y_offset))
+                return number_width + suffix_surface.get_width()
+            else:
+                # English: no offset for number
+                screen.blit(number_surface, (x, y))
+                
+                # English: use . with English font
+                suffix_surface = english_font.render('.', True, self.color)
+                screen.blit(suffix_surface, (x + number_width, y))
+                return number_width + suffix_surface.get_width()
         
         # Show loading message if still fetching
         if self._loading:
@@ -283,45 +336,48 @@ class NR38Scene(Scene):
             for i in range(min(13, len(self._bands))):
                 band = self._bands[i]
                 rank = i + 1
-                number_text = f"{rank}."
                 band_name = band['name']
                 
-                # Render number
-                number_surface = number_font.render(number_text, True, self.color)
+                # Render number with mixed fonts
                 y_pos = content_y + 20 + i * line_height
-                screen.blit(number_surface, (col1_x, y_pos))
+                number_width = render_rank_number(rank, col1_x, y_pos)
                 
                 # Render band name (offset to the right of number)
+                # Add extra spacing for Japanese double-digit numbers
+                current_lang = get_language()
+                extra_spacing = japanese_double_digit_spacing if (current_lang == 'jp' and rank >= 10) else 0
                 band_surface = band_font.render(band_name, True, self.color)
-                screen.blit(band_surface, (col1_x + 50, y_pos + 2))
+                screen.blit(band_surface, (col1_x + 50 + extra_spacing, y_pos + 2))
             
             # Column 2: 14-26
             for i in range(13, min(26, len(self._bands))):
                 band = self._bands[i]
                 rank = i + 1
-                number_text = f"{rank}."
                 band_name = band['name']
                 
-                number_surface = number_font.render(number_text, True, self.color)
                 y_pos = content_y + 20 + (i - 13) * line_height
-                screen.blit(number_surface, (col2_x, y_pos))
+                number_width = render_rank_number(rank, col2_x, y_pos)
                 
+                # Add extra spacing for Japanese double-digit numbers
+                current_lang = get_language()
+                extra_spacing = japanese_double_digit_spacing if (current_lang == 'jp' and rank >= 10) else 0
                 band_surface = band_font.render(band_name, True, self.color)
-                screen.blit(band_surface, (col2_x + 50, y_pos + 2))
+                screen.blit(band_surface, (col2_x + 50 + extra_spacing, y_pos + 2))
             
             # Column 3: 27-38
             for i in range(26, min(38, len(self._bands))):
                 band = self._bands[i]
                 rank = i + 1
-                number_text = f"{rank}."
                 band_name = band['name']
                 
-                number_surface = number_font.render(number_text, True, self.color)
                 y_pos = content_y + 20 + (i - 26) * line_height
-                screen.blit(number_surface, (col3_x, y_pos))
+                number_width = render_rank_number(rank, col3_x, y_pos)
                 
+                # Add extra spacing for Japanese double-digit numbers
+                current_lang = get_language()
+                extra_spacing = japanese_double_digit_spacing if (current_lang == 'jp' and rank >= 10) else 0
                 band_surface = band_font.render(band_name, True, self.color)
-                screen.blit(band_surface, (col3_x + 50, y_pos + 2))
+                screen.blit(band_surface, (col3_x + 50 + extra_spacing, y_pos + 2))
         
         # Draw scanlines and footer
         draw_scanlines(screen)
