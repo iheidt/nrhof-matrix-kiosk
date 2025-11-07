@@ -8,11 +8,6 @@ columns:
     width: 415
   gutter: 50  # Space between columns
 
-title_card:
-  height: 120  # Card height
-  title: "NRHOF"  # Card title text
-  margin_bottom: 50  # Space below title card before buttons
-
 buttons:
   layout: vertical
   count: 4

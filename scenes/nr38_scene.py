@@ -130,6 +130,10 @@ class NR38Scene(Scene):
         # Adjust y position so title overlaps card border
         title_card_y_adjusted = title_card_y + title_overlap
         
+        # Language-specific adjustment for Japanese
+        if current_language == 'jp':
+            title_card_y_adjusted += 18  # Additional offset for Japanese to match English position
+        
         # Draw the full-width title card container
         layout_info = draw_title_card_container(
             surface=screen,

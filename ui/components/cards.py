@@ -269,7 +269,7 @@ def draw_title_card(surface: Surface, x: int, y: int, width: int, height: int, t
 
 
 def draw_title_card_container(surface: Surface, x: int, y: int, width: int, height: int, title: str,
-                              theme: dict = None, **overrides) -> dict:
+                              theme: dict = None, title_y_adjustment: int = 0, **overrides) -> dict:
     """Draw a full-width title card container for 1-column layouts.
     
     This is designed for the new full-width layout pattern with:
@@ -356,7 +356,7 @@ def draw_title_card_container(surface: Surface, x: int, y: int, width: int, heig
     
     # Calculate title position
     title_x = x + 35 + 24  # 35px border + 24px gap from left edge
-    title_y = y - title_overlap + title_y_offset
+    title_y = y - title_overlap + title_y_offset + title_y_adjustment
     
     # Draw background behind title to create gaps
     bg_color = tuple(style['colors']['background'])

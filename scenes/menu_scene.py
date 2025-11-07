@@ -7,15 +7,14 @@ from ui.components import (
     draw_scanlines, draw_footer, draw_title_card_container, draw_button,
     MARGIN_TOP, MARGIN_LEFT, MARGIN_RIGHT
 )
-from ui.components.widgets import draw_timeclock, draw_d20, draw_now_playing, MarqueeText
+from ui.components.widgets import draw_timeclock, draw_d20
 from ui.fonts import get_localized_font, get_theme_font
 from routing.intent_router import Intent
 from renderers import FrameState, Shape, Text, Image
 from core.theme_loader import get_theme_loader
 from core.app_state import get_app_state
-from core.now_playing import get_now_playing_state
 from core.event_bus import get_event_bus, EventType
-from ui.components.widgets import MarqueeText
+from core.localization import get_language
 
 
 @register_scene("MenuScene")
@@ -39,19 +38,6 @@ class MenuScene(Scene):
         self.button_spacing = 0
         self.button_start_y = 0
         self.settings_rect = None  # Store settings text rect for click detection
-        # Marquee for now playing text
-        self.now_playing_marquee = None
-        
-        # Progress tracking for smooth interpolation
-        self.last_track_id = None
-        self.last_progress_ms = None
-        self.last_progress_update_time = None
-        
-        # Fade transition tracking
-        self.playback_state_start_time = None
-        self.is_in_playback_state = False
-        self.fade_delay = 1.0  # Delay before starting fade (seconds)
-        self.fade_duration = 0.5  # Fade duration (seconds)
         
         # Wake word detection indicator
         self.wake_word_detected_time = None
@@ -242,7 +228,12 @@ class MenuScene(Scene):
         title_card_y = self.content_top
         
         # Manual adjustment: Move NRHOF card down
-        title_card_y += 30  # Move down 30px
+        title_card_y += 52  # Move down
+        
+        # Language-specific adjustment for Japanese
+        from core.localization import get_language
+        if get_language() == 'jp':
+            title_card_y += 21  # Additional offset for Japanese to match English position
         
         # Calculate card height to fill remaining space (minus footer)
         footer_height = 130
@@ -259,6 +250,9 @@ class MenuScene(Scene):
         # Adjust y position so title overlaps card border
         title_card_y_adjusted = title_card_y + title_overlap
         
+        # Japanese-specific adjustment: Move NRHOF title text down 13px in Japanese mode
+        title_text_offset = 13 if get_language() == 'jp' else 0
+        
         # Draw the full-height title card container
         layout_info = draw_title_card_container(
             surface=screen,
@@ -268,6 +262,7 @@ class MenuScene(Scene):
             height=title_card_height,
             title=title_card_title,
             theme={'layout': layout, 'style': style},
+            title_y_adjustment=title_text_offset,
             border_fade_pct=border_fade_pct,
             border_height_pct=border_height_pct
         )
@@ -317,167 +312,13 @@ class MenuScene(Scene):
             self.button_rects.append(button_rect)
             y += button_rect.height + self.button_spacing
         
-        # Draw now playing component in right column
+        # Right column positioning (Now Playing is now a global overlay)
         right_col_x = self.left_col_x + self.left_col_width + columns_config['gutter']
         right_col_width = columns_config['right']['width']
         
-        # Get current track from NowPlayingState
-        now_playing = get_now_playing_state()
-        track = now_playing.get_track()
-        
-        # Determine title based on source
-        if track:
-            if track.source == 'spotify':
-                # SPOTIFY . DEVICE NAME
-                device = track.device_name if track.device_name else "unknown"
-                # Remove all apostrophe variants (straight ', curly ' ', and Unicode 8217)
-                device_formatted = device.upper().replace('-', '.').replace("'", "").replace("'", "").replace("'", "").replace(chr(8217), "")
-                now_playing_title = f"SPOTIFY . {device_formatted}"
-            elif track.source == 'sonos':
-                # SONOS . ROOM NAME
-                room = track.sonos_room if track.sonos_room else "unknown"
-                # Remove all apostrophe variants (straight ', curly ' ', and Unicode 8217)
-                room_formatted = room.upper().replace('-', '.').replace("'", "").replace("'", "").replace("'", "").replace(chr(8217), "")
-                now_playing_title = f"SONOS . {room_formatted}"
-            elif track.source == 'vinyl':
-                # RECORD PLAYER
-                now_playing_title = "RECORD PLAYER"
-            else:
-                now_playing_title = "NOW PLAYING"
-            
-            # Truncate title to prevent overlap with circle (max ~22 chars to avoid border)
-            if len(now_playing_title) > 22:
-                now_playing_title = now_playing_title[:19] + "..."
-        else:
-            now_playing_title = "NOW PLAYING"
-        
-        if track:
-            # Format based on content type with emojis and lowercase
-            if track.content_type == 'podcast':
-                show = track.show_name.lower() if track.show_name else "unknown podcast"
-                title = track.title.lower() if track.title else "unknown episode"
-                song_line = f"{show} • {title}"
-                album_line = f"podcast • {track.publisher.lower()}" if track.publisher else "podcast"
-            elif track.content_type == 'audiobook':
-                title = track.title.lower() if track.title else "unknown title"
-                author = track.artist.lower() if track.artist else "unknown author"
-                song_line = f"{title} • {author}"
-                album_line = f"audiobook • {track.publisher.lower()}" if track.publisher else "audiobook"
-            else:
-                # Music (default)
-                artist = track.artist.lower() if track.artist else "unknown artist"
-                title = track.title.lower() if track.title else "unknown song"
-                song_line = f"{artist} • {title}"
-                
-                # Show Sonos room if available, otherwise album
-                if track.source == 'sonos' and track.sonos_room:
-                    album_line = f"{track.sonos_room.lower()}"
-                    if track.sonos_grouped_rooms:
-                        album_line += f" + {len(track.sonos_grouped_rooms)} more"
-                else:
-                    album_line = track.album.lower() if track.album else f"via {track.source}"
-        else:
-            song_line = "listening"
-            album_line = "none playing"
-        
-        # Initialize marquee if needed
-        bg_width = right_col_width - 40
-        max_text_width = bg_width - (24 * 2)  # 24px padding on each side
-        if self.now_playing_marquee is None:
-            self.now_playing_marquee = MarqueeText(song_line, max_text_width, scroll_speed=50.0, gap=100)
-        
-        # Get playback progress info with client-side interpolation
-        progress_ms = None
-        duration_ms = None
-        is_playing = False
-        
-        if track:
-            duration_ms = track.duration_ms
-            is_playing = track.is_playing
-            
-            # Create a unique track ID for comparison
-            track_id = f"{track.title}_{track.artist}_{track.source}"
-            
-            # Check if track changed
-            if track_id != self.last_track_id:
-                # New track, reset progress tracking
-                self.last_track_id = track_id
-                self.last_progress_ms = track.progress_ms
-                self.last_progress_update_time = time.time()
-                progress_ms = track.progress_ms
-            elif track.progress_ms is not None and track.progress_ms != self.last_progress_ms:
-                # Progress updated from API - always reset to new position
-                # This handles both normal updates and scrubs
-                self.last_progress_ms = track.progress_ms
-                self.last_progress_update_time = time.time()
-                progress_ms = track.progress_ms
-            elif is_playing and self.last_progress_ms is not None and self.last_progress_update_time is not None:
-                # Interpolate progress client-side for smooth animation
-                elapsed_ms = (time.time() - self.last_progress_update_time) * 1000
-                progress_ms = self.last_progress_ms + int(elapsed_ms)
-                
-                # Clamp to duration
-                if duration_ms and progress_ms > duration_ms:
-                    progress_ms = duration_ms
-            else:
-                # Not playing or no previous data
-                progress_ms = track.progress_ms
-        else:
-            # No track, reset tracking
-            self.last_track_id = None
-            self.last_progress_ms = None
-            self.last_progress_update_time = None
-        
-        # Track playback state changes for fade transition
-        if is_playing and not self.is_in_playback_state:
-            # Just started playing
-            self.is_in_playback_state = True
-            self.playback_state_start_time = time.time()
-        elif not is_playing and self.is_in_playback_state:
-            # Just stopped playing
-            self.is_in_playback_state = False
-            self.playback_state_start_time = time.time()
-        
-        # Calculate fade amount (0.0 = primary, 1.0 = dim)
-        fade_amount = 0.0
-        if self.playback_state_start_time is not None:
-            elapsed = time.time() - self.playback_state_start_time
-            
-            if is_playing:
-                # Fading to dim (playing state)
-                if elapsed < self.fade_delay:
-                    # Still in delay period, stay at primary
-                    fade_amount = 0.0
-                else:
-                    # Fade from primary to dim
-                    fade_progress = min(1.0, (elapsed - self.fade_delay) / self.fade_duration)
-                    fade_amount = fade_progress
-            else:
-                # Fading back to primary (stopped state) - no delay, immediate fade
-                fade_progress = min(1.0, elapsed / self.fade_duration)
-                fade_amount = 1.0 - fade_progress  # Reverse: 1.0 -> 0.0
-        
-        # Pass border_y directly to align with title card top border (adjusted up by 6px)
-        now_playing_rect = draw_now_playing(
-            surface=screen,
-            x=right_col_x,
-            y=0,  # Not used when border_y is provided
-            width=right_col_width,
-            title=now_playing_title,
-            line1=song_line,
-            line2=album_line,
-            theme={'style': style},
-            border_y=title_card_y_adjusted - 6,  # Use adjusted position to follow title card
-            marquee=self.now_playing_marquee,
-            progress_ms=progress_ms,
-            duration_ms=duration_ms,
-            is_playing=is_playing,
-            fade_amount=fade_amount
-        )
-        
-        # Draw d20 component (includes speech_synthesizer inside) 100px below now playing, shifted 50px left
-        d20_y = now_playing_rect.bottom + 110
-        d20_x = right_col_x - 25  # Shift 50px to the left
+        # Draw d20 component at top of right column, shifted 50px left
+        d20_y = title_card_y_adjusted + 100  # Position below where Now Playing used to be
+        d20_x = right_col_x - 25  # Shift to the left
         d20_rect = draw_d20(
             surface=screen,
             x=d20_x,
