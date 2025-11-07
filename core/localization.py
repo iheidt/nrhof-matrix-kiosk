@@ -63,6 +63,8 @@ TRANSLATIONS = {
         
         # Now Playing
         'now_playing.title': 'NOW PLAYING',
+        'now_playing.listening': 'listening',
+        'now_playing.none_playing': 'none playing',
         
         # Common
         'common.back': 'back',
@@ -115,6 +117,8 @@ TRANSLATIONS = {
         
         # Now Playing
         'now_playing.title': 'Now Playing',
+        'now_playing.listening': '音楽認識中',
+        'now_playing.none_playing': '再生なし',
         
         # Common
         'common.back': '<戻る',

@@ -5,7 +5,7 @@ from ui.components import (
     draw_scanlines, draw_footer, draw_title_card_container,
     MARGIN_TOP, MARGIN_LEFT, MARGIN_RIGHT
 )
-from ui.fonts import get_localized_font
+from ui.fonts import render_mixed_text
 from routing.intent_router import Intent
 from core.theme_loader import get_theme_loader
 from ui.tabs import Tabs
@@ -99,8 +99,7 @@ class VisualizersScene(Scene):
         current_language = get_language()
         if self._nav_back_surface is None or self._cached_language != current_language:
             nav_back_text = t('common.esc')
-            nav_back_font = get_localized_font(style['typography']['fonts']['micro'], 'primary', nav_back_text)
-            self._nav_back_surface = nav_back_font.render(nav_back_text, True, self.color)
+            self._nav_back_surface = render_mixed_text(nav_back_text, style['typography']['fonts']['micro'], 'primary', self.color)
         nav_back_x = MARGIN_LEFT
         nav_back_y = MARGIN_TOP
         screen.blit(self._nav_back_surface, (nav_back_x, nav_back_y))
@@ -130,8 +129,7 @@ class VisualizersScene(Scene):
         if self._title_surface is None or self._cached_language != current_language:
             title_text = t('visualizers.title')
             title_font_size = style['typography']['fonts'].get('title', 76)
-            title_font = get_localized_font(title_font_size, 'secondary', title_text)
-            self._title_surface = title_font.render(title_text, True, (255, 255, 255))
+            self._title_surface = render_mixed_text(title_text, title_font_size, 'secondary', (255, 255, 255))
             self._title_overlap = self._title_surface.get_height() // 2
         title_text = t('visualizers.title')  # Still need text for draw_title_card_container
         title_overlap = self._title_overlap
@@ -181,20 +179,18 @@ class VisualizersScene(Scene):
         
         # Draw content based on active tab
         content_text_y = tabs_y + 60
+        # Note: These are placeholder texts, should be localized when visualizers are implemented
         if self.tabs.active_index == 0:
             # Bars visualizer
-            content_font = get_localized_font(36, 'primary', 'Hello')
-            content_surface = content_font.render('Bars Visualizer', True, self.color)
+            content_surface = render_mixed_text('Bars Visualizer', 36, 'primary', self.color)
             screen.blit(content_surface, (tabs_x, content_text_y))
         elif self.tabs.active_index == 1:
             # Wave visualizer
-            content_font = get_localized_font(36, 'primary', 'Hello')
-            content_surface = content_font.render('Wave Visualizer', True, self.color)
+            content_surface = render_mixed_text('Wave Visualizer', 36, 'primary', self.color)
             screen.blit(content_surface, (tabs_x, content_text_y))
         elif self.tabs.active_index == 2:
             # Lissajous visualizer
-            content_font = get_localized_font(36, 'primary', 'Hello')
-            content_surface = content_font.render('Lissajous Visualizer', True, self.color)
+            content_surface = render_mixed_text('Lissajous Visualizer', 36, 'primary', self.color)
             screen.blit(content_surface, (tabs_x, content_text_y))
         
         # Draw scanlines and footer

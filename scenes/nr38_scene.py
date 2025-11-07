@@ -8,7 +8,7 @@ from ui.components import (
     draw_scanlines, draw_footer, draw_title_card_container,
     MARGIN_TOP, MARGIN_LEFT, MARGIN_RIGHT
 )
-from ui.fonts import get_localized_font, get_theme_font
+from ui.fonts import get_localized_font, get_theme_font, render_mixed_text
 from routing.intent_router import Intent
 from core.theme_loader import get_theme_loader
 from core.localization import get_language
@@ -184,8 +184,7 @@ class NR38Scene(Scene):
         current_language = get_language()
         if self._nav_back_surface is None or self._cached_language != current_language:
             nav_back_text = t('common.esc')
-            nav_back_font = get_localized_font(style['typography']['fonts']['micro'], 'primary', nav_back_text)
-            self._nav_back_surface = nav_back_font.render(nav_back_text, True, self.color)
+            self._nav_back_surface = render_mixed_text(nav_back_text, style['typography']['fonts']['micro'], 'primary', self.color)
             self._cached_language = current_language
         nav_back_x = MARGIN_LEFT
         nav_back_y = MARGIN_TOP
@@ -216,8 +215,7 @@ class NR38Scene(Scene):
         if self._title_surface is None or self._cached_language != current_language:
             title_text = t('nr38.title')
             title_font_size = style['typography']['fonts'].get('title', 76)
-            title_font = get_localized_font(title_font_size, 'secondary', title_text)
-            self._title_surface = title_font.render(title_text, True, (255, 255, 255))
+            self._title_surface = render_mixed_text(title_text, title_font_size, 'secondary', (255, 255, 255))
             self._title_overlap = self._title_surface.get_height() // 2
         title_text = t('nr38.title')  # Still need text for draw_title_card_container
         title_overlap = self._title_overlap

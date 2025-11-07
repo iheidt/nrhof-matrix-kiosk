@@ -299,3 +299,47 @@ def render_text(text: str, size: int = 24, *, mono: bool = True, color=(0, 255, 
     """Convenience: get a font and render one line of text to a surface."""
     font = get_font(size, mono=mono, prefer=prefer)
     return font.render(text, antialias, color)
+
+
+def render_localized_text(text: str, size: int, font_type: str, color: tuple, antialias: bool = True, english_font: pygame.font.Font = None) -> pygame.Surface:
+    """Render text with automatic localization support.
+    
+    This is a convenience wrapper that automatically uses mixed-font rendering
+    for Japanese text (numbers in English font, other characters in Japanese font)
+    and standard rendering for English text.
+    
+    Args:
+        text: Text to render
+        size: Font size
+        font_type: 'primary', 'secondary', or 'label'
+        color: Text color tuple
+        antialias: Whether to use antialiasing
+        english_font: Optional custom font to use for English (if None, uses theme font)
+        
+    Returns:
+        pygame.Surface with the rendered text
+    
+    Example:
+        # Automatically handles both English and Japanese
+        surface = render_localized_text('listening', 48, 'primary', (233, 30, 99))
+        surface = render_localized_text('音楽認識中', 48, 'primary', (233, 30, 99))
+        
+        # With custom English font (e.g., IBM Plex Mono Italic)
+        custom_font = pygame.font.Font('path/to/font.ttf', 48)
+        surface = render_localized_text('listening', 48, 'primary', (233, 30, 99), english_font=custom_font)
+    """
+    from core.localization import get_language
+    
+    # Get current language
+    language = get_language()
+    
+    # For Japanese, use mixed text rendering
+    if language == 'jp':
+        return render_mixed_text(text, size, font_type, color, antialias)
+    else:
+        # For English, use custom font if provided, otherwise use theme font
+        if english_font:
+            return english_font.render(text, antialias, color)
+        else:
+            font = get_theme_font(size, font_type)
+            return font.render(text, antialias, color)

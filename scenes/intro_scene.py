@@ -3,7 +3,7 @@ import time
 import pygame
 from scenes.scene_manager import Scene, register_scene
 from ui.components import draw_scanlines, draw_footer, MARGIN_LEFT, MARGIN_TOP
-from ui.fonts import get_localized_font
+from ui.fonts import render_mixed_text
 from renderers import FrameState, Text
 from core.theme_loader import get_theme_loader
 
@@ -155,22 +155,20 @@ class IntroScene(Scene):
         # Draw all completed lines
         for line in self.completed_lines:
             text_with_prompt = f"> {line}"
-            font = get_localized_font(self.base_font_size, self.font_type, line)
-            img = font.render(text_with_prompt, True, self.color)
+            img = render_mixed_text(text_with_prompt, self.base_font_size, self.font_type, self.color)
             screen.blit(img, (self.margin_x, y_pos))
             y_pos += self.line_height
         
         # Draw current line being typed
         if self.shown_text:
             text_with_prompt = f"> {self.shown_text}"
-            font = get_localized_font(self.base_font_size, self.font_type, self.shown_text)
-            img = font.render(text_with_prompt, True, self.color)
+            img = render_mixed_text(text_with_prompt, self.base_font_size, self.font_type, self.color)
             screen.blit(img, (self.margin_x, y_pos))
             
             # Add blinking cursor
             if int(time.time() * 2) % 2 == 0:  # Blink every 0.5 seconds
                 cursor_x = self.margin_x + img.get_width() + 5
-                cursor = font.render("_", True, self.color)
+                cursor = render_mixed_text("_", self.base_font_size, self.font_type, self.color)
                 screen.blit(cursor, (cursor_x, y_pos))
         
         # Draw overlays and footer

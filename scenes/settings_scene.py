@@ -5,7 +5,7 @@ from ui.components import (
     draw_scanlines, draw_footer, draw_title_card_container,
     MARGIN_TOP, MARGIN_LEFT, MARGIN_RIGHT
 )
-from ui.fonts import get_localized_font
+from ui.fonts import render_mixed_text
 from routing.intent_router import Intent
 from core.theme_loader import get_theme_loader
 
@@ -90,8 +90,7 @@ class SettingsScene(Scene):
         # Draw nav_back component ("<esc" in top-left corner at margin boundary)
         from core.localization import t
         nav_back_text = t('common.esc')
-        nav_back_font = get_localized_font(style['typography']['fonts']['micro'], 'primary', nav_back_text)
-        nav_back_surface = nav_back_font.render(nav_back_text, True, self.color)
+        nav_back_surface = render_mixed_text(nav_back_text, style['typography']['fonts']['micro'], 'primary', self.color)
         nav_back_x = MARGIN_LEFT
         nav_back_y = MARGIN_TOP
         screen.blit(nav_back_surface, (nav_back_x, nav_back_y))
@@ -120,8 +119,7 @@ class SettingsScene(Scene):
         # Get title font to calculate overlap
         title_text = t('settings.title')
         title_font_size = style['typography']['fonts'].get('title', 76)
-        title_font = get_localized_font(title_font_size, 'secondary', title_text)
-        title_surface = title_font.render(title_text, True, (255, 255, 255))
+        title_surface = render_mixed_text(title_text, title_font_size, 'secondary', (255, 255, 255))
         title_overlap = title_surface.get_height() // 2
         
         # Adjust y position so title overlaps card border

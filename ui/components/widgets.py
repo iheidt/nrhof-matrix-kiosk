@@ -565,8 +565,11 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
     draw_second_copy = False
     
     if line1:
-        # Render full text
-        line1_surface = line1_font.render(line1, True, title_color)
+        # Render full text with localization support
+        from ui.fonts import render_localized_text
+        
+        # Use render_localized_text with IBM Plex Mono Italic for English
+        line1_surface = render_localized_text(line1, line1_font_size, 'primary', title_color, english_font=line1_font)
         line1_width = line1_surface.get_width()
         
         # Use marquee if text is too wide and marquee is provided
@@ -579,9 +582,9 @@ def draw_now_playing(surface: Surface, x: int, y: int, width: int,
         elif line1_width > max_text_width:
             # No marquee provided, truncate with ellipsis
             truncated = line1
-            while truncated and line1_font.render(truncated + "...", True, title_color).get_width() > max_text_width:
+            while truncated and render_localized_text(truncated + "...", line1_font_size, 'primary', title_color, english_font=line1_font).get_width() > max_text_width:
                 truncated = truncated[:-1]
-            line1_surface = line1_font.render(truncated + "...", True, title_color)
+            line1_surface = render_localized_text(truncated + "...", line1_font_size, 'primary', title_color, english_font=line1_font)
     
     # Calculate content height
     content_height = padding  # Top padding

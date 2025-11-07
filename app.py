@@ -12,8 +12,10 @@ try:
 except Exception:
     pass
 
+from core.app_state import get_app_state
+from core.event_bus import get_event_bus, EventType
+from core.localization import t
 from core.config_loader import load_config
-from core.event_bus import EventType
 from core.app_initializer import (
     parse_arguments,
     apply_cli_overrides,
@@ -105,8 +107,8 @@ def draw_now_playing_overlay(screen: pygame.Surface, cfg: dict):
         else:
             album_line = track.album.lower() if track.album else f"via {track.source}"
     else:
-        song_line = "listening"
-        album_line = "none playing"
+        song_line = t('now_playing.listening')
+        album_line = t('now_playing.none_playing')
     
     # Initialize marquee if needed
     max_text_width = widget_width - 40 - (24 * 2)
