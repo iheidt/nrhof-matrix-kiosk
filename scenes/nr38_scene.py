@@ -144,19 +144,57 @@ class NR38Scene(Scene):
             title=title_text,
             theme={'layout': layout, 'style': style},
             border_fade_pct=border_fade_pct,
-            border_height_pct=border_height_pct
+            border_height_pct=border_height_pct,
+            content_margin=0  # Reduced margin between title and content
         )
         
         # Content area for NR-38
         content_y = layout_info['content_start_y']
         content_x = margin_left + 35 + 24  # Match title card padding
-        content_width = title_card_width
+        content_width = title_card_width - (35 + 24) * 2  # Account for padding on both sides
         content_height = h - content_y - 130  # Subtract footer height
         
-        # Draw placeholder content
-        content_font = get_localized_font(36, 'primary', 'NR-38')
-        content_surface = content_font.render('NR-38 Content Area', True, self.color)
-        screen.blit(content_surface, (content_x, content_y + 30))
+        # Calculate 5-column layout
+        # col 1 width = 33% of container - 100px
+        # col 2 width = 50px (gutter)
+        # col 3 width = 33% of container - 100px
+        # col 4 width = 50px (gutter)
+        # col 5 width = 33% of container - 100px
+        
+        # Layout configuration
+        line_height = 50  # Spacing between numbers (adjust this to change spacing)
+        gutter_width = 50
+        
+        col_width = (content_width - 100) / 3  # 33% minus 100px total, divided by 3 columns
+        
+        col1_x = content_x
+        col2_x = col1_x + col_width + gutter_width
+        col3_x = col2_x + col_width + gutter_width
+        
+        # Font for numbers
+        number_font = get_localized_font(32, 'primary', '1.')
+        
+        # Draw three columns with numbers 1-38
+        # Column 1: 1-13
+        for i in range(1, 14):
+            number_text = f"{i}."
+            number_surface = number_font.render(number_text, True, self.color)
+            y_pos = content_y + 20 + (i - 1) * line_height
+            screen.blit(number_surface, (col1_x, y_pos))
+        
+        # Column 2: 14-26
+        for i in range(14, 27):
+            number_text = f"{i}."
+            number_surface = number_font.render(number_text, True, self.color)
+            y_pos = content_y + 20 + (i - 14) * line_height
+            screen.blit(number_surface, (col2_x, y_pos))
+        
+        # Column 3: 27-38
+        for i in range(27, 39):
+            number_text = f"{i}."
+            number_surface = number_font.render(number_text, True, self.color)
+            y_pos = content_y + 20 + (i - 27) * line_height
+            screen.blit(number_surface, (col3_x, y_pos))
         
         # Draw scanlines and footer
         draw_scanlines(screen)
