@@ -2,7 +2,6 @@
 """Song recognition worker - passive ambient music detection."""
 
 import io
-import threading
 import time
 import wave
 
@@ -10,14 +9,13 @@ import numpy as np
 
 from audio_source import get_audio_frame, get_sample_rate
 from core.app_state import get_app_state
-from core.event_bus import EventType, get_event_bus
-from core.logger import get_logger
+from core.event_bus import EventType
 from core.song_recognition import SongInfo, SongRecognizer
 
-logger = get_logger("song_recognition_worker")
+from .base import BaseWorker
 
 
-class SongRecognitionWorker:
+class SongRecognitionWorker(BaseWorker):
     """Continuously monitors ambient audio for song recognition."""
 
     def __init__(self, config: dict):
@@ -26,18 +24,13 @@ class SongRecognitionWorker:
         Args:
             config: Configuration dict
         """
-        self.config = config
+        super().__init__(config, logger_name="song_recognition_worker")
         self.recognizer = SongRecognizer(config)
         self.enabled = self.recognizer.enabled
-
-        # Initialize state even if disabled (for clean shutdown)
-        self.running = False
-        self.thread: threading.Thread | None = None
-        self.event_bus = get_event_bus()
         self.app_state = get_app_state()
 
         if not self.enabled:
-            logger.info("Song recognition worker disabled")
+            self.logger.info("Song recognition worker disabled")
             return
 
         # Recognition settings
@@ -53,66 +46,18 @@ class SongRecognitionWorker:
     def start(self):
         """Start the song recognition worker."""
         if not self.enabled:
-            logger.info("Song recognition worker not started (disabled)")
+            self.logger.info("Song recognition worker not started (disabled)")
             return
-
-        if self.running:
-            logger.warning("Song recognition worker already running")
-            return
-
-        # Execute lifecycle hook
-        try:
-            from core.lifecycle import LifecyclePhase, execute_hooks
-
-            execute_hooks(
-                LifecyclePhase.WORKER_START,
-                worker_name="SongRecognitionWorker",
-                worker=self,
-            )
-        except ImportError:
-            pass
-
-        self.running = True
-        self.thread = threading.Thread(
-            target=self._worker_loop,
-            daemon=True,
-            name="SongRecognitionWorker",
-        )
-        self.thread.start()
-        logger.info("Song recognition worker started", interval=self.recognition_interval)
-
-    def stop(self):
-        """Stop the song recognition worker."""
-        if not self.running:
-            return
-
-        # Execute lifecycle hook
-        try:
-            from core.lifecycle import LifecyclePhase, execute_hooks
-
-            execute_hooks(
-                LifecyclePhase.WORKER_STOP,
-                worker_name="SongRecognitionWorker",
-                worker=self,
-            )
-        except ImportError:
-            pass
-
-        logger.info("Stopping song recognition worker...")
-        self.running = False
-
-        if self.thread:
-            self.thread.join(timeout=2.0)
-
-        logger.info("Song recognition worker stopped")
+        self.logger.info("Song recognition worker started", interval=self.recognition_interval)
+        super().start()
 
     def _worker_loop(self):
         """Main worker loop - periodically recognizes ambient music."""
-        logger.info("Song recognition loop started")
+        self.logger.info("Song recognition loop started")
 
         last_recognition_time = 0
 
-        while self.running:
+        while self._running:
             try:
                 current_time = time.time()
 
@@ -126,7 +71,7 @@ class SongRecognitionWorker:
                     if audio_data:
                         # Attempt recognition
                         print("[SONG] Calling ACRCloud API...")
-                        logger.debug("Attempting song recognition...")
+                        self.logger.debug("Attempting song recognition...")
                         song_info = self.recognizer.recognize_from_audio(
                             audio_data,
                             self.sample_rate,
@@ -135,7 +80,7 @@ class SongRecognitionWorker:
 
                         if song_info:
                             # Song recognized!
-                            logger.info(
+                            self.logger.info(
                                 "Ambient song recognized",
                                 title=song_info.title,
                                 artist=song_info.artist,
@@ -154,7 +99,7 @@ class SongRecognitionWorker:
                                 score=song_info.score,
                             )
                         else:
-                            logger.debug("No song recognized in ambient audio")
+                            self.logger.debug("No song recognized in ambient audio")
 
                     last_recognition_time = current_time
 
@@ -166,14 +111,14 @@ class SongRecognitionWorker:
 
                 print(f"[SONG] Loop error: {e}")
                 print(f"[SONG] Traceback: {traceback.format_exc()}")
-                logger.error(
+                self.logger.error(
                     "Error in song recognition loop",
                     error=str(e),
                     traceback=traceback.format_exc(),
                 )
                 time.sleep(5.0)
 
-        logger.info("Song recognition loop ended")
+        self.logger.info("Song recognition loop ended")
 
     def _collect_audio_buffer(self) -> bytes | None:
         """Collect audio buffer for recognition.
@@ -188,7 +133,7 @@ class SongRecognitionWorker:
             samples_per_frame = 4096  # samples per call to get_audio_frame()
             frames_needed = int((self.sample_rate * self.audio_buffer_seconds) / samples_per_frame)
 
-            logger.debug(
+            self.logger.debug(
                 "Collecting audio buffer",
                 seconds=self.audio_buffer_seconds,
                 frames_needed=frames_needed,
@@ -197,10 +142,10 @@ class SongRecognitionWorker:
             start_time = time.time()
             timeout = self.audio_buffer_seconds + 5  # Give extra time
 
-            while len(frames) < frames_needed and self.running:
+            while len(frames) < frames_needed and self._running:
                 # Check timeout
                 if time.time() - start_time > timeout:
-                    logger.warning(
+                    self.logger.warning(
                         "Audio buffer collection timeout",
                         frames_collected=len(frames),
                         frames_needed=frames_needed,
@@ -214,11 +159,11 @@ class SongRecognitionWorker:
                     time.sleep(0.01)
 
             if not frames:
-                logger.warning("No audio frames collected")
+                self.logger.warning("No audio frames collected")
                 return None
 
             if len(frames) < frames_needed / 2:
-                logger.warning(
+                self.logger.warning(
                     "Insufficient audio frames",
                     collected=len(frames),
                     needed=frames_needed,
@@ -243,12 +188,12 @@ class SongRecognitionWorker:
             print(
                 f"[SONG] WAV: {len(wav_bytes)} bytes, {self.sample_rate}Hz, 16-bit, mono, {len(audio_data)/2/self.sample_rate:.1f}s",
             )
-            logger.debug("Audio buffer collected", frames=len(frames), size_bytes=len(wav_bytes))
+            self.logger.debug("Audio buffer collected", frames=len(frames), size_bytes=len(wav_bytes))
 
             return wav_bytes
 
         except Exception as e:
-            logger.error("Failed to collect audio buffer", error=str(e))
+            self.logger.error("Failed to collect audio buffer", error=str(e))
             return None
 
     def _update_app_state(self, song_info: SongInfo):
@@ -272,4 +217,4 @@ class SongRecognitionWorker:
             self.app_state.update_ambient_song(track_info)
 
         except Exception as e:
-            logger.error("Failed to update app state", error=str(e))
+            self.logger.error("Failed to update app state", error=str(e))
