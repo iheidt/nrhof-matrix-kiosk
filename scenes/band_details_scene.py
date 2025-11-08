@@ -17,6 +17,7 @@ from ui.components import (
     draw_title_card_container,
 )
 from ui.fonts import render_mixed_text
+from ui.logo_utils import calculate_logo_size
 
 
 @register_scene("BandDetailsScene")
@@ -38,9 +39,8 @@ class BandDetailsScene(Scene):
         self.nav_back_rect = None
         self.settings_rect = None  # Store settings text rect for click detection
 
-        # Band data (will be set via set_band_data method)
+        # Band data (extracted fields only - don't store full fieldData)
         self.band_name = "Band Name"  # Default placeholder
-        self.band_data = None
         self.logo_surface = None  # Cached logo surface
         self._loading_logo = False
         self._logo_url = None
@@ -57,8 +57,7 @@ class BandDetailsScene(Scene):
         Args:
             band_data: Dictionary containing band information from Webflow
         """
-        self.band_data = band_data
-        # Extract band name from the data
+        # Extract only what we need - don't store full band_data to save memory
         if band_data:
             self.band_name = band_data.get("name", "Band Name")
 
@@ -98,14 +97,27 @@ class BandDetailsScene(Scene):
         try:
             # Use ImageCache to get the logo (handles caching and scaling)
             # Recolor SVGs to primary theme color
+            # Load at high resolution first, then we'll scale intelligently
             surface = self.image_cache.get_image(
                 self._logo_url,
-                max_size=(300, 300),
+                max_size=(600, 150),  # Load at very high-res to get full SVG dimensions
                 fill_color=self.color,  # Recolor to primary theme color
             )
             if surface:
-                self.logo_surface = surface
-                self.logger.info(f"Logo loaded for {self.band_name}")
+                # Apply smart sizing based on aspect ratio
+                # These values are tunable knobs:
+                width, height = calculate_logo_size(
+                    surface,
+                )
+
+                # Scale to calculated size
+                self.logo_surface = pygame.transform.smoothscale(surface, (width, height))
+                print(
+                    f"🎸 LOGO DEBUG: {self.band_name} | scaled to {width}x{height} | original: {surface.get_width()}x{surface.get_height()} | aspect: {surface.get_width()/surface.get_height():.2f}"
+                )
+                self.logger.info(
+                    f"Logo loaded for {self.band_name} (scaled to {width}x{height}, original: {surface.get_width()}x{surface.get_height()}, aspect: {surface.get_width()/surface.get_height():.2f})"
+                )
             else:
                 self.logger.warning(f"Failed to load logo for {self.band_name}")
         except Exception as e:

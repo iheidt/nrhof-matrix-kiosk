@@ -140,6 +140,13 @@ class ImageCache:
                         svg_text = svg_content.decode("utf-8", errors="ignore")
                         hex_color = f"#{fill_color[0]:02x}{fill_color[1]:02x}{fill_color[2]:02x}"
 
+                        # Add default fill to root SVG element only if it doesn't already have one
+                        # This handles SVGs where child elements don't have explicit fill attributes
+                        if not re.search(r"<svg[^>]*?\sfill=", svg_text):
+                            svg_text = re.sub(
+                                r"<svg([^>]*?)>", f'<svg\\1 fill="{hex_color}">', svg_text, count=1
+                            )
+
                         # Replace all fill attributes (including currentColor, color names, hex, rgb, etc.)
                         svg_text = re.sub(r'fill="[^"]+"', f'fill="{hex_color}"', svg_text)
                         svg_text = re.sub(r"fill='[^']+'", f"fill='{hex_color}'", svg_text)
@@ -155,11 +162,10 @@ class ImageCache:
                         svg_content = svg_text.encode("utf-8")
                         self.logger.info(f"Recolored SVG to {hex_color}")
 
-                    # Render at exact requested size
+                    # Render preserving aspect ratio (only constrain height, let width scale)
                     png_data = cairosvg.svg2png(
                         bytestring=svg_content,
-                        output_width=max_size[0],
-                        output_height=max_size[1],
+                        output_height=max_size[1],  # Only set height to preserve aspect ratio
                         background_color="transparent",  # Ensure transparent background
                     )
 
