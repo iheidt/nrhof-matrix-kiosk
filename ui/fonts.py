@@ -1,9 +1,42 @@
 #!/usr/bin/env python3
-"""Font loading and management utilities."""
+"""
+Font loading and management utilities.
+
+This module provides a unified interface for font loading, caching, and rendering
+with support for:
+- Custom TTF/OTF fonts from assets/fonts/
+- System font fallbacks (cross-platform)
+- Japanese/English mixed-font rendering
+- LRU caching for performance
+- Localization-aware font selection
+
+Architecture:
+    1. Font Loading: Load custom fonts or fall back to system fonts
+    2. Font Caching: LRU cache to prevent reloading (@lru_cache)
+    3. Text Rendering: Mixed-font rendering for Japanese (numbers in English font)
+    4. Localization: Language-aware font selection
+
+Public API:
+    - init_custom_fonts(config): Initialize font system
+    - get_font(size, family, bold): Get cached font
+    - get_theme_font(size, font_type): Get font from theme
+    - get_localized_font(size, font_type, text): Get language-appropriate font
+    - render_mixed_text(text, size, font_type, color): Render with mixed fonts
+    - render_localized_text(text, size, font_type, color, english_font): Convenience wrapper
+
+Internal:
+    - _load_custom_font(): Load TTF/OTF from assets
+    - _first_available_font(): Find first available system font
+    - _render_mixed_text_cached(): Cached mixed-font rendering
+"""
 from functools import lru_cache
 from pathlib import Path
 
 import pygame
+
+# =============================================================================
+# Module-level State and Configuration
+# =============================================================================
 
 # Custom fonts cache
 _CUSTOM_FONTS = {}
@@ -23,6 +56,11 @@ _SANS_FONT_CANDIDATES = [
     "Arial",
     "Liberation Sans",
 ]
+
+
+# =============================================================================
+# Initialization and Preloading
+# =============================================================================
 
 
 def init_custom_fonts(config: dict):
@@ -65,6 +103,11 @@ def preload_japanese_fonts():
                     pass  # Silently skip if font fails to load
 
 
+# =============================================================================
+# Font Loading (Custom and System Fonts)
+# =============================================================================
+
+
 def _load_custom_font(filename: str, size: int) -> pygame.font.Font | None:
     """Load a custom font file.
 
@@ -101,6 +144,11 @@ def _first_available_font(candidates):
             pass
     # As a last resort, None lets pygame pick a default
     return None
+
+
+# =============================================================================
+# Font Caching (Public API)
+# =============================================================================
 
 
 @lru_cache(maxsize=64)
@@ -193,6 +241,11 @@ def get_theme_font(size: int = 24, font_type: str = "primary") -> pygame.font.Fo
     return pygame.font.Font(None, size)
 
 
+# =============================================================================
+# Localization-Aware Font Selection
+# =============================================================================
+
+
 def get_localized_font(
     size: int = 24,
     font_type: str = "primary",
@@ -272,6 +325,11 @@ def get_localized_font(
 
     # Fallback to standard font
     return get_theme_font(size, font_type)
+
+
+# =============================================================================
+# Text Rendering (Mixed Fonts for Japanese)
+# =============================================================================
 
 
 @lru_cache(maxsize=256)
