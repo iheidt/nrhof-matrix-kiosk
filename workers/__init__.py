@@ -1,6 +1,16 @@
 #!/usr/bin/env python3
-"""Workers package - Background threads for non-blocking operations."""
+"""Worker modules for background tasks."""
 
-from workers.audio_worker import AudioWorker
+from .audio_worker import AudioWorker
+from .base import BaseWorker
+from .recognition_worker import RecognitionWorker
+from .song_recognition_worker import SongRecognitionWorker
+from .wake_word_worker import WakeWordWorker
 
-__all__ = ['AudioWorker']
+__all__ = [
+    "AudioWorker",
+    "BaseWorker",
+    "RecognitionWorker",
+    "SongRecognitionWorker",
+    "WakeWordWorker",
+]

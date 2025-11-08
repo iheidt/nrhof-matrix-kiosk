@@ -1,64 +1,97 @@
 #!/usr/bin/env python3
 """Intent handlers for application navigation and actions."""
 
-from routing.intent_router import IntentRouter, Intent
-from scenes.scene_manager import SceneManager
 from core.app_context import AppContext
+from routing.intent_router import Intent, IntentRouter
 
 
-def register_all_intents(intent_router: IntentRouter, scene_manager: SceneManager, app_context: AppContext):
+def register_all_intents(
+    intent_router: IntentRouter,
+    scene_controller,
+    app_context: AppContext,
+):
     """Register all application intents.
-    
+
     Args:
         intent_router: IntentRouter instance
-        scene_manager: SceneManager instance
+        scene_controller: Scene controller with switch_to() and go_back() methods
         app_context: AppContext instance
     """
+    # Inject scene controller into router
+    intent_router.set_scene_controller(scene_controller)
+
     # Navigation intents
-    _register_navigation_intents(intent_router, scene_manager)
-    
+    _register_navigation_intents(intent_router)
+
     # Selection intents
-    _register_selection_intents(intent_router, scene_manager, app_context)
+    _register_selection_intents(intent_router, app_context)
 
 
-def _register_navigation_intents(intent_router: IntentRouter, scene_manager: SceneManager):
+def _register_navigation_intents(intent_router: IntentRouter):
     """Register navigation intents (go home, go back, etc.)."""
-    intent_router.register(Intent.GO_HOME, lambda **kw: scene_manager.switch_to("MenuScene"))
-    intent_router.register(Intent.GO_BACK, lambda **kw: scene_manager.go_back())
-    intent_router.register(Intent.GO_TO_SETTINGS, lambda **kw: scene_manager.switch_to("SettingsScene"))
+
+    def go_home(**kw):
+        controller = intent_router.get_scene_controller()
+        if controller:
+            controller.switch_to("MenuScene")
+
+    def go_back(**kw):
+        controller = intent_router.get_scene_controller()
+        if controller:
+            controller.go_back()
+
+    def go_to_settings(**kw):
+        controller = intent_router.get_scene_controller()
+        if controller:
+            controller.switch_to("SettingsScene")
+
+    intent_router.register(Intent.GO_HOME, go_home)
+    intent_router.register(Intent.GO_BACK, go_back)
+    intent_router.register(Intent.GO_TO_SETTINGS, go_to_settings)
 
 
-def _register_selection_intents(intent_router: IntentRouter, scene_manager: SceneManager, app_context: AppContext):
+def _register_selection_intents(
+    intent_router: IntentRouter,
+    app_context: AppContext,
+):
     """Register selection intents (menu options, sub-experiences)."""
-    
+
     # Main menu option selection
     def select_option_handler(index, **kw):
+        controller = intent_router.get_scene_controller()
+        if not controller:
+            return
+
         if index == 0:
             # NR-38
-            scene_manager.switch_to("NR38Scene")
+            controller.switch_to("NR38Scene")
         elif index == 1:
             # NR-18: Not implemented yet
-            print(f"Placeholder: NR-18 not implemented yet")
+            print("Placeholder: NR-18 not implemented yet")
         elif index == 2:
             # Visualizer
-            scene_manager.switch_to("VisualizersScene")
+            controller.switch_to("VisualizersScene")
         elif index == 3:
             # Fate maker: Not implemented yet
-            print(f"Placeholder: Fate maker not implemented yet")
+            print("Placeholder: Fate maker not implemented yet")
         else:
             print(f"Placeholder: Option {index+1} not implemented yet")
-    
+
     intent_router.register(Intent.SELECT_OPTION, select_option_handler)
-    
+
     # Sub-experience selection
     def select_sub_experience_handler(id, **kw):
+        controller = intent_router.get_scene_controller()
+        if not controller:
+            return
+
         if id == "spectrum_bars":
-            scene_manager.switch_to("Experience1SpectrumBarsScene")
+            controller.switch_to("Experience1SpectrumBarsScene")
         elif id == "waveform":
-            scene_manager.switch_to("Experience1WaveformScene")
+            controller.switch_to("Experience1WaveformScene")
         elif id == "lissajous":
-            scene_manager.switch_to("Experience1LissajousScene")
+            controller.switch_to("Experience1LissajousScene")
         else:
             print(f"Unknown sub-experience: {id}")
-    
+
     intent_router.register(Intent.SELECT_SUB_EXPERIENCE, select_sub_experience_handler)

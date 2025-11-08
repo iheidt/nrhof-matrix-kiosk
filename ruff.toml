@@ -1,0 +1,16 @@
+line-length = 100
+target-version = "py311"
+
+extend-exclude = [
+  "assets", "runtime", "service", "scripts", "docs",
+  "content", "styles", "layouts", "renderers/model_renderer",
+]
+
+[lint]
+# High-signal rules to start
+select = ["E","W","F","I","UP","B","ISC","COM"]
+# Let Black own wrapping
+ignore = ["E501","COM812","ISC001"]
+
+[lint.per-file-ignores]
+"**/__init__.py" = ["F401"]

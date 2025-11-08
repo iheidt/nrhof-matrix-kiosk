@@ -3,10 +3,10 @@
 
 class AppContext:
     """Central context object containing all app-level dependencies."""
-    
+
     def __init__(self, config, scene_manager, voice_router, voice_engine, intent_router):
         """Initialize app context with all dependencies.
-        
+
         Args:
             config: Application configuration dict
             scene_manager: SceneManager instance

@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "run:dev",
+      "type": "shell",
+      "command": "NRHOF_DEV=1 SDL_AUDIODRIVER=dummy python app.py",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      }
+    }
+  ]
+}
