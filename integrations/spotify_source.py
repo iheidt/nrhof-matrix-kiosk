@@ -59,7 +59,7 @@ class SpotifySource:
         auth_manager = SpotifyOAuth(
             client_id=spotify_config.get("client_id"),
             client_secret=spotify_config.get("client_secret"),
-            redirect_uri=spotify_config.get("redirect_uri", "http://localhost:8888/callback"),
+            redirect_uri=spotify_config.get("redirect_uri", "http://127.0.0.1:8888/callback"),
             scope=scope,
             cache_path=spotify_config.get("cache_path", ".spotify_cache"),
         )
@@ -125,7 +125,10 @@ class SpotifySource:
                     self.source_manager.set_from("spotify", None)
 
             except Exception as e:
-                logger.error("Error polling Spotify", error=str(e))
+                logger.error(f"Error polling Spotify: {type(e).__name__}: {e}")
+                # Uncomment for full traceback during debugging:
+                # import traceback
+                # logger.error(f"Traceback: {traceback.format_exc()}")
 
             # Sleep
             time.sleep(self.poll_interval)

@@ -70,7 +70,7 @@ class SonosSource:
 
             client_id = spotify_config.get("client_id")
             client_secret = spotify_config.get("client_secret")
-            redirect_uri = spotify_config.get("redirect_uri", "http://localhost:8888/callback")
+            redirect_uri = spotify_config.get("redirect_uri", "http://127.0.0.1:8888/callback")
 
             if client_id and client_secret:
                 auth_manager = SpotifyOAuth(

@@ -2,6 +2,7 @@
 """Configuration loader with YAML support and dev overrides."""
 
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,9 @@ def load_config(config_path: str = "config.yaml") -> dict[str, Any]:
     if config is None:
         config = {}
 
+    # Expand environment variables in config
+    config = _expand_env_vars(config)
+
     # Apply dev overrides if present
     if "dev_overrides" in config:
         _apply_dev_overrides(config, config["dev_overrides"])
@@ -51,6 +55,32 @@ def load_config(config_path: str = "config.yaml") -> dict[str, Any]:
             raise
 
     return config
+
+
+def _expand_env_vars(obj: Any) -> Any:
+    """Recursively expand ${VAR} environment variables in config.
+
+    Args:
+        obj: Config object (dict, list, str, or other)
+
+    Returns:
+        Object with environment variables expanded
+    """
+    if isinstance(obj, dict):
+        return {k: _expand_env_vars(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_expand_env_vars(item) for item in obj]
+    elif isinstance(obj, str):
+        # Match ${VAR} or $VAR patterns
+        def replace_env(match):
+            var_name = match.group(1) or match.group(2)
+            return os.getenv(var_name, match.group(0))  # Keep original if not found
+
+        # Replace ${VAR} and $VAR patterns
+        result = re.sub(r"\$\{([^}]+)\}|\$([A-Z_][A-Z0-9_]*)", replace_env, obj)
+        return result
+    else:
+        return obj
 
 
 def _apply_dev_overrides(config: dict, overrides: dict):
