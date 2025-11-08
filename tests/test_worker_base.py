@@ -4,8 +4,8 @@ import pytest
 from workers.base import BaseWorker
 
 
-class TestWorker(BaseWorker):
-    """Test worker implementation."""
+class DummyWorker(BaseWorker):
+    """Dummy worker implementation for testing."""
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -20,7 +20,7 @@ class TestWorker(BaseWorker):
 
 def test_worker_start_stop():
     """Test worker can start and stop."""
-    worker = TestWorker(config={})
+    worker = DummyWorker(config={})
     
     assert not worker.is_running()
     
@@ -39,6 +39,6 @@ def test_worker_event_bus_injection():
     from core.event_bus import EventBus
     
     custom_bus = EventBus()
-    worker = TestWorker(config={}, event_bus=custom_bus)
+    worker = DummyWorker(config={}, event_bus=custom_bus)
     
     assert worker.event_bus is custom_bus
