@@ -190,17 +190,23 @@ class BandDetailsScene(Scene):
         border_height_pct = title_card_config.get("border_height_pct", 0.15)
 
         # Get title font to calculate overlap
-        # Use band name as the title
-        title_text = self.band_name
+        # Use a placeholder space to maintain layout but we'll draw logo instead
+        title_text = " "  # Empty space to maintain layout
         title_font_size = style["typography"]["fonts"].get("title", 76)
         title_surface = render_mixed_text(title_text, title_font_size, "secondary", (255, 255, 255))
         title_overlap = title_surface.get_height() // 2
 
-        # Adjust y position so title overlaps card border
-        title_card_y_adjusted = title_card_y + title_overlap
+        # Adjust y position so title overlaps card border, then move up 4px to align with now playing widget
+        title_card_y_adjusted = title_card_y + title_overlap - 4
 
-        # Draw the full-width title card container
-        layout_info = draw_title_card_container(
+        # In Japanese mode, add 21px to compensate for the global adjustment we're skipping
+        from core.localization import get_language
+
+        if get_language() == "jp":
+            title_card_y_adjusted += -21
+
+        # Draw the full-width title card container (with empty title, no top border)
+        draw_title_card_container(
             surface=screen,
             x=margin_left,
             y=title_card_y_adjusted,
@@ -210,19 +216,109 @@ class BandDetailsScene(Scene):
             theme={"layout": layout, "style": style},
             border_fade_pct=border_fade_pct,
             border_height_pct=border_height_pct,
+            skip_top_border=True,  # We'll draw custom border with logo gap
+            skip_japanese_adjustment=True,  # Logo positioning is same for all languages
         )
 
-        # Content area for band details
-        content_y = layout_info["content_start_y"]
-        content_x = margin_left + 40  # Add some padding
+        # Draw custom borders with fade effect (left, right, bottom only - no top)
+        border_width = 6
+        border_y = title_card_y_adjusted  # This is where the top border line is drawn
+        border_color = self.color
+        logo_padding = 24  # Padding on each side of logo
 
-        # Display logo if loaded
+        # Manually draw left, right, and bottom borders with fade (skip top)
+        # Calculate effective height for left/right borders
+        effective_height = int(title_card_height * border_height_pct)
+        fade_start = int(effective_height * (1.0 - border_fade_pct))
+        fade_distance = effective_height - fade_start
+
+        # Create surface for borders with alpha
+        border_surface = pygame.Surface(
+            (title_card_width + border_width * 2, title_card_height + border_width * 2),
+            pygame.SRCALPHA,
+        )
+        border_surface.fill((0, 0, 0, 0))
+
+        import pygame.surfarray as surfarray
+
+        pixels_rgb = surfarray.pixels3d(border_surface)
+        pixels_alpha = surfarray.pixels_alpha(border_surface)
+
+        base_color = (int(border_color[0]), int(border_color[1]), int(border_color[2]))
+
+        # Draw left and right borders with fade (starting 2px above border_width to align with top)
+        for i in range(border_width - 2, effective_height + border_width):
+            # Calculate alpha based on position
+            adjusted_i = i - (border_width - 2)
+
+            if adjusted_i < fade_start:
+                alpha = 255
+            elif adjusted_i < effective_height:
+                progress = (adjusted_i - fade_start) / fade_distance if fade_distance > 0 else 1
+                alpha = max(0, int(255 * (1.0 - progress)))
+            else:
+                alpha = 0
+
+            if alpha > 0:
+                # Left border
+                pixels_rgb[0:border_width, i] = base_color
+                pixels_alpha[0:border_width, i] = alpha
+                # Right border
+                pixels_rgb[
+                    title_card_width + border_width : title_card_width + border_width * 2, i
+                ] = base_color
+                pixels_alpha[
+                    title_card_width + border_width : title_card_width + border_width * 2, i
+                ] = alpha
+
+        del pixels_rgb
+        del pixels_alpha
+
+        # Blit border surface
+        screen.blit(border_surface, (margin_left - border_width, border_y - border_width))
+
+        # Draw top border with gap for logo
         if self.logo_surface:
-            logo_x = content_x
-            logo_y = content_y + 20
+            # Calculate logo position - centered vertically with border line
+            logo_x = margin_left + 35 + logo_padding  # 35px to border edge + padding
+            # The logo should be centered on the border line
+            # border_y is the Y coordinate where the border is drawn (center of the 6px line)
+            logo_y = border_y - (self.logo_surface.get_height() // 2)
+
+            # Calculate gap boundaries
+            gap_start_x = margin_left + 35  # Start of gap (at border edge)
+            gap_end_x = (
+                gap_start_x + (logo_padding * 2) + self.logo_surface.get_width()
+            )  # End of gap
+
+            # Draw left segment of border (from left edge to gap start)
+            pygame.draw.line(
+                screen, border_color, (margin_left, border_y), (gap_start_x, border_y), border_width
+            )
+
+            # Draw right segment of border (from gap end to right edge)
+            pygame.draw.line(
+                screen,
+                border_color,
+                (gap_end_x, border_y),
+                (margin_left + title_card_width, border_y),
+                border_width,
+            )
+
+            # Draw the logo (no background, pure transparency)
             screen.blit(self.logo_surface, (logo_x, logo_y))
-        elif self._loading_logo:
-            # Show loading message
+        else:
+            # No logo loaded - draw full border
+            pygame.draw.line(
+                screen,
+                border_color,
+                (margin_left, border_y),
+                (margin_left + title_card_width, border_y),
+                border_width,
+            )
+
+        # Show loading message if logo is still loading
+        if self._loading_logo and not self.logo_surface:
             loading_font = style["typography"]["fonts"].get("body", 24)
             loading_surface = render_mixed_text(
                 "Loading logo...",
@@ -230,7 +326,10 @@ class BandDetailsScene(Scene):
                 "primary",
                 self.color,
             )
-            screen.blit(loading_surface, (content_x, content_y + 20))
+            # Position where title would be
+            logo_x = margin_left + 35 + 24
+            border_y = title_card_y_adjusted
+            screen.blit(loading_surface, (logo_x, border_y - loading_surface.get_height() // 2))
 
         # Draw scanlines and footer
         draw_scanlines(screen)

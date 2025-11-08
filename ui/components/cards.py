@@ -48,6 +48,10 @@ def draw_card(
     border_width = card_settings.get("border", 6)
     padding = card_settings.get("padding", 24)
 
+    # Check if border should be drawn at all
+    # If border_solid is explicitly False, skip drawing border entirely
+    skip_border = border_solid is False
+
     # Use overrides if provided, otherwise use layout defaults
     if border_solid is None:
         border_solid = card_settings.get("border_solid", "top")  # 'top' or 'bottom'
@@ -63,23 +67,24 @@ def draw_card(
     border_color_name = card_settings.get("border_color", "primary")
     border_color = tuple(theme["style"]["colors"][border_color_name])
 
-    # Draw card border with gradient fade
-    if border_fade_pct > 0:
-        _draw_card_border_with_fade(
-            surface,
-            x,
-            y,
-            width,
-            height,
-            border_width,
-            border_color,
-            border_solid,
-            border_fade_pct,
-            border_height_pct,
-        )
-    else:
-        # Simple solid border
-        pygame.draw.rect(surface, border_color, (x, y, width, height), border_width)
+    # Draw card border with gradient fade (only if not skipping)
+    if not skip_border:
+        if border_fade_pct > 0:
+            _draw_card_border_with_fade(
+                surface,
+                x,
+                y,
+                width,
+                height,
+                border_width,
+                border_color,
+                border_solid,
+                border_fade_pct,
+                border_height_pct,
+            )
+        else:
+            # Simple solid border
+            pygame.draw.rect(surface, border_color, (x, y, width, height), border_width)
 
     # Return content area (inside padding)
     content_x = x + padding
@@ -327,6 +332,8 @@ def draw_title_card_container(
     title: str,
     theme: dict = None,
     title_y_adjustment: int = 0,
+    skip_top_border: bool = False,
+    skip_japanese_adjustment: bool = False,
     **overrides,
 ) -> dict:
     """Draw a full-width title card container for 1-column layouts.
@@ -368,7 +375,7 @@ def draw_title_card_container(
     # Move entire card up 21px when in Japanese mode (card-level adjustment)
     from core.localization import get_language
 
-    if get_language() == "jp":
+    if get_language() == "jp" and not skip_japanese_adjustment:
         y -= 21
 
     # Get card config
@@ -408,13 +415,14 @@ def draw_title_card_container(
 
     # For Japanese, adjust title Y position based on height difference
     current_lang = get_language()
-    if current_lang == "jp":
+    if current_lang == "jp" and not skip_japanese_adjustment:
         height_diff = title_height - english_height
         title_y_offset = -(height_diff // 2 + 13)
     else:
         title_y_offset = 0
 
     # Draw card border with fade
+    # If skip_top_border is True, don't draw border at all (pass False)
     draw_card(
         surface,
         x,
@@ -422,7 +430,7 @@ def draw_title_card_container(
         width,
         height,
         theme=theme,
-        border_solid="top",
+        border_solid="top" if not skip_top_border else False,
         border_fade_pct=border_fade_pct,
         border_height_pct=border_height_pct,
     )
@@ -431,13 +439,14 @@ def draw_title_card_container(
     title_x = x + 35 + 24  # 35px border + 24px gap from left edge
     title_y = y - title_overlap + title_y_offset + title_y_adjustment
 
-    # Draw background behind title to create gaps
-    bg_color = tuple(style["colors"]["background"])
-    gap_rect = pygame.Rect(x + 35, y - border_width, title_width + 48, border_width * 2)
-    pygame.draw.rect(surface, bg_color, gap_rect, 0)
+    # Draw background behind title to create gaps (only if not skipping top border)
+    if not skip_top_border:
+        bg_color = tuple(style["colors"]["background"])
+        gap_rect = pygame.Rect(x + 35, y - border_width, title_width + 48, border_width * 2)
+        pygame.draw.rect(surface, bg_color, gap_rect, 0)
 
-    # Draw the title
-    surface.blit(title_surface, (title_x, title_y))
+        # Draw the title
+        surface.blit(title_surface, (title_x, title_y))
 
     # Calculate layout positions
     # Use actual title position + ENGLISH font height for consistent spacing
