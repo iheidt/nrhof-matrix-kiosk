@@ -354,7 +354,7 @@ def main():
         start_webflow_refresh(components["webflow_cache_manager"])
 
     # Execute APP_READY hooks
-    execute_hooks(LifecyclePhase.APP_READY, components=components, config=cfg.to_dict())
+    execute_hooks(LifecyclePhase.APP_READY, components=components, config=cfg)
 
     # Main game loop
     scene_manager = components["scene_manager"]

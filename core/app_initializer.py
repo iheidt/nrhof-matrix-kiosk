@@ -78,11 +78,11 @@ def initialize_renderer(cfg):
     Returns:
         tuple: (renderer, screen, logger)
     """
-    logger = get_logger("kiosk", cfg.to_dict())
+    logger = get_logger("kiosk", cfg)
 
     init_pygame_env()
 
-    renderer = create_renderer(cfg.to_dict())
+    renderer = create_renderer(cfg)
     renderer.initialize()
     screen = renderer.get_surface()
 
@@ -104,7 +104,7 @@ def initialize_fonts(cfg, logger):
     """
     from ui.fonts import init_custom_fonts
 
-    init_custom_fonts(cfg.to_dict())
+    init_custom_fonts(cfg)
     logger.info("Custom fonts initialized")
 
 
@@ -123,9 +123,9 @@ def create_app_components(cfg, screen):
     voice_router = VoiceRouter()
     intent_router = IntentRouter()
     voice_engine = VoiceEngine(voice_router)
-    scene_manager = SceneManager(screen, cfg.to_dict())
+    scene_manager = SceneManager(screen, cfg)
     app_context = AppContext(
-        cfg.to_dict(),
+        cfg,
         scene_manager,
         voice_router,
         voice_engine,
@@ -140,7 +140,7 @@ def create_app_components(cfg, screen):
 
     # Initialize Webflow cache manager
     webflow_cache_manager = None
-    webflow_client = create_webflow_client(cfg.to_dict(), logger)
+    webflow_client = create_webflow_client(cfg, logger)
     if webflow_client:
         cache = WebflowCache(logger=logger)
         webflow_cache_manager = WebflowCacheManager(webflow_client, cache, logger)
@@ -171,7 +171,7 @@ def start_workers(cfg, voice_engine=None):
         dict: Dictionary of workers
     """
     logger = get_logger("app_initializer")
-    config_dict = cfg.to_dict()
+    config_dict = cfg
 
     # Audio worker (always runs)
     audio_worker = AudioWorker(config_dict)

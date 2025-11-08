@@ -37,7 +37,7 @@ def load_config(config_path: str = "config.yaml") -> dict[str, Any]:
         _apply_dev_overrides(config, config["dev_overrides"])
 
     # Validate config if STRICT_CONFIG is set
-    if os.getenv("STRICT_CONFIG"):
+    if os.getenv("STRICT_CONFIG", "1") != "0":
         try:
             from core.config_schema import config_to_dict, validate_config
 
