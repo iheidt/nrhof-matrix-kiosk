@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Icon and SVG loading utilities."""
+
 from io import BytesIO
 from pathlib import Path
 

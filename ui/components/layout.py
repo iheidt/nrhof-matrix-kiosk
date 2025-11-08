@@ -137,7 +137,7 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140), show_settings:
         dim_color = tuple(int(dim_color_hex[i : i + 2], 16) for i in (1, 3, 5))
     else:
         dim_color = (
-            tuple(dim_color_hex) if isinstance(dim_color_hex, (list, tuple)) else (44, 64, 91)
+            tuple(dim_color_hex) if isinstance(dim_color_hex, list | tuple) else (44, 64, 91)
         )
     pico_size = style["typography"]["fonts"]["pico"]
     version_content = f"v{__version__}"

@@ -59,7 +59,7 @@ class RendererBase(ABC):
         """
         pass
 
-    def render(self, frame_state: FrameState):
+    def render(self, frame_state: FrameState):  # noqa: B027
         """Render a complete frame from declarative state.
 
         Optional method. Provides declarative rendering API.
@@ -73,7 +73,7 @@ class RendererBase(ABC):
         """
         pass
 
-    def present(self):
+    def present(self):  # noqa: B027
         """Present the rendered frame to the display.
 
         Optional method. Some renderers auto-present (e.g., immediate mode).

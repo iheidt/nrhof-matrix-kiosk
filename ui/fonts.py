@@ -29,6 +29,7 @@ Internal:
     - _first_available_font(): Find first available system font
     - _render_mixed_text_cached(): Cached mixed-font rendering
 """
+
 from functools import lru_cache
 from pathlib import Path
 

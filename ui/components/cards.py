@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Card components - basic cards and title cards."""
+
 import pygame
 from pygame import Surface
 

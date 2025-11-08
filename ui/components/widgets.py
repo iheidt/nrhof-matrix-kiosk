@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Widget components - timeclock, d20, now playing."""
+
 import os
 import time
 from pathlib import Path
@@ -112,7 +113,7 @@ def draw_timeclock(
         dim_color = tuple(int(dim_color_hex[i : i + 2], 16) for i in (1, 3, 5))
     else:
         dim_color = (
-            tuple(dim_color_hex) if isinstance(dim_color_hex, (list, tuple)) else (44, 64, 91)
+            tuple(dim_color_hex) if isinstance(dim_color_hex, list | tuple) else (44, 64, 91)
         )
 
     # Get timeclock settings from layout
@@ -257,7 +258,7 @@ def draw_d20(
     if isinstance(dim_hex, str) and dim_hex.startswith("#"):
         dim_color = tuple(int(dim_hex[i : i + 2], 16) for i in (1, 3, 5))
     else:
-        dim_color = tuple(dim_hex) if isinstance(dim_hex, (list, tuple)) else (44, 64, 91)
+        dim_color = tuple(dim_hex) if isinstance(dim_hex, list | tuple) else (44, 64, 91)
 
     # Calculate space for d20 (leaving room for speech synth + margin)
     speech_height = 40

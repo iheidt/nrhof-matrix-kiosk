@@ -4,6 +4,7 @@ Application State - Thread-safe shared state for multi-threaded architecture.
 
 State is read by render loop and written by workers.
 """
+
 import threading
 import time
 from dataclasses import dataclass, field

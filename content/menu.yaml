@@ -3,12 +3,12 @@
 items:
   - id: "nr_38"
     label_key: "menu.option1"  # Localized: NR-38
-    
+
   - id: "nr_18"
     label_key: "menu.option2"  # Localized: NR-18
-    
+
   - id: "visualizer"
     label_key: "menu.option3"  # Localized: visualizer
-    
+
   - id: "fate_maker"
     label_key: "menu.option4"  # Localized: fate maker

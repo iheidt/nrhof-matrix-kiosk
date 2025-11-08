@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Scene registry - centralized scene definitions and registration."""
 
-
 from core.app_context import AppContext
 from scenes.scene_factory import SceneDefinition, SceneFactory
 from scenes.scene_manager import SceneManager

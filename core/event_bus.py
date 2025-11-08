@@ -4,6 +4,7 @@ Event Bus - Lock-free event dispatcher for multi-threaded architecture.
 
 Events flow from workers to the main render loop without blocking.
 """
+
 import queue
 import threading
 import time

@@ -188,7 +188,9 @@ class SongRecognitionWorker(BaseWorker):
             print(
                 f"[SONG] WAV: {len(wav_bytes)} bytes, {self.sample_rate}Hz, 16-bit, mono, {len(audio_data)/2/self.sample_rate:.1f}s",
             )
-            self.logger.debug("Audio buffer collected", frames=len(frames), size_bytes=len(wav_bytes))
+            self.logger.debug(
+                "Audio buffer collected", frames=len(frames), size_bytes=len(wav_bytes)
+            )
 
             return wav_bytes
 

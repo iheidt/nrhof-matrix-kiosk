@@ -3,6 +3,7 @@
 Centralized audio source module.
 Provides get_audio_frame() that works on Mac (microphone) or Pi (fallback to sine wave).
 """
+
 import atexit
 import math
 

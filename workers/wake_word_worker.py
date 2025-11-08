@@ -39,7 +39,9 @@ class WakeWordWorker(BaseWorker):
 
         # Validation
         if not self.access_key:
-            self.logger.warning("Picovoice access key not configured. Wake word detection disabled.")
+            self.logger.warning(
+                "Picovoice access key not configured. Wake word detection disabled."
+            )
             self.enabled = False
             return
 

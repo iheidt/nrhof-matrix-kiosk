@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Text rendering strategies for different languages and font requirements."""
+
 import re
 from abc import ABC, abstractmethod
 

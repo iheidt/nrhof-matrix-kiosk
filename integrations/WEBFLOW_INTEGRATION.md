@@ -186,7 +186,7 @@ nr18_bands = manager.get_bands(filter_list=NR18_LIST_UUID)
 
 Cache Management
 Cache Behavior
-Location: 
+Location:
 runtime/webflow_cache/
 Format: JSON files per collection
 Staleness: 24 hours (configurable)
@@ -227,9 +227,9 @@ Result: Well within limits! 🎉
 
 Debugging
 Enable Debug Logging
-In 
+In
 webflow_cache.py
-, add to 
+, add to
 _fetch_all_pages()
 :_
 if collection_name == 'bands' and offset == 0:
@@ -239,9 +239,9 @@ if collection_name == 'bands' and offset == 0:
     for key, val in first['fieldData'].items():
         self.logger.info(f"  {key}: {val}")
 
-In 
+In
 webflow_cache.py
-, add to 
+, add to
 get_bands()
 :
 unique_vals = set(b.get('fieldData', {}).get('nerd-rock-list') for b in bands)
@@ -252,7 +252,7 @@ Problem: Filter returns 0 results
 Solution: You're using a string instead of UUID. Check logs for actual UUID value.
 
 Problem: Cache not refreshing
-Solution: Delete 
+Solution: Delete
 runtime/webflow_cache/metadata.json
  or set force=True
 
@@ -283,7 +283,7 @@ Manual Refresh Hotkey: Force refresh without restarting (e.g., F5)
 Cache Prewarming: Fetch on first install before app starts
 Adding New Collections
 Add collection ID to .env
-Add to 
+Add to
 WebflowCacheManager.refresh_all()
 Add getter method (e.g., get_venues())
 Document field structure here
@@ -308,5 +308,3 @@ for band in bands:
 Last Updated: 2025-11-06
 Webflow API Version: v2
 Cache Version: 1.0
-
-

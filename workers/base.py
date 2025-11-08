@@ -100,7 +100,7 @@ class BaseWorker(ABC):
         """
         pass
 
-    def _cleanup(self):
+    def _cleanup(self):  # noqa: B027
         """Optional cleanup hook called during stop().
 
         Subclasses can override to release resources.

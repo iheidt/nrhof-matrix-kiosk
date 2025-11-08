@@ -26,4 +26,3 @@ fonts:
   mono_bold: "JetBrainsMono-Bold.ttf"
   sans_bold: "Inter-Bold.ttf"
   directory: "assets/fonts"
-

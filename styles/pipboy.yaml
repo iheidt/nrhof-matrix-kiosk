@@ -7,7 +7,7 @@ colors:
   background: "#080610"     # Deep purple blue
   dim: "#2C405B"            # Dim blue
   accent: "#C4F3FF"         # Powder blue
-  
+
   # Card colors
   card_bg: "#0A0214"        # Very dark purple
   card_border: "#550CAD"    # Barney purple
@@ -18,7 +18,7 @@ typography:
   primary_font: "IBMPlexMono-Regular.ttf"    # Main UI font
   secondary_font: "miland.otf"               # Headings, titles
   label_font: "Compadre-Extended.otf"        # Labels, buttons
-  
+
   # Font size scale
   fonts:
     display: 124
@@ -28,14 +28,14 @@ typography:
     pico: 18
     label: 16
 
-    
+
   # Line height ratios
   line_height:
     display: 1.05
     title: 1.10
     body: 1.25
     micro: 1.25
-  
+
   # Defaults (to be delete)
   default_font_size: 32
   default_line_height: 60

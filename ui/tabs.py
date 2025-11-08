@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Minimal tabs component."""
 
-
 import pygame
 
 

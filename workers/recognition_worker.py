@@ -4,6 +4,7 @@ Recognition Worker - Background thread for music recognition.
 
 Placeholder for future integration with services like Shazam, ACRCloud, etc.
 """
+
 import time
 
 import numpy as np

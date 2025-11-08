@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Button components."""
+
 import pygame
 from pygame import Surface
 

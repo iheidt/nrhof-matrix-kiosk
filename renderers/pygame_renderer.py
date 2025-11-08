@@ -5,7 +5,6 @@ Pygame renderer implementation.
 Current rendering backend using pygame.
 """
 
-
 import pygame
 
 from .base import RendererBase

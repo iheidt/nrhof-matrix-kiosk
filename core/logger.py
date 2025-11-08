@@ -2,6 +2,7 @@
 """
 Structured logging with JSON lines format and rotation.
 """
+
 import json
 import logging
 import logging.handlers

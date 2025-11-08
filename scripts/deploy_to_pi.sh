@@ -35,7 +35,7 @@ if [ "$SERVICE_EXISTS" -gt 0 ]; then
     echo "🔄 Restarting kiosk service..."
     ssh "$PI_TARGET" "sudo systemctl restart nrhof-matrix-kiosk.service"
     echo "✅ Service restarted"
-    
+
     # Show status
     echo ""
     echo "📊 Service status:"

@@ -4,6 +4,7 @@ Audio Worker - Background thread for audio monitoring and recognition.
 
 Monitors audio levels, detects music presence, and triggers recognition.
 """
+
 import time
 
 import numpy as np

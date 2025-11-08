@@ -13,26 +13,26 @@ jobs:
         python-version: ["3.11"]
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
-      
+
       - name: Lint with ruff
         run: ruff check .
-      
+
       - name: Format check with black
         run: black --check .
-      
+
       - name: Type check with mypy
         run: mypy . || echo "⚠️  Type check warnings (non-blocking)"
         continue-on-error: true
-      
+
       - name: Run tests
         run: pytest -q || echo "⚠️  No tests yet"
         continue-on-error: true
@@ -41,20 +41,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pygame
-      
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      
+
       - name: Smoke test (import check)
         run: python -c "import core, scenes, routing, workers, ui, renderers; print('✅ All imports successful')"
