@@ -160,3 +160,113 @@ def get_event_tap() -> EventTap:
 def get_crash_guard() -> CrashGuard:
     """Get global crash guard instance."""
     return _crash_guard
+
+
+class PerformanceMonitor:
+    """Monitor performance metrics like FPS and memory."""
+
+    def __init__(self):
+        """Initialize performance monitor."""
+        self.frame_times = []
+        self.max_samples = 300  # Keep last 5 seconds at 60 FPS
+        self.scene_transitions = []
+        self.initial_memory = None
+
+    def record_frame_time(self, dt: float):
+        """Record frame time.
+
+        Args:
+            dt: Delta time in seconds
+        """
+        self.frame_times.append(dt)
+        if len(self.frame_times) > self.max_samples:
+            self.frame_times.pop(0)
+
+    def get_fps_stats(self) -> dict:
+        """Get FPS statistics.
+
+        Returns:
+            Dict with avg_fps, p99_frame_time_ms
+        """
+        if not self.frame_times:
+            return {"avg_fps": 0, "p99_frame_time_ms": 0}
+
+        avg_dt = sum(self.frame_times) / len(self.frame_times)
+        avg_fps = 1.0 / avg_dt if avg_dt > 0 else 0
+
+        # Calculate 99th percentile frame time
+        sorted_times = sorted(self.frame_times)
+        p99_idx = int(len(sorted_times) * 0.99)
+        p99_frame_time = sorted_times[p99_idx] if sorted_times else 0
+
+        return {
+            "avg_fps": round(avg_fps, 1),
+            "p99_frame_time_ms": round(p99_frame_time * 1000, 1),
+        }
+
+    def record_scene_transition(self, from_scene: str, to_scene: str):
+        """Record scene transition with memory snapshot.
+
+        Args:
+            from_scene: Scene transitioning from
+            to_scene: Scene transitioning to
+        """
+        import psutil
+
+        process = psutil.Process()
+        memory_mb = process.memory_info().rss / 1024 / 1024
+
+        if self.initial_memory is None:
+            self.initial_memory = memory_mb
+
+        memory_delta = memory_mb - self.initial_memory
+        fps_stats = self.get_fps_stats()
+
+        transition = {
+            "from": from_scene,
+            "to": to_scene,
+            "avg_fps": fps_stats["avg_fps"],
+            "p99_frame_time_ms": fps_stats["p99_frame_time_ms"],
+            "memory_mb": round(memory_mb, 1),
+            "memory_delta_mb": round(memory_delta, 1),
+        }
+
+        self.scene_transitions.append(transition)
+
+        # Log transition
+        print(
+            f"📊 Scene: {from_scene} → {to_scene} | "
+            f"FPS: {fps_stats['avg_fps']} | "
+            f"P99: {fps_stats['p99_frame_time_ms']}ms | "
+            f"Mem: {memory_delta:+.1f}MB"
+        )
+
+    def get_report(self) -> str:
+        """Get performance report.
+
+        Returns:
+            Formatted performance report
+        """
+        if not self.scene_transitions:
+            return "No scene transitions recorded"
+
+        report = ["Performance Report:", "=" * 80]
+
+        for t in self.scene_transitions:
+            report.append(
+                f"{t['from']:20} → {t['to']:20} | "
+                f"FPS: {t['avg_fps']:5.1f} | "
+                f"P99: {t['p99_frame_time_ms']:5.1f}ms | "
+                f"Mem: {t['memory_delta_mb']:+6.1f}MB"
+            )
+
+        return "\n".join(report)
+
+
+# Global instance
+_performance_monitor = PerformanceMonitor()
+
+
+def get_performance_monitor() -> PerformanceMonitor:
+    """Get global performance monitor instance."""
+    return _performance_monitor

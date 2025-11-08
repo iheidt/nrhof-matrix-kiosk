@@ -3,7 +3,7 @@
 from typing import Any, Literal
 
 try:
-    from pydantic import BaseModel, Field, field_validator
+    from pydantic import BaseModel, ConfigDict, Field, field_validator
 except ImportError:
     # Fallback if pydantic not installed
     BaseModel = object  # type: ignore
@@ -84,6 +84,8 @@ class ColorsConfig(BaseModel):
 class AppConfig(BaseModel):
     """Top-level application configuration."""
 
+    model_config = ConfigDict(extra="allow")  # Allow extra fields for flexibility
+
     title: str = "NRHOF Matrix Kiosk"
     render: RenderConfig = Field(default_factory=RenderConfig)
     audio: AudioConfig = Field(default_factory=AudioConfig)
@@ -91,11 +93,6 @@ class AppConfig(BaseModel):
     menu: MenuConfig = Field(default_factory=MenuConfig)
     fonts: FontsConfig = Field(default_factory=FontsConfig)
     dev_overrides: dict[str, Any] | None = None
-
-    class Config:
-        """Pydantic config."""
-
-        extra = "allow"  # Allow extra fields for flexibility
 
 
 def validate_config(config_dict: dict[str, Any]) -> AppConfig:

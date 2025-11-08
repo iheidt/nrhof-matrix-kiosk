@@ -28,7 +28,7 @@ from core.app_initializer import (
 from core.config_loader import load_config
 from core.event_bus import EventType
 from core.localization import t
-from core.observability import get_crash_guard, get_event_tap
+from core.observability import get_crash_guard, get_event_tap, get_performance_monitor
 
 # Global state for Now Playing overlay
 _now_playing_marquee = None
@@ -381,10 +381,14 @@ def main():
 
     # Wrap main loop in crash guard
     crash_guard = get_crash_guard()
+    perf_monitor = get_performance_monitor()
     try:
         while running:
             frame_start = pygame.time.get_ticks()
             dt = clock.tick(60) / 1000.0  # Delta time in seconds
+
+            # Record frame time for performance monitoring
+            perf_monitor.record_frame_time(dt)
 
             # Execute PRE_FRAME hooks
             execute_hooks(LifecyclePhase.APP_PRE_FRAME, dt=dt, frame_count=frame_count)
@@ -465,6 +469,9 @@ def main():
         f"Final metrics: FPS={metrics['fps']}, Events processed={bus_metrics['events_processed']}",
     )
     print(f"Lifecycle: Hooks executed={lifecycle_metrics['hooks_executed']}")
+
+    # Print performance report
+    print("\n" + perf_monitor.get_report())
 
     # Execute APP_CLEANUP hooks
     execute_hooks(LifecyclePhase.APP_CLEANUP)

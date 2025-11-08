@@ -305,6 +305,13 @@ class SceneManager:
             pause_current: If True, pause current scene instead of exiting (default: False)
             use_transition: If True, use slide transition (default: True)
         """
+        # Record scene transition for performance monitoring
+        from core.observability import get_performance_monitor
+
+        perf_monitor = get_performance_monitor()
+        from_scene = self.current_scene_name or "None"
+        perf_monitor.record_scene_transition(from_scene, name)
+
         # Ensure scene is loaded (lazy loading)
         self._ensure_loaded(name)
 
