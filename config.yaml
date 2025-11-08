@@ -1,5 +1,16 @@
 # NRHOF Matrix Kiosk Configuration
 
+# Development overrides (activated when NRHOF_DEV=1)
+dev_overrides:
+  window:
+    fullscreen: false
+    width: 1280
+    height: 720
+  flow:
+    auto_cycle: true       # splash -> intro -> menu
+  audio:
+    muted: true
+
 # Render settings
 render:
   backend: "pygame"          # pygame (current) | swift (future Metal renderer)
