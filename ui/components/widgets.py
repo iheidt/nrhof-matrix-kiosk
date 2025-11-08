@@ -647,13 +647,13 @@ def draw_now_playing(
         # Render full text with localization support
         from ui.fonts import render_localized_text
 
-        # Use render_localized_text with IBM Plex Mono Italic for English
+        # Use render_localized_text with automatic font detection
+        # English chars use IBM Plex Mono Italic, Japanese chars use Noto Sans JP
         line1_surface = render_localized_text(
             line1,
             line1_font_size,
             "primary",
             title_color,
-            english_font=line1_font,
         )
         line1_width = line1_surface.get_width()
 
@@ -687,11 +687,15 @@ def draw_now_playing(
                 english_font=line1_font,
             )
 
-    # Calculate content height
-    content_height = padding  # Top padding
-    if line1_surface:
-        content_height += line1_surface.get_height()
-    content_height += padding - 28  # Bottom padding (reduced by 28px)
+    # Fixed content height (set to match Japanese text height for consistency)
+    # This prevents the container from resizing when switching between English and Japanese
+    top_padding = 5
+    bottom_padding = 22
+    # Use fixed height based on maximum text height (Japanese characters)
+    # This ensures the box doesn't shift in size during state transitions
+    content_height = (
+        top_padding + 58 + bottom_padding
+    )  # 5 + 58 (max Japanese text height) + 13 = 76
 
     # Total component height
     total_height = (calculated_border_y - title_y) + border_width + content_height
@@ -724,9 +728,13 @@ def draw_now_playing(
     # Draw title
     surface.blit(title_surface, (x, title_y))
 
-    # Draw body lines (add 10px extra padding at top)
+    # Draw body lines with explicit top padding
     text_x = x + padding
-    text_y = content_y + 10
+    if line1_surface:
+        # Use explicit top padding (20px)
+        text_y = content_y + top_padding
+    else:
+        text_y = content_y + top_padding
 
     if line1_surface:
         # Create a clipping rect for marquee scrolling

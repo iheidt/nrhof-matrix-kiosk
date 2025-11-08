@@ -466,22 +466,16 @@ def render_localized_text(
         custom_font = pygame.font.Font('path/to/font.ttf', 48)
         surface = render_localized_text('listening', 48, 'primary', (233, 30, 99), english_font=custom_font)
     """
-    from core.localization import get_language
 
     from .text_renderer import CharacterMixedFontTextRenderer, contains_japanese
-
-    # Get current language
-    language = get_language()
 
     # Check if text contains Japanese characters
     has_japanese = contains_japanese(text)
 
-    # If in Japanese language mode, use the standard mixed text rendering (numbers in English)
-    if language == "jp":
-        return render_mixed_text(text, size, font_type, color, antialias)
-
-    # If text contains Japanese characters but we're not in Japanese mode,
-    # use character-level mixed font rendering
+    # If text contains Japanese characters, use character-level mixed font rendering
+    # This works regardless of UI language setting and ensures:
+    # - English/ASCII text uses the appropriate English font (IBM Plex Mono, etc.)
+    # - Japanese text uses Noto Sans JP
     if has_japanese:
         # Create a Japanese font loader that returns Noto Sans JP
         def japanese_font_loader(size: int, font_type: str, text: str = None) -> pygame.font.Font:
@@ -500,6 +494,22 @@ def render_localized_text(
         def english_font_loader_wrapper(size: int, font_type: str) -> pygame.font.Font:
             if english_font:
                 return english_font
+            # Always use English fonts, not localized fonts
+            # Map font_type to English font files
+            font_map = {
+                "primary": "IBMPlexMono-Italic.ttf",  # Primary is italic for body text
+                "secondary": "miland.otf",
+                "label": "Compadre-Extended.otf",
+            }
+            font_filename = font_map.get(font_type, "IBMPlexMono-Regular.ttf")
+            project_root = Path(__file__).parent.parent
+            font_path = project_root / "assets" / "fonts" / font_filename
+            if font_path.exists():
+                try:
+                    return pygame.font.Font(str(font_path), size)
+                except Exception as e:
+                    print(f"Failed to load English font {font_filename}: {e}")
+            # Fallback to theme font
             return get_theme_font(size, font_type)
 
         # Use character-level mixed font renderer
@@ -510,5 +520,22 @@ def render_localized_text(
     if english_font:
         return english_font.render(text, antialias, color)
     else:
+        # Always use English fonts, not localized fonts
+        # Map font_type to English font files
+        font_map = {
+            "primary": "IBMPlexMono-Italic.ttf",  # Primary is italic for body text
+            "secondary": "miland.otf",
+            "label": "Compadre-Extended.otf",
+        }
+        font_filename = font_map.get(font_type, "IBMPlexMono-Regular.ttf")
+        project_root = Path(__file__).parent.parent
+        font_path = project_root / "assets" / "fonts" / font_filename
+        if font_path.exists():
+            try:
+                font = pygame.font.Font(str(font_path), size)
+                return font.render(text, antialias, color)
+            except Exception as e:
+                print(f"Failed to load English font {font_filename}: {e}")
+        # Fallback to theme font
         font = get_theme_font(size, font_type)
         return font.render(text, antialias, color)
