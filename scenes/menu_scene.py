@@ -3,7 +3,7 @@ import time
 
 import pygame
 
-from core.event_bus import EventType, get_event_bus
+from core.event_bus import EventType
 from core.localization import get_language
 from core.theme_loader import get_theme_loader
 from renderers import FrameState
@@ -47,7 +47,12 @@ class MenuScene(Scene):
         self.wake_word_indicator_duration = 2.0  # Show red dot for 2 seconds
 
         # Subscribe to wake word events
-        event_bus = get_event_bus()
+        # Get event bus from app_context if available, otherwise use global
+        event_bus = getattr(self.ctx, "event_bus", None) if self.ctx else None
+        if event_bus is None:
+            from core.event_bus import get_event_bus
+
+            event_bus = get_event_bus()
         event_bus.subscribe(EventType.WAKE_WORD_DETECTED, self._on_wake_word_detected)
 
     def _on_wake_word_detected(self, **kwargs):

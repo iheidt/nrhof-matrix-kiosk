@@ -142,11 +142,12 @@ _current_language = "en"
 _language_change_listeners: list[Callable[[str, str], None]] = []
 
 
-def set_language(lang: str):
+def set_language(lang: str, event_bus=None):
     """Set the current language and notify listeners.
 
     Args:
         lang: Language code ('en', 'jp', etc.)
+        event_bus: Optional event bus instance (defaults to global)
     """
     global _current_language
     old_lang = _current_language
@@ -165,8 +166,8 @@ def set_language(lang: str):
         try:
             from core.event_bus import EventType, get_event_bus
 
-            event_bus = get_event_bus()
-            event_bus.emit(
+            bus = event_bus or get_event_bus()
+            bus.emit(
                 EventType.LANGUAGE_CHANGED,
                 {"old_language": old_lang, "new_language": _current_language},
                 source="localization",

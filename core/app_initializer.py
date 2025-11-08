@@ -134,6 +134,10 @@ def create_app_components(cfg, screen):
     event_bus = get_event_bus()
     app_state = get_app_state()
 
+    # Attach event_bus and app_state to app_context for dependency injection
+    app_context.event_bus = event_bus
+    app_context.app_state = app_state
+
     # Initialize Webflow cache manager
     webflow_cache_manager = None
     webflow_client = create_webflow_client(cfg.to_dict(), logger)

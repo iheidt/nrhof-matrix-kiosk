@@ -4,30 +4,29 @@ Recognition Worker - Background thread for music recognition.
 
 Placeholder for future integration with services like Shazam, ACRCloud, etc.
 """
-import threading
 import time
 
 import numpy as np
 
 from audio_source import get_audio_frame, get_sample_rate
 from core.app_state import TrackInfo, get_app_state
-from core.event_bus import EventType, get_event_bus
-from core.logger import get_logger
+from core.event_bus import EventType
+
+from .base import BaseWorker
 
 
-class RecognitionWorker:
+class RecognitionWorker(BaseWorker):
     """Background worker for music recognition."""
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, event_bus=None):
         """Initialize recognition worker.
 
         Args:
             config: Configuration dictionary
+            event_bus: Optional event bus instance (defaults to global)
         """
-        self.config = config
-        self.event_bus = get_event_bus()
+        super().__init__(config, event_bus=event_bus, logger_name="recognition_worker")
         self.app_state = get_app_state()
-        self.logger = get_logger()
 
         # Configuration
         recognizer_config = config.get("recognizer", {})
@@ -37,8 +36,6 @@ class RecognitionWorker:
         self.same_track_window = recognizer_config.get("same_track_window", 30.0)
 
         # State
-        self._running = False
-        self._thread: threading.Thread | None = None
         self._recognition_buffer = []
         self.buffer_duration = 10.0  # Seconds of audio to collect
         self.sample_rate = get_sample_rate()
@@ -48,44 +45,7 @@ class RecognitionWorker:
         if not self.enabled:
             self.logger.info("Recognition worker disabled by config")
             return
-
-        if self._running:
-            return
-
-        # Execute lifecycle hook
-        try:
-            from core.lifecycle import LifecyclePhase, execute_hooks
-
-            execute_hooks(LifecyclePhase.WORKER_START, worker_name="RecognitionWorker", worker=self)
-        except ImportError:
-            pass
-
-        self._running = True
-        self._thread = threading.Thread(
-            target=self._worker_loop,
-            daemon=True,
-            name="RecognitionWorker",
-        )
-        self._thread.start()
-        self.logger.info("Recognition worker started")
-
-    def stop(self):
-        """Stop the recognition worker thread."""
-        if not self._running:
-            return
-
-        # Execute lifecycle hook
-        try:
-            from core.lifecycle import LifecyclePhase, execute_hooks
-
-            execute_hooks(LifecyclePhase.WORKER_STOP, worker_name="RecognitionWorker", worker=self)
-        except ImportError:
-            pass
-
-        self._running = False
-        if self._thread:
-            self._thread.join(timeout=2.0)
-        self.logger.info("Recognition worker stopped")
+        super().start()
 
     def _worker_loop(self):
         """Main worker loop - runs in background thread."""
