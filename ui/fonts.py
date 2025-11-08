@@ -423,9 +423,13 @@ def render_localized_text(
 ) -> pygame.Surface:
     """Render text with automatic localization support.
 
-    This is a convenience wrapper that automatically uses mixed-font rendering
-    for Japanese text (numbers in English font, other characters in Japanese font)
-    and standard rendering for English text.
+    This function automatically detects Japanese characters in the text and uses
+    appropriate fonts:
+    - Japanese characters (Hiragana, Katakana, Kanji) -> Noto Sans JP
+    - English/ASCII characters -> IBM Plex Mono (or custom font)
+
+    This allows mixed-language text like "ura • 椎名林檎" to render correctly
+    with each portion using the appropriate font.
 
     Args:
         text: Text to render
@@ -442,6 +446,7 @@ def render_localized_text(
         # Automatically handles both English and Japanese
         surface = render_localized_text('listening', 48, 'primary', (233, 30, 99))
         surface = render_localized_text('音楽認識中', 48, 'primary', (233, 30, 99))
+        surface = render_localized_text('ura • 椎名林檎', 48, 'primary', (233, 30, 99))
 
         # With custom English font (e.g., IBM Plex Mono Italic)
         custom_font = pygame.font.Font('path/to/font.ttf', 48)
@@ -449,16 +454,47 @@ def render_localized_text(
     """
     from core.localization import get_language
 
+    from .text_renderer import CharacterMixedFontTextRenderer, contains_japanese
+
     # Get current language
     language = get_language()
 
-    # For Japanese, use mixed text rendering
+    # Check if text contains Japanese characters
+    has_japanese = contains_japanese(text)
+
+    # If in Japanese language mode, use the standard mixed text rendering (numbers in English)
     if language == "jp":
         return render_mixed_text(text, size, font_type, color, antialias)
+
+    # If text contains Japanese characters but we're not in Japanese mode,
+    # use character-level mixed font rendering
+    if has_japanese:
+        # Create a Japanese font loader that returns Noto Sans JP
+        def japanese_font_loader(size: int, font_type: str, text: str = None) -> pygame.font.Font:
+            # Map to Noto Sans JP Regular for all Japanese text
+            project_root = Path(__file__).parent.parent
+            jp_font_path = project_root / "assets" / "fonts" / "NotoSansJP-Regular.ttf"
+            if jp_font_path.exists():
+                try:
+                    return pygame.font.Font(str(jp_font_path), size)
+                except Exception as e:
+                    print(f"Failed to load Japanese font: {e}")
+            # Fallback to theme font
+            return get_theme_font(size, font_type)
+
+        # Create English font loader (uses custom font or theme font)
+        def english_font_loader_wrapper(size: int, font_type: str) -> pygame.font.Font:
+            if english_font:
+                return english_font
+            return get_theme_font(size, font_type)
+
+        # Use character-level mixed font renderer
+        renderer = CharacterMixedFontTextRenderer(english_font_loader_wrapper, japanese_font_loader)
+        return renderer.render(text, size, font_type, color, antialias)
+
+    # No Japanese characters, use standard English rendering
+    if english_font:
+        return english_font.render(text, antialias, color)
     else:
-        # For English, use custom font if provided, otherwise use theme font
-        if english_font:
-            return english_font.render(text, antialias, color)
-        else:
-            font = get_theme_font(size, font_type)
-            return font.render(text, antialias, color)
+        font = get_theme_font(size, font_type)
+        return font.render(text, antialias, color)
