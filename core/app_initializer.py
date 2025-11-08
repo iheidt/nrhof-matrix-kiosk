@@ -46,6 +46,11 @@ def parse_arguments():
     parser.add_argument("--fullscreen", action="store_true", help="Run in fullscreen mode")
     parser.add_argument("--resolution", type=str, help="Display resolution (e.g., 1280x1024)")
     parser.add_argument("--display", type=int, help="Display index (0=primary, 1=secondary)")
+    parser.add_argument(
+        "--debug-events",
+        action="store_true",
+        help="Enable event debugging (logs all events)",
+    )
     return parser.parse_args()
 
 

@@ -28,6 +28,7 @@ from core.app_initializer import (
 from core.config_loader import load_config
 from core.event_bus import EventType
 from core.localization import t
+from core.observability import get_crash_guard, get_event_tap
 
 # Global state for Now Playing overlay
 _now_playing_marquee = None
@@ -356,6 +357,18 @@ def main():
     # Execute APP_READY hooks
     execute_hooks(LifecyclePhase.APP_READY, components=components, config=cfg)
 
+    # Enable event debugging if requested
+    if args.debug_events:
+        event_tap = get_event_tap()
+        event_tap.enable()
+
+        # Subscribe to all events for debugging
+        def debug_handler(event):
+            event_tap.tap(event.type.value, event.payload, event.source)
+
+        for event_type in EventType:
+            components["event_bus"].subscribe(event_type, debug_handler)
+
     # Main game loop
     scene_manager = components["scene_manager"]
     event_bus = components["event_bus"]
@@ -366,51 +379,67 @@ def main():
     running = True
     frame_count = 0
 
-    while running:
-        frame_start = pygame.time.get_ticks()
-        dt = clock.tick(60) / 1000.0  # Delta time in seconds
+    # Wrap main loop in crash guard
+    crash_guard = get_crash_guard()
+    try:
+        while running:
+            frame_start = pygame.time.get_ticks()
+            dt = clock.tick(60) / 1000.0  # Delta time in seconds
 
-        # Execute PRE_FRAME hooks
-        execute_hooks(LifecyclePhase.APP_PRE_FRAME, dt=dt, frame_count=frame_count)
+            # Execute PRE_FRAME hooks
+            execute_hooks(LifecyclePhase.APP_PRE_FRAME, dt=dt, frame_count=frame_count)
 
-        # Process events from event bus (non-blocking)
-        event_bus.process_events(max_events=100)
+            # Process events from event bus (non-blocking)
+            event_bus.process_events(max_events=100)
 
-        # Handle pygame events
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-                event_bus.emit(EventType.SHUTDOWN, source="main_loop")
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_q and (pygame.key.get_mods() & pygame.KMOD_CTRL):
+            # Handle pygame events
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
                     running = False
                     event_bus.emit(EventType.SHUTDOWN, source="main_loop")
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_q and (pygame.key.get_mods() & pygame.KMOD_CTRL):
+                        running = False
+                        event_bus.emit(EventType.SHUTDOWN, source="main_loop")
+                    else:
+                        scene_manager.handle_event(event)
                 else:
                     scene_manager.handle_event(event)
-            else:
-                scene_manager.handle_event(event)
 
-        # Update and draw
-        scene_manager.update(dt)
-        scene_manager.draw()
+            # Update and draw
+            scene_manager.update(dt)
+            scene_manager.draw()
 
-        # Draw global overlays (z-index +1)
-        draw_now_playing_overlay(screen, cfg)
+            # Draw global overlays (z-index +1)
+            draw_now_playing_overlay(screen, cfg)
 
-        pygame.display.flip()
+            pygame.display.flip()
 
-        # Update metrics every 60 frames
-        frame_count += 1
-        if frame_count % 60 == 0:
-            fps = clock.get_fps()
-            render_time = (pygame.time.get_ticks() - frame_start) / 1000.0
-            app_state.update_fps(fps)
-            app_state.update_render_time(render_time)
+            # Update metrics every 60 frames
+            frame_count += 1
+            if frame_count % 60 == 0:
+                fps = clock.get_fps()
+                render_time = (pygame.time.get_ticks() - frame_start) / 1000.0
+                app_state.update_fps(fps)
+                app_state.update_render_time(render_time)
 
-        # Execute POST_FRAME hooks
-        execute_hooks(LifecyclePhase.APP_POST_FRAME, dt=dt, frame_count=frame_count)
+            # Execute POST_FRAME hooks
+            execute_hooks(LifecyclePhase.APP_POST_FRAME, dt=dt, frame_count=frame_count)
 
     # Cleanup
+    except Exception as exc:
+        # Write crash report
+        crash_file = crash_guard.write_crash_report(type(exc), exc, exc.__traceback__)
+
+        # Re-raise in dev mode
+        import os
+
+        if os.getenv("DEV_MODE", "1") == "1":
+            raise
+        else:
+            print(f"Fatal error. See {crash_file} for details.")
+            sys.exit(1)
+
     print("\nShutting down...")
 
     # Execute APP_SHUTDOWN hooks
