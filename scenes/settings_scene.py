@@ -38,11 +38,11 @@ class SettingsScene(Scene):
 
     def on_enter(self):
         """Called when scene becomes active."""
-        pass
+        super().on_enter()  # Take memory snapshot
 
     def on_exit(self):
         """Called when scene is about to be replaced."""
-        pass
+        super().on_exit()  # Call parent cleanup (event handlers, caches, GC)
 
     def handle_event(self, event: pygame.event.Event):
         """Handle settings input."""

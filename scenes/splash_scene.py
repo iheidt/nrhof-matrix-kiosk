@@ -31,6 +31,7 @@ class SplashScene(Scene):
 
     def on_enter(self):
         """Initialize splash screen."""
+        super().on_enter()  # Take memory snapshot
         self._start = time.time()
         self.progress = 0.0
 
@@ -42,7 +43,7 @@ class SplashScene(Scene):
 
     def on_exit(self):
         """Clean up splash screen."""
-        pass
+        super().on_exit()  # Call parent cleanup (event handlers, caches, GC)
 
     def handle_event(self, event: pygame.event.Event):
         """Handle input events."""

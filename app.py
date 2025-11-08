@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+import time
 
 import pygame
 
@@ -363,8 +364,11 @@ def main():
     # Execute APP_READY hooks
     execute_hooks(LifecyclePhase.APP_READY, components=components, config=cfg)
 
-    # Start memory tracing for leak detection
-    start_trace()
+    # Start memory tracing for leak detection (only if profiling enabled)
+    import os
+
+    if os.getenv("ENABLE_MEMORY_PROFILING", "0") == "1":
+        start_trace()
 
     # Enable event debugging if requested
     if args.debug_events:
@@ -387,6 +391,7 @@ def main():
     clock = pygame.time.Clock()
     running = True
     frame_count = 0
+    last_gc_time = time.time()  # Track last GC time for periodic cleanup
 
     # Wrap main loop in crash guard
     crash_guard = get_crash_guard()
@@ -438,6 +443,15 @@ def main():
 
             # Execute POST_FRAME hooks
             execute_hooks(LifecyclePhase.APP_POST_FRAME, dt=dt, frame_count=frame_count)
+
+            # Periodic lightweight garbage collection (every 5 seconds)
+            # This prevents heap bloat without blocking scene transitions
+            current_time = time.time()
+            if current_time - last_gc_time > 5.0:
+                import gc
+
+                gc.collect(generation=0)  # Only collect youngest generation (fast)
+                last_gc_time = current_time
 
     # Cleanup
     except Exception as exc:

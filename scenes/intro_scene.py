@@ -58,6 +58,7 @@ class IntroScene(Scene):
 
     def on_enter(self):
         """Initialize intro sequence."""
+        super().on_enter()  # Take memory snapshot
         # Reload localized lines in case language changed
         from core.localization import t
 
@@ -83,7 +84,7 @@ class IntroScene(Scene):
 
     def on_exit(self):
         """Clean up when leaving scene."""
-        pass
+        super().on_exit()  # Call parent cleanup (event handlers, caches, GC)
 
     def handle_event(self, event: pygame.event.Event):
         """Handle events - allow skipping with RETURN or SPACE."""

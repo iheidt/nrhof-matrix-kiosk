@@ -77,8 +77,11 @@ class Scene:
 
     def on_enter(self):
         """Called when scene becomes active."""
-        # Take memory snapshot on enter
-        self._mem_probe.snapshot(f"enter:{self._scene_name}")
+        # Optional: Take memory snapshot on enter (only if profiling enabled)
+        import os
+
+        if os.getenv("ENABLE_MEMORY_PROFILING", "0") == "1":
+            self._mem_probe.snapshot(f"enter:{self._scene_name}")
 
     def on_exit(self):
         """Called when scene is about to be replaced.
@@ -131,12 +134,20 @@ class Scene:
         except Exception:
             pass  # Gracefully handle if imports fail
 
-        # Force garbage collection
-        gc.collect()
+        # Optional: Force garbage collection and memory profiling
+        # These operations can take 200-800ms and block the main thread
+        # Only enable for debugging memory leaks
+        import os
 
-        # Take memory snapshot on exit and compare
-        self._mem_probe.snapshot(f"exit:{self._scene_name}")
-        self._mem_probe.compare(f"enter:{self._scene_name}", f"exit:{self._scene_name}", top_n=15)
+        if os.getenv("ENABLE_MEMORY_PROFILING", "0") == "1":
+            # Force garbage collection (can take 100-500ms with large heaps)
+            gc.collect()
+
+            # Take memory snapshot on exit and compare (can take 100-300ms)
+            self._mem_probe.snapshot(f"exit:{self._scene_name}")
+            self._mem_probe.compare(
+                f"enter:{self._scene_name}", f"exit:{self._scene_name}", top_n=15
+            )
 
     def on_pause(self):
         """Called when scene is paused (backgrounded but not exited)."""

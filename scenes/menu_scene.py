@@ -63,6 +63,7 @@ class MenuScene(Scene):
 
     def on_enter(self):
         """Initialize menu display."""
+        super().on_enter()  # Take memory snapshot
         # Content and colors already loaded from theme in __init__
 
         w, h = self.manager.screen.get_size()
@@ -101,7 +102,7 @@ class MenuScene(Scene):
 
     def on_exit(self):
         """Clean up when leaving scene."""
-        pass
+        super().on_exit()  # Call parent cleanup (event handlers, caches, GC)
 
     def is_select_event(self, event: pygame.event.Event) -> bool:
         """Check if event is a selection trigger (mouse left click or finger touch)."""

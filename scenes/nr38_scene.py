@@ -59,6 +59,7 @@ class NR38Scene(Scene):
 
     def on_enter(self):
         """Called when scene becomes active."""
+        super().on_enter()  # Take memory snapshot
         # Always reload bands to pick up fresh cache data
         if not self._loading:
             self._loading = True
@@ -69,7 +70,7 @@ class NR38Scene(Scene):
 
     def on_exit(self):
         """Called when scene is about to be replaced."""
-        pass
+        super().on_exit()  # Call parent cleanup (event handlers, caches, GC)
 
     def handle_event(self, event: pygame.event.Event):
         """Handle NR-38 input."""
@@ -317,8 +318,8 @@ class NR38Scene(Scene):
                 # Japanese: independent vertical offset dials
                 japanese_number_offset = 2  # Dial to move number up/down
                 japanese_suffix_offset = (
-                    -2
-                )  # Dial to move 位 up/down (relative to baseline calculation)
+                    -2  # Dial to move 位 up/down (relative to baseline calculation)
+                )
                 screen.blit(number_surface, (x, y + japanese_number_offset))
 
                 # Japanese: use 位 with Japanese font (smaller size, baseline aligned)
