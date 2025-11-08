@@ -278,30 +278,37 @@ def draw_d20(
     # Initialize 3D renderer if needed (only try once per version)
     if _d20_renderer is None and not _d20_init_attempted:
         _d20_init_attempted = True
-        try:
-            import numpy as np
 
-            from renderers.model_renderer import ModelRenderer
+        # Initialize in background thread to avoid blocking main thread
+        def _init_renderer():
+            global _d20_renderer
+            try:
+                from renderers.model_renderer import ModelRenderer
 
-            print(f"Initializing 3D renderer (version {_d20_renderer_version})...")
-            _d20_renderer = ModelRenderer(width=512, height=512)
+                print(f"Initializing 3D renderer (version {_d20_renderer_version})...")
+                renderer = ModelRenderer(width=512, height=512)
 
-            # Load D20 model
-            model_path = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-                "assets",
-                "models",
-                "d21.glb",
-            )
-            if os.path.exists(model_path):
-                _d20_renderer.load_model(model_path)
-                _d20_renderer.set_rotation(h=45, p=15, r=0)  # Nice viewing angle
-            else:
-                print(f"Warning: D20 model not found at {model_path}")
-                _d20_renderer = None
-        except Exception as e:
-            print(f"Warning: Could not initialize 3D renderer: {e}")
-            _d20_renderer = None
+                # Load D20 model
+                model_path = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                    "assets",
+                    "models",
+                    "d21.glb",
+                )
+                if os.path.exists(model_path):
+                    renderer.load_model(model_path)
+                    renderer.set_rotation(h=45, p=15, r=0)  # Nice viewing angle
+                    _d20_renderer = renderer  # Only set if successful
+                    print("✓ 3D renderer initialized successfully")
+                else:
+                    print(f"Warning: D20 model not found at {model_path}")
+            except Exception as e:
+                print(f"Warning: Could not initialize 3D renderer: {e}")
+
+        import threading
+
+        thread = threading.Thread(target=_init_renderer, daemon=True)
+        thread.start()
 
     # Render 3D D20 or fall back to SVG
     d20_surface = None

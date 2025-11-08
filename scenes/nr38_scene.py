@@ -44,6 +44,7 @@ class NR38Scene(Scene):
         # Layout vars
         self.nav_back_rect = None
         self.settings_rect = None  # Store settings text rect for click detection
+        self.band_rects = []  # Store band item rects for click detection
 
         # Cache rendered surfaces to prevent re-rendering every frame
         self._nav_back_surface = None
@@ -94,6 +95,11 @@ class NR38Scene(Scene):
             if self.settings_rect and self.settings_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intent.GO_TO_SETTINGS)
                 return True
+            # Check band item clicks
+            for band_rect, band_data in self.band_rects:
+                if band_rect.collidepoint(event.pos):
+                    self.ctx.intent_router.emit(Intent.GO_TO_BAND_DETAILS, band_data=band_data)
+                    return True
 
         return False
 
@@ -150,10 +156,13 @@ class NR38Scene(Scene):
                         "Unknown",
                     )
                     rank = field_data.get("rank", 999)
+                    # Store full band data including logo and other fields
                     nr38_bands.append(
                         {
                             "name": display_name.lower(),  # Store display name as 'name' for rendering (lowercase)
                             "rank": rank,
+                            "id": band.get("id"),  # Webflow item ID
+                            "fieldData": field_data,  # Full field data including logo
                         },
                     )
 
@@ -350,6 +359,9 @@ class NR38Scene(Scene):
                 screen.blit(suffix_surface, (x + number_width, y))
                 return number_width + suffix_surface.get_width()
 
+        # Clear band rects for this frame
+        self.band_rects = []
+
         # Show loading message if still fetching
         if self._loading:
             loading_text = "Loading bands from Webflow..."
@@ -379,7 +391,12 @@ class NR38Scene(Scene):
                     japanese_double_digit_spacing if (current_lang == "jp" and rank >= 10) else 0
                 )
                 band_surface = band_font.render(band_name, True, self.color)
-                screen.blit(band_surface, (col1_x + 50 + extra_spacing, y_pos + 2))
+                band_x = col1_x + 50 + extra_spacing
+                screen.blit(band_surface, (band_x, y_pos + 2))
+
+                # Store clickable rect for this band (entire row)
+                band_rect = pygame.Rect(col1_x, y_pos, col1_width, line_height)
+                self.band_rects.append((band_rect, band))
 
             # Column 2: 14-26
             for i in range(13, min(26, len(self._bands))):
@@ -396,7 +413,12 @@ class NR38Scene(Scene):
                     japanese_double_digit_spacing if (current_lang == "jp" and rank >= 10) else 0
                 )
                 band_surface = band_font.render(band_name, True, self.color)
-                screen.blit(band_surface, (col2_x + 50 + extra_spacing, y_pos + 2))
+                band_x = col2_x + 50 + extra_spacing
+                screen.blit(band_surface, (band_x, y_pos + 2))
+
+                # Store clickable rect for this band (entire row)
+                band_rect = pygame.Rect(col2_x, y_pos, col2_width, line_height)
+                self.band_rects.append((band_rect, band))
 
             # Column 3: 27-38
             for i in range(26, min(38, len(self._bands))):
@@ -413,7 +435,13 @@ class NR38Scene(Scene):
                     japanese_double_digit_spacing if (current_lang == "jp" and rank >= 10) else 0
                 )
                 band_surface = band_font.render(band_name, True, self.color)
-                screen.blit(band_surface, (col3_x + 50 + extra_spacing, y_pos + 2))
+                band_x = col3_x + 50 + extra_spacing
+                screen.blit(band_surface, (band_x, y_pos + 2))
+
+                # Store clickable rect for this band (entire row)
+                col3_width = content_width * col3_width_pct
+                band_rect = pygame.Rect(col3_x, y_pos, col3_width, line_height)
+                self.band_rects.append((band_rect, band))
 
         # Draw scanlines and footer
         draw_scanlines(screen)

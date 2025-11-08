@@ -12,6 +12,7 @@ class Intent(str, Enum):
     GO_HOME = "go_home"
     GO_BACK = "go_back"
     GO_TO_SETTINGS = "go_to_settings"
+    GO_TO_BAND_DETAILS = "go_to_band_details"
     SELECT_OPTION = "select_option"
     SELECT_SUB_EXPERIENCE = "select_sub_experience"
 

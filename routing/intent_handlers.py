@@ -45,9 +45,21 @@ def _register_navigation_intents(intent_router: IntentRouter):
         if controller:
             controller.switch_to("SettingsScene")
 
+    def go_to_band_details(band_data=None, **kw):
+        controller = intent_router.get_scene_controller()
+        if controller:
+            # Ensure scene is loaded (triggers lazy loading if needed)
+            controller._ensure_loaded("BandDetailsScene")
+            # Get the BandDetailsScene instance from scenes dict
+            scene = controller.scenes.get("BandDetailsScene")
+            if scene and band_data:
+                scene.set_band_data(band_data)
+            controller.switch_to("BandDetailsScene")
+
     intent_router.register(Intent.GO_HOME, go_home)
     intent_router.register(Intent.GO_BACK, go_back)
     intent_router.register(Intent.GO_TO_SETTINGS, go_to_settings)
+    intent_router.register(Intent.GO_TO_BAND_DETAILS, go_to_band_details)
 
 
 def _register_selection_intents(
