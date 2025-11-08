@@ -8,28 +8,28 @@ Decouples scene logic from rendering implementation, enabling:
 - Remote rendering over network
 """
 
-from .base import RendererBase, RenderCommand
-from .frame_state import FrameState, Shape, Text, Image, Video
+from .base import RenderCommand, RendererBase
+from .frame_state import FrameState, Image, Shape, Text, Video
 from .pygame_renderer import PygameRenderer
 
 
 def create_renderer(config: dict) -> RendererBase:
     """Factory function to create renderer based on config.
-    
+
     Args:
         config: Configuration dictionary
-        
+
     Returns:
         Renderer instance
-        
+
     Raises:
         ValueError: If backend is not supported
     """
-    backend = config.get('render', {}).get('backend', 'pygame')
-    
-    if backend == 'pygame':
+    backend = config.get("render", {}).get("backend", "pygame")
+
+    if backend == "pygame":
         return PygameRenderer(config)
-    elif backend == 'swift':
+    elif backend == "swift":
         # Future: from .swift_renderer import SwiftRenderer
         # return SwiftRenderer(config)
         raise NotImplementedError("Swift renderer not yet implemented")
@@ -38,13 +38,13 @@ def create_renderer(config: dict) -> RendererBase:
 
 
 __all__ = [
-    'RendererBase',
-    'RenderCommand',
-    'FrameState',
-    'Shape',
-    'Text',
-    'Image',
-    'Video',
-    'PygameRenderer',
-    'create_renderer'
+    "RendererBase",
+    "RenderCommand",
+    "FrameState",
+    "Shape",
+    "Text",
+    "Image",
+    "Video",
+    "PygameRenderer",
+    "create_renderer",
 ]

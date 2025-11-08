@@ -12,23 +12,32 @@ Categories:
 
 Example:
     from ui.components import draw_button, draw_title_card, draw_footer
-    
+
     # Draw a button
-    rect = draw_button(screen, x=100, y=100, container_width=800, 
+    rect = draw_button(screen, x=100, y=100, container_width=800,
                        text="Click Me", theme=theme)
-    
+
     # Draw a title card
-    content_rect = draw_title_card(screen, x=50, y=50, width=700, 
+    content_rect = draw_title_card(screen, x=50, y=50, width=700,
                                     height=200, title="SETTINGS", theme=theme)
 """
 
 # ============================================================================
 # CARDS
 # ============================================================================
-from .cards import (
-    draw_card,
-    draw_title_card,
-    draw_title_card_container,
+from ..colors import (
+    dim_color,
+)
+
+# ============================================================================
+# CONSTANTS AND UTILITIES
+# ============================================================================
+from ..constants import (
+    FOOTER_HEIGHT,
+    MARGIN_BOTTOM,
+    MARGIN_LEFT,
+    MARGIN_RIGHT,
+    MARGIN_TOP,
 )
 
 # ============================================================================
@@ -38,13 +47,18 @@ from .buttons import (
     draw_button,
     draw_toggle_button,
 )
+from .cards import (
+    draw_card,
+    draw_title_card,
+    draw_title_card_container,
+)
 
 # ============================================================================
 # LAYOUT COMPONENTS
 # ============================================================================
 from .layout import (
-    draw_footer,
     draw_back_arrow,
+    draw_footer,
     draw_scanlines,
 )
 
@@ -52,25 +66,10 @@ from .layout import (
 # WIDGETS
 # ============================================================================
 from .widgets import (
-    draw_timeclock,
+    MarqueeText,
     draw_d20,
     draw_now_playing,
-    MarqueeText,
-)
-
-# ============================================================================
-# CONSTANTS AND UTILITIES
-# ============================================================================
-from ..constants import (
-    MARGIN_TOP,
-    MARGIN_LEFT,
-    MARGIN_RIGHT,
-    MARGIN_BOTTOM,
-    FOOTER_HEIGHT,
-)
-
-from ..colors import (
-    dim_color,
+    draw_timeclock,
 )
 
 # ============================================================================
@@ -78,36 +77,32 @@ from ..colors import (
 # ============================================================================
 __all__ = [
     # Cards
-    'draw_card',
-    'draw_title_card',
-    'draw_title_card_container',
-    
+    "draw_card",
+    "draw_title_card",
+    "draw_title_card_container",
     # Buttons
-    'draw_button',
-    'draw_toggle_button',
-    
+    "draw_button",
+    "draw_toggle_button",
     # Layout
-    'draw_footer',
-    'draw_back_arrow',
-    'draw_scanlines',
-    
+    "draw_footer",
+    "draw_back_arrow",
+    "draw_scanlines",
     # Widgets
-    'draw_timeclock',
-    'draw_d20',
-    'draw_now_playing',
-    'MarqueeText',
-    
+    "draw_timeclock",
+    "draw_d20",
+    "draw_now_playing",
+    "MarqueeText",
     # Utilities
-    'dim_color',
-    'MARGIN_TOP',
-    'MARGIN_LEFT',
-    'MARGIN_RIGHT',
-    'MARGIN_BOTTOM',
-    'FOOTER_HEIGHT',
+    "dim_color",
+    "MARGIN_TOP",
+    "MARGIN_LEFT",
+    "MARGIN_RIGHT",
+    "MARGIN_BOTTOM",
+    "FOOTER_HEIGHT",
 ]
 
 # ============================================================================
 # VERSION INFO
 # ============================================================================
-__version__ = '1.0.0'
-__author__ = 'NRHOF Team'
+__version__ = "1.0.0"
+__author__ = "NRHOF Team"

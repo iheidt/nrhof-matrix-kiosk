@@ -9,13 +9,13 @@ See integrations/WEBFLOW_INTEGRATION.md for more details.
 """
 
 # Collection IDs (also in .env, but useful here for reference)
-COLLECTION_ID_BANDS = '66594971465c86eb74b1d898'
-COLLECTION_ID_ALBUMS = '665fb5a92a7824458817d3c8'
-COLLECTION_ID_SONGS = '66c681c5ad30e56ad9e658c8'
+COLLECTION_ID_BANDS = "66594971465c86eb74b1d898"
+COLLECTION_ID_ALBUMS = "665fb5a92a7824458817d3c8"
+COLLECTION_ID_SONGS = "66c681c5ad30e56ad9e658c8"
 
 # Nerd Rock List UUIDs
 # The 'nerd-rock-list' field in bands contains these UUID references
-NR38_LIST_UUID = 'a44a925c638540818d3602d8fd017a64'  # The NR-38 list
+NR38_LIST_UUID = "a44a925c638540818d3602d8fd017a64"  # The NR-38 list
 # Add more list UUIDs as discovered:
 # NR18_LIST_UUID = 'uuid-here'  # The NR-18 list
 # NRHOF_LIST_UUID = 'uuid-here'  # Hall of Fame list
