@@ -354,6 +354,11 @@ def main():
     # Start with splash screen (no transition on app start)
     components["scene_manager"].switch_to("SplashScene", use_transition=False)
 
+    # Start 3D renderer preload in background (for MenuScene D20)
+    from core.app_initializer import start_3d_renderer_preload
+
+    start_3d_renderer_preload()
+
     # Start background preload
     start_preload(components["scene_manager"], components["app_context"])
 

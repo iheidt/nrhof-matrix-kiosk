@@ -239,6 +239,59 @@ def register_all_handlers(components):
     register_all_voice_commands(components["voice_router"], components["intent_router"])
 
 
+def start_3d_renderer_preload():
+    """Start 3D renderer initialization in background.
+
+    This initializes the Panda3D renderer and loads the D20 model
+    early so it's ready when MenuScene is displayed.
+    """
+
+    def _init_renderer():
+        try:
+            import os
+
+            from renderers.model_renderer import ModelRenderer
+
+            print("[PRELOAD] Initializing 3D renderer in background...")
+            renderer = ModelRenderer(width=512, height=512)
+
+            # Load D20 model
+            model_path = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)),
+                "assets",
+                "models",
+                "d21.glb",
+            )
+            if os.path.exists(model_path):
+                renderer.load_model(model_path)
+                renderer.set_rotation(h=45, p=15, r=0)
+
+                # Store in widgets module's global
+                from ui.components import widgets
+
+                widgets._d20_renderer = renderer
+                widgets._d20_init_attempted = True
+
+                print("[PRELOAD] ✓ 3D renderer preloaded successfully")
+            else:
+                print(f"[PRELOAD] Warning: D20 model not found at {model_path}")
+        except Exception as e:
+            print(f"[PRELOAD] Warning: Could not preload 3D renderer: {e}")
+            # Mark as attempted so widgets don't try again
+            try:
+                from ui.components import widgets
+
+                widgets._d20_init_attempted = True
+            except Exception:
+                pass
+
+    import threading
+
+    thread = threading.Thread(target=_init_renderer, daemon=True)
+    thread.start()
+    return thread
+
+
 def start_preload(scene_manager, app_context):
     """Start background scene preloading.
 
