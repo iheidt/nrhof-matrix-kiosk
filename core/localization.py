@@ -89,6 +89,8 @@ TRANSLATIONS = {
         "visualizers.lissajous": "lissajous",
         # Fate Maker
         "fate_maker.title": "FATE MAKER",
+        # Band Details
+        "band_details.albums": "ALBUMS",
     },
     "jp": {
         # Menu
@@ -132,6 +134,8 @@ TRANSLATIONS = {
         "nr18.title": "ナード・18",
         # Fate Maker
         "fate_maker.title": "運命師",
+        # Band Details
+        "band_details.albums": "アルバム",
     },
 }
 

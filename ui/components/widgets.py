@@ -8,7 +8,7 @@ from pathlib import Path
 import pygame
 from pygame import Surface
 
-from ..components.cards import draw_card
+from ..components.primary_card import draw_card
 from ..icons import load_icon
 
 # Font cache to prevent reloading on every frame (with max size limit)

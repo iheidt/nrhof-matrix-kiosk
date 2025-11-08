@@ -107,9 +107,10 @@ def initialize_fonts(cfg, logger):
         cfg: Config object
         logger: Logger instance
     """
-    from ui.fonts import init_custom_fonts
+    from ui.fonts import clear_render_cache, init_custom_fonts
 
     init_custom_fonts(cfg)
+    clear_render_cache()  # Clear any stale cached renders
     logger.info("Custom fonts initialized")
 
 

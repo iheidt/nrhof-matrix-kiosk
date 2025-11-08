@@ -71,7 +71,7 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140), show_settings:
     from __version__ import __version__
     from core.theme_loader import get_theme_loader
 
-    from ..components.cards import draw_card
+    from ..components.primary_card import draw_card
 
     w, h = surface.get_size()
 

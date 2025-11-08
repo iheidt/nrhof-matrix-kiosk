@@ -20,26 +20,27 @@ class Tabs:
 
         # Get body font size from theme
         from core.theme_loader import get_theme_loader
-        from ui.fonts import get_localized_font
+        from ui.fonts import render_mixed_text
 
         theme_loader = get_theme_loader()
         style = theme_loader.load_style("pipboy")
-        font_size = style["typography"]["fonts"].get("body", 48)
+        self.font_size = style["typography"]["fonts"].get("body", 48)
 
-        # Use cached localized font (automatically handles Japanese/English)
-        # Pass a sample character to ensure proper font selection
-        self.font = get_localized_font(font_size, "primary", self.labels[0] if self.labels else "")
-
-        # Pre-render all tab surfaces once
+        # Pre-render all tab surfaces once using render_mixed_text
+        # This ensures IBM Plex Mono Italic is used for EN, Noto Sans JP for JP
         self.active_surfaces = []
         self.inactive_surfaces = []
 
+        print(f"🔤 Tabs: Rendering '{labels}' with font_size={self.font_size}, font_type='primary'")
         for label in labels:
-            # Active tab: full color
-            self.active_surfaces.append(self.font.render(label, True, color))
-            # Inactive tab: 50% dimmed
+            # Active tab: full color (use italic)
+            surface = render_mixed_text(label, self.font_size, "primary_italic", color)
+            self.active_surfaces.append(surface)
+            # Inactive tab: 50% dimmed (use italic)
             dim_color = tuple(int(c * 0.5) for c in color)
-            self.inactive_surfaces.append(self.font.render(label, True, dim_color))
+            self.inactive_surfaces.append(
+                render_mixed_text(label, self.font_size, "primary_italic", dim_color)
+            )
 
         # Calculate tab positions
         self.tab_rects = []

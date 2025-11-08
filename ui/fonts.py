@@ -333,6 +333,36 @@ def get_localized_font(
 # =============================================================================
 
 
+def _get_english_font_by_type(size: int, font_type: str, text: str = "") -> pygame.font.Font:
+    """Get English font based on font_type, respecting the font mapping.
+
+    Args:
+        size: Font size
+        font_type: 'primary', 'secondary', or 'label'
+        text: Text to render (unused, for compatibility with font loader signature)
+
+    Returns:
+        pygame.font.Font
+    """
+    # Map font_type to English font files
+    font_map = {
+        "primary": "IBMPlexMono-Regular.ttf",  # Primary is regular
+        "primary_italic": "IBMPlexMono-Italic.ttf",  # Primary italic for tabs/titles
+        "secondary": "miland.otf",
+        "label": "Compadre-Extended.otf",
+    }
+    font_filename = font_map.get(font_type, "IBMPlexMono-Regular.ttf")
+    project_root = Path(__file__).parent.parent
+    font_path = project_root / "assets" / "fonts" / font_filename
+    if font_path.exists():
+        try:
+            return pygame.font.Font(str(font_path), size)
+        except Exception as e:
+            print(f"Failed to load English font {font_filename}: {e}")
+    # Fallback to theme font
+    return get_theme_font(size, font_type)
+
+
 @lru_cache(maxsize=256)
 def _render_mixed_text_cached(
     text: str,
@@ -357,11 +387,18 @@ def _render_mixed_text_cached(
     """
     from .text_renderer import TextRendererFactory
 
+    # For English, use the font type mapping directly
+    # For other languages, use the localized font loader
+    if language == "en":
+        localized_loader = _get_english_font_by_type
+    else:
+        localized_loader = get_localized_font
+
     # Create appropriate renderer for the language
     renderer = TextRendererFactory.create_renderer(
         language=language,
-        localized_font_loader=get_localized_font,
-        english_font_loader=get_theme_font,
+        localized_font_loader=localized_loader,
+        english_font_loader=_get_english_font_by_type,  # Use font type mapping
     )
 
     # Render using the strategy
@@ -383,7 +420,7 @@ def render_mixed_text(
     Args:
         text: Text to render
         size: Font size
-        font_type: 'primary', 'secondary', or 'label'
+        font_type: 'primary', 'primary_italic', 'secondary', or 'label'
         color: Text color tuple
         antialias: Whether to use antialiasing
 
@@ -391,6 +428,10 @@ def render_mixed_text(
         pygame.Surface with the rendered text
     """
     from core.localization import get_language
+
+    # Automatically lowercase text for primary_italic font type
+    if font_type == "primary_italic":
+        text = text.lower()
 
     # Get current language for cache key
     language = get_language()
@@ -411,6 +452,14 @@ def render_text(
     """Convenience: get a font and render one line of text to a surface."""
     font = get_font(size, mono=mono, prefer=prefer)
     return font.render(text, antialias, color)
+
+
+def clear_render_cache():
+    """Clear the text rendering cache.
+
+    Call this when font configuration changes to force re-rendering.
+    """
+    _render_mixed_text_cached.cache_clear()
 
 
 def evict_all_font_caches():

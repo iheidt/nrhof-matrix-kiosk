@@ -14,6 +14,7 @@ from ui.components import (
     MARGIN_TOP,
     draw_footer,
     draw_scanlines,
+    draw_secondary_card,
     draw_title_card_container,
 )
 from ui.fonts import render_mixed_text
@@ -104,20 +105,12 @@ class BandDetailsScene(Scene):
                 fill_color=self.color,  # Recolor to primary theme color
             )
             if surface:
-                # Apply smart sizing based on aspect ratio
-                # These values are tunable knobs:
-                width, height = calculate_logo_size(
-                    surface,
-                )
+                # Apply smart sizing based on aspect ratio (uses defaults from logo_utils)
+                width, height = calculate_logo_size(surface)
 
                 # Scale to calculated size
                 self.logo_surface = pygame.transform.smoothscale(surface, (width, height))
-                print(
-                    f"🎸 LOGO DEBUG: {self.band_name} | scaled to {width}x{height} | original: {surface.get_width()}x{surface.get_height()} | aspect: {surface.get_width()/surface.get_height():.2f}"
-                )
-                self.logger.info(
-                    f"Logo loaded for {self.band_name} (scaled to {width}x{height}, original: {surface.get_width()}x{surface.get_height()}, aspect: {surface.get_width()/surface.get_height():.2f})"
-                )
+                self.logger.info(f"Logo loaded for {self.band_name} ({width}x{height})")
             else:
                 self.logger.warning(f"Failed to load logo for {self.band_name}")
         except Exception as e:
@@ -342,6 +335,25 @@ class BandDetailsScene(Scene):
             logo_x = margin_left + 35 + 24
             border_y = title_card_y_adjusted
             screen.blit(loading_surface, (logo_x, border_y - loading_surface.get_height() // 2))
+
+        # Draw Albums secondary card
+        albums_card_x = margin_left + 35  # Align with content inside title card
+        albums_card_y = border_y + 100  # Below the logo area
+        albums_card_width = title_card_width - 70  # Account for card padding
+        albums_card_height = 300  # Fixed height for now
+
+        from core.localization import t
+
+        draw_secondary_card(
+            surface=screen,
+            x=albums_card_x,
+            y=albums_card_y,
+            width=albums_card_width,
+            height=albums_card_height,
+            title=t("band_details.albums"),
+            theme={"style": style, "color": self.color},
+            content_callback=None,  # Empty content for now
+        )
 
         # Draw scanlines and footer
         draw_scanlines(screen)

@@ -25,13 +25,12 @@ Example:
 # ============================================================================
 # CARDS
 # ============================================================================
-from ..colors import (
-    dim_color,
-)
-
 # ============================================================================
 # CONSTANTS AND UTILITIES
 # ============================================================================
+from ..colors import (
+    dim_color,
+)
 from ..constants import (
     FOOTER_HEIGHT,
     MARGIN_BOTTOM,
@@ -47,11 +46,6 @@ from .buttons import (
     draw_button,
     draw_toggle_button,
 )
-from .cards import (
-    draw_card,
-    draw_title_card,
-    draw_title_card_container,
-)
 
 # ============================================================================
 # LAYOUT COMPONENTS
@@ -60,6 +54,14 @@ from .layout import (
     draw_back_arrow,
     draw_footer,
     draw_scanlines,
+)
+from .primary_card import (
+    draw_card,
+    draw_title_card,
+    draw_title_card_container,
+)
+from .secondary_card import (
+    draw_secondary_card,
 )
 
 # ============================================================================

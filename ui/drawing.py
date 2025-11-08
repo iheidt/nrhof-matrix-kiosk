@@ -3,8 +3,8 @@
 
 # Re-export all components
 from .components.buttons import draw_button
-from .components.cards import draw_card, draw_title_card
 from .components.layout import draw_back_arrow, draw_footer
+from .components.primary_card import draw_card, draw_title_card
 from .components.widgets import draw_d20, draw_now_playing, draw_timeclock
 
 __all__ = [
