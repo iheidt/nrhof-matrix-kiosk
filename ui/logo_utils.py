@@ -10,7 +10,7 @@ def calculate_logo_size(
     surface: pygame.Surface,
     target_height: int = 70,
     min_height: int = 70,
-    max_height: int = 150,
+    max_height: int = 130,
     min_width: int = 200,
     max_width: int = 600,
 ) -> tuple[int, int]:

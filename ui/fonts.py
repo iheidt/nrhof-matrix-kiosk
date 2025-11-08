@@ -302,7 +302,9 @@ def get_localized_font(
     # Japanese font mapping
     theme_loader = get_theme_loader()
     style = theme_loader.load_style("pipboy")
-    font_key = f"{font_type}_font"
+    # Normalize primary_italic to primary for theme lookup (theme doesn't have primary_italic_font)
+    theme_font_type = "primary" if font_type == "primary_italic" else font_type
+    font_key = f"{theme_font_type}_font"
     font_filename = style.get("typography", {}).get(font_key, "")
 
     # Map to Japanese fonts
@@ -429,12 +431,12 @@ def render_mixed_text(
     """
     from core.localization import get_language
 
-    # Automatically lowercase text for primary_italic font type
-    if font_type == "primary_italic":
-        text = text.lower()
-
     # Get current language for cache key
     language = get_language()
+
+    # Automatically lowercase text for primary_italic font type (English only)
+    if font_type == "primary_italic" and language == "en":
+        text = text.lower()
 
     # Use cached version
     return _render_mixed_text_cached(text, size, font_type, color, antialias, language)

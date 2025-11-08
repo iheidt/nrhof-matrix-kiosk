@@ -14,11 +14,11 @@ from ui.components import (
     MARGIN_TOP,
     draw_footer,
     draw_scanlines,
-    draw_secondary_card,
     draw_title_card_container,
 )
 from ui.fonts import render_mixed_text
 from ui.logo_utils import calculate_logo_size
+from ui.tabs import Tabs
 
 
 @register_scene("BandDetailsScene")
@@ -45,6 +45,10 @@ class BandDetailsScene(Scene):
         self.logo_surface = None  # Cached logo surface
         self._loading_logo = False
         self._logo_url = None
+
+        # Tabs
+        self.tabs = None
+        self._cached_language = None  # Track language for cache invalidation
 
         # Logger
         self.logger = logging.getLogger(__name__)
@@ -135,6 +139,9 @@ class BandDetailsScene(Scene):
             if self.settings_rect and self.settings_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intent.GO_TO_SETTINGS)
                 return True
+            # Check tabs click
+            if self.tabs and self.tabs.handle_click(event.pos):
+                return True
 
         return False
 
@@ -211,7 +218,7 @@ class BandDetailsScene(Scene):
             title_card_y_adjusted += -21
 
         # Draw the full-width title card container (with empty title, no top border)
-        draw_title_card_container(
+        layout_info = draw_title_card_container(
             surface=screen,
             x=margin_left,
             y=title_card_y_adjusted,
@@ -223,6 +230,7 @@ class BandDetailsScene(Scene):
             border_height_pct=border_height_pct,
             skip_top_border=True,  # We'll draw custom border with logo gap
             skip_japanese_adjustment=True,  # Logo positioning is same for all languages
+            content_margin=-26,  # Reduced margin between title and tabs
         )
 
         # Draw custom borders with fade effect (left, right, bottom only - no top)
@@ -336,24 +344,43 @@ class BandDetailsScene(Scene):
             border_y = title_card_y_adjusted
             screen.blit(loading_surface, (logo_x, border_y - loading_surface.get_height() // 2))
 
-        # Draw Albums secondary card
-        albums_card_x = margin_left + 35  # Align with content inside title card
-        albums_card_y = border_y + 100  # Below the logo area
-        albums_card_width = title_card_width - 70  # Account for card padding
-        albums_card_height = 300  # Fixed height for now
+        # Create/update tabs based on language
+        from core.localization import get_language, t
 
-        from core.localization import t
+        current_language = get_language()
+        if self.tabs is None or self._cached_language != current_language:
+            tab_labels = [
+                t("band_details.albums"),
+                t("band_details.ep"),
+                t("band_details.live"),
+                t("band_details.etc"),
+            ]
+            # Preserve active tab index when recreating
+            active_index = self.tabs.active_index if self.tabs else 0
+            self.tabs = Tabs(tab_labels, self.color)
+            self.tabs.active_index = active_index
+            self._cached_language = current_language
 
-        draw_secondary_card(
-            surface=screen,
-            x=albums_card_x,
-            y=albums_card_y,
-            width=albums_card_width,
-            height=albums_card_height,
-            title=t("band_details.albums"),
-            theme={"style": style, "color": self.color},
-            content_callback=None,  # Empty content for now
-        )
+        # Draw tabs
+        content_y = layout_info["content_start_y"]
+        tabs_x = margin_left + 35 + 24  # Match title card padding
+        tabs_y = content_y + 20  # Same offset as visualizers scene
+        self.tabs.draw(screen, tabs_x, tabs_y)
+
+        # Draw content based on active tab
+        content_text_y = tabs_y + 60
+        if self.tabs.active_index == 0:
+            # First tab
+            content_surface = render_mixed_text("album", 36, "primary", self.color)
+            screen.blit(content_surface, (tabs_x, content_text_y))
+        elif self.tabs.active_index == 1:
+            # Second tab
+            content_surface = render_mixed_text("ep", 36, "primary", self.color)
+            screen.blit(content_surface, (tabs_x, content_text_y))
+        elif self.tabs.active_index == 2:
+            # Third tab
+            content_surface = render_mixed_text("live", 36, "primary", self.color)
+            screen.blit(content_surface, (tabs_x, content_text_y))
 
         # Draw scanlines and footer
         draw_scanlines(screen)
