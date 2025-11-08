@@ -75,7 +75,7 @@ def _register_selection_intents(
             # Fate maker: Not implemented yet
             print("Placeholder: Fate maker not implemented yet")
         else:
-            print(f"Placeholder: Option {index+1} not implemented yet")
+            print(f"Placeholder: Option {index + 1} not implemented yet")
 
     intent_router.register(Intent.SELECT_OPTION, select_option_handler)
 

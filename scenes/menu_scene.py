@@ -307,7 +307,7 @@ class MenuScene(Scene):
             if label_key:
                 label = t(label_key)
             else:
-                label = entry.get("label", f"Option {i+1}")
+                label = entry.get("label", f"Option {i + 1}")
             button_rect = draw_button(
                 surface=screen,
                 x=button_x,

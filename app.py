@@ -28,6 +28,7 @@ from core.app_initializer import (
 from core.config_loader import load_config
 from core.event_bus import EventType
 from core.localization import t
+from core.mem_probe import start_trace
 from core.observability import get_crash_guard, get_event_tap, get_performance_monitor
 
 # Global state for Now Playing overlay
@@ -58,7 +59,12 @@ def draw_now_playing_overlay(screen: pygame.Surface, cfg: dict):
     from ui.components.widgets import MarqueeText, draw_now_playing
 
     global _now_playing_marquee, _last_track_id, _last_progress_time, _last_progress_ms
-    global _playback_state_start_time, _is_in_playback_state, _fade_delay, _fade_duration, _fade_back_delay
+    global \
+        _playback_state_start_time, \
+        _is_in_playback_state, \
+        _fade_delay, \
+        _fade_duration, \
+        _fade_back_delay
 
     # Get theme
     theme_loader = get_theme_loader()
@@ -357,6 +363,9 @@ def main():
     # Execute APP_READY hooks
     execute_hooks(LifecyclePhase.APP_READY, components=components, config=cfg)
 
+    # Start memory tracing for leak detection
+    start_trace()
+
     # Enable event debugging if requested
     if args.debug_events:
         event_tap = get_event_tap()
@@ -482,7 +491,6 @@ def main():
 
 if __name__ == "__main__":
     import signal
-    import sys
 
     # Suppress cffi cairo errors on Ctrl+C
     def signal_handler(sig, frame):

@@ -5,6 +5,8 @@ from collections.abc import Callable
 
 import pygame
 
+from core.mem_probe import get_memory_probe
+
 # Global scene registry
 _scene_registry: dict[str, type["Scene"]] = {}
 
@@ -59,13 +61,20 @@ class Scene:
             self.manager = ctx
             self.ctx = None
 
+        # Memory probe for leak detection
+        self._mem_probe = get_memory_probe()
+        self._scene_name = self.__class__.__name__
+
     def on_enter(self):
         """Called when scene becomes active."""
-        pass
+        # Take memory snapshot on enter
+        self._mem_probe.snapshot(f"enter:{self._scene_name}")
 
     def on_exit(self):
         """Called when scene is about to be replaced."""
-        pass
+        # Take memory snapshot on exit and compare
+        self._mem_probe.snapshot(f"exit:{self._scene_name}")
+        self._mem_probe.compare(f"enter:{self._scene_name}", f"exit:{self._scene_name}", top_n=15)
 
     def on_pause(self):
         """Called when scene is paused (backgrounded but not exited)."""
