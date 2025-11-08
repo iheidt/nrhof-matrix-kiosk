@@ -56,12 +56,14 @@ class NR38Scene(Scene):
         self._loading = False
         self._loaded = False
         self._cache_manager: WebflowCacheManager | None = None
+        self._stop_loading = False  # Flag to cancel background thread
 
     def on_enter(self):
         """Called when scene becomes active."""
         super().on_enter()  # Take memory snapshot
         # Always reload bands to pick up fresh cache data
         if not self._loading:
+            self._stop_loading = False  # Reset stop flag
             self._loading = True
             self._loaded = False  # Reset loaded flag to force refresh
             # Fetch bands in background thread
@@ -70,6 +72,8 @@ class NR38Scene(Scene):
 
     def on_exit(self):
         """Called when scene is about to be replaced."""
+        # Signal background thread to stop
+        self._stop_loading = True
         super().on_exit()  # Call parent cleanup (event handlers, caches, GC)
 
     def handle_event(self, event: pygame.event.Event):
@@ -121,6 +125,10 @@ class NR38Scene(Scene):
             retry_delay = 0.5  # seconds
 
             for attempt in range(max_retries):
+                # Check if we should stop (scene exited)
+                if self._stop_loading:
+                    return
+
                 # Get bands from cache (filtered for NR-38 UUID reference)
                 # The nerd-rock-list field contains a UUID reference, not a string
                 all_bands = self._cache_manager.get_bands(filter_list=NR38_LIST_UUID)
