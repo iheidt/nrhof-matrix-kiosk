@@ -29,6 +29,23 @@ class IntentRouter:
 
     def __init__(self):
         self.handlers: dict[str, Callable] = {}
+        self._scene_controller = None  # Injected scene controller (breaks circular dep)
+
+    def set_scene_controller(self, controller):
+        """Inject scene controller for navigation.
+
+        Args:
+            controller: Object with switch_to() and go_back() methods
+        """
+        self._scene_controller = controller
+
+    def get_scene_controller(self):
+        """Get the injected scene controller.
+
+        Returns:
+            Scene controller instance or None
+        """
+        return self._scene_controller
 
     def register(self, handler_name: Intent | str, callback: Callable):
         """Register an intent handler.
