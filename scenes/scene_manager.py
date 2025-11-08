@@ -66,8 +66,8 @@ class Scene:
         self._mem_probe = get_memory_probe()
         self._scene_name = self.__class__.__name__
 
-        # Track event subscriptions for cleanup
-        self._event_subscriptions = []
+        # Track event subscription tokens for cleanup
+        self._bus_tokens = []
 
         # Track surfaces/textures for cleanup
         self._cached_surfaces = []
@@ -90,14 +90,14 @@ class Scene:
         - Clears pygame event queue
         - Forces garbage collection
         """
-        # Unsubscribe all event handlers
+        # Unsubscribe all event handlers using tokens
         if hasattr(self, "ctx") and self.ctx and hasattr(self.ctx, "event_bus"):
-            for event_type, handler in self._event_subscriptions:
+            for token in self._bus_tokens:
                 try:
-                    self.ctx.event_bus.unsubscribe(event_type, handler)
+                    self.ctx.event_bus.unsubscribe_token(token)
                 except Exception:
                     pass  # Handler may already be unsubscribed
-        self._event_subscriptions.clear()
+        self._bus_tokens.clear()
 
         # Delete cached surfaces to free VRAM
         for surface in self._cached_surfaces:
@@ -153,14 +153,26 @@ class Scene:
         pass
 
     # Helper methods for cleanup tracking
-    def register_event_subscription(self, event_type, handler):
-        """Register an event subscription for automatic cleanup.
+    def subscribe_event(self, event_type, handler):
+        """Subscribe to an event and track token for automatic cleanup.
 
         Args:
             event_type: EventType to subscribe to
             handler: Handler function
+
+        Returns:
+            Subscription token
+
+        Example:
+            def my_handler(event):
+                print(f"Got event: {event}")
+            self.subscribe_event(EventType.LANGUAGE_CHANGED, my_handler)
         """
-        self._event_subscriptions.append((event_type, handler))
+        if hasattr(self, "ctx") and self.ctx and hasattr(self.ctx, "event_bus"):
+            token = self.ctx.event_bus.subscribe(event_type, handler)
+            self._bus_tokens.append(token)
+            return token
+        return None
 
     def register_surface(self, surface: pygame.Surface):
         """Register a surface for automatic cleanup.

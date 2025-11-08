@@ -107,17 +107,23 @@ class EventBus:
             self._events_dropped += 1
             print(f"Warning: Event queue full, dropped {event_type}")
 
-    def subscribe(self, event_type: EventType, handler: Callable[[Event], None]):
+    def subscribe(
+        self, event_type: EventType, handler: Callable[[Event], None]
+    ) -> tuple[EventType, Callable]:
         """Subscribe to an event type.
 
         Args:
             event_type: Type of event to listen for
             handler: Callback function(event)
+
+        Returns:
+            Subscription token (event_type, handler) for unsubscription
         """
         with self._lock:
             if event_type not in self._subscribers:
                 self._subscribers[event_type] = []
             self._subscribers[event_type].append(handler)
+        return (event_type, handler)
 
     def unsubscribe(self, event_type: EventType, handler: Callable[[Event], None]):
         """Unsubscribe from an event type.
@@ -132,6 +138,15 @@ class EventBus:
                     self._subscribers[event_type].remove(handler)
                 except ValueError:
                     pass
+
+    def unsubscribe_token(self, token: tuple[EventType, Callable]):
+        """Unsubscribe using a subscription token.
+
+        Args:
+            token: Subscription token returned from subscribe()
+        """
+        event_type, handler = token
+        self.unsubscribe(event_type, handler)
 
     def process_events(self, max_events: int = 100) -> int:
         """Process pending events (call from main loop).
