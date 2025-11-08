@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import gc
 import threading
 import time
 from collections.abc import Callable
@@ -65,13 +66,64 @@ class Scene:
         self._mem_probe = get_memory_probe()
         self._scene_name = self.__class__.__name__
 
+        # Track event subscriptions for cleanup
+        self._event_subscriptions = []
+
+        # Track surfaces/textures for cleanup
+        self._cached_surfaces = []
+
+        # Track per-scene data structures
+        self._scene_caches = []
+
     def on_enter(self):
         """Called when scene becomes active."""
         # Take memory snapshot on enter
         self._mem_probe.snapshot(f"enter:{self._scene_name}")
 
     def on_exit(self):
-        """Called when scene is about to be replaced."""
+        """Called when scene is about to be replaced.
+
+        Performs aggressive cleanup:
+        - Unsubscribes all event handlers
+        - Deletes cached surfaces/textures
+        - Clears per-scene data structures
+        - Clears pygame event queue
+        - Forces garbage collection
+        """
+        # Unsubscribe all event handlers
+        if hasattr(self, "ctx") and self.ctx and hasattr(self.ctx, "event_bus"):
+            for event_type, handler in self._event_subscriptions:
+                try:
+                    self.ctx.event_bus.unsubscribe(event_type, handler)
+                except Exception:
+                    pass  # Handler may already be unsubscribed
+        self._event_subscriptions.clear()
+
+        # Delete cached surfaces to free VRAM
+        for surface in self._cached_surfaces:
+            try:
+                del surface
+            except Exception:
+                pass
+        self._cached_surfaces.clear()
+
+        # Clear per-scene caches
+        for cache in self._scene_caches:
+            try:
+                if isinstance(cache, dict):
+                    cache.clear()
+                elif isinstance(cache, list):
+                    cache.clear()
+            except Exception:
+                pass
+        self._scene_caches.clear()
+
+        # Clear pygame event queue to prevent stale events
+        pygame.event.clear()
+
+        # Force garbage collection
+        gc.collect()
+
         # Take memory snapshot on exit and compare
         self._mem_probe.snapshot(f"exit:{self._scene_name}")
         self._mem_probe.compare(f"enter:{self._scene_name}", f"exit:{self._scene_name}", top_n=15)
@@ -99,6 +151,32 @@ class Scene:
     def draw(self, screen: pygame.Surface):
         """Draw the scene to the screen."""
         pass
+
+    # Helper methods for cleanup tracking
+    def register_event_subscription(self, event_type, handler):
+        """Register an event subscription for automatic cleanup.
+
+        Args:
+            event_type: EventType to subscribe to
+            handler: Handler function
+        """
+        self._event_subscriptions.append((event_type, handler))
+
+    def register_surface(self, surface: pygame.Surface):
+        """Register a surface for automatic cleanup.
+
+        Args:
+            surface: Pygame surface to track
+        """
+        self._cached_surfaces.append(surface)
+
+    def register_cache(self, cache: dict | list):
+        """Register a cache (dict or list) for automatic cleanup.
+
+        Args:
+            cache: Dictionary or list to clear on exit
+        """
+        self._scene_caches.append(cache)
 
     def trigger_wakeword(self):
         """Trigger wakeword detection (helper method for all scenes)."""
