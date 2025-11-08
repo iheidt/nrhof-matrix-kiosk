@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Configuration loader with YAML support and environment variable overrides.
-"""
+"""Configuration loader with YAML support and dev overrides."""
 
 import os
 from pathlib import Path
@@ -10,158 +8,151 @@ from typing import Any
 import yaml
 
 
-class Config:
-    """Configuration with dot notation access and env overrides."""
-
-    def __init__(self, config_dict: dict[str, Any]):
-        """Initialize config from dictionary.
-
-        Args:
-            config_dict: Configuration dictionary
-        """
-        self._config = config_dict
-
-    def get(self, key: str, default: Any = None) -> Any:
-        """Get config value with dot notation.
-
-        Args:
-            key: Dot-separated key (e.g., 'audio.sample_rate')
-            default: Default value if key not found
-
-        Returns:
-            Config value or default
-        """
-        keys = key.split(".")
-        value = self._config
-
-        for k in keys:
-            if isinstance(value, dict):
-                value = value.get(k)
-                if value is None:
-                    return default
-            else:
-                return default
-
-        return value
-
-    def set(self, key: str, value: Any):
-        """Set config value with dot notation.
-
-        Args:
-            key: Dot-separated key
-            value: Value to set
-        """
-        keys = key.split(".")
-        config = self._config
-
-        for k in keys[:-1]:
-            if k not in config:
-                config[k] = {}
-            config = config[k]
-
-        config[keys[-1]] = value
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary.
-
-        Returns:
-            Configuration dictionary
-        """
-        return self._config.copy()
-
-    def __getitem__(self, key: str) -> Any:
-        """Get config value using bracket notation.
-
-        Args:
-            key: Config key
-
-        Returns:
-            Config value
-        """
-        return self.get(key)
-
-    def __setitem__(self, key: str, value: Any):
-        """Set config value using bracket notation.
-
-        Args:
-            key: Config key
-            value: Value to set
-        """
-        self.set(key, value)
-
-
-def load_config(config_path: Path | None = None) -> Config:
-    """Load configuration from YAML file with env overrides.
+def load_config(config_path: str = "config.yaml") -> dict[str, Any]:
+    """Load configuration from YAML file with dev overrides.
 
     Args:
         config_path: Path to config file (default: config.yaml)
 
     Returns:
-        Config object
+        Configuration dictionary with dev overrides applied
+
+    Raises:
+        FileNotFoundError: If config file doesn't exist
+        yaml.YAMLError: If config file is invalid YAML
     """
-    if config_path is None:
-        config_path = Path(__file__).parent.parent / "config.yaml"
+    # Load base config
+    config_file = Path(config_path)
+    if not config_file.exists():
+        raise FileNotFoundError(f"Config file not found: {config_path}")
 
-    # Load YAML
-    with open(config_path) as f:
-        config_dict = yaml.safe_load(f)
+    with open(config_file) as f:
+        config = yaml.safe_load(f)
 
-    # Expand environment variables in config (${VAR_NAME} syntax)
-    def expand_env_vars(obj):
-        """Recursively expand ${VAR_NAME} in config values."""
-        if isinstance(obj, dict):
-            return {k: expand_env_vars(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [expand_env_vars(item) for item in obj]
-        elif isinstance(obj, str) and obj.startswith("${") and obj.endswith("}"):
-            var_name = obj[2:-1]
-            return os.environ.get(var_name, "")
-        return obj
+    if config is None:
+        config = {}
 
-    config_dict = expand_env_vars(config_dict)
+    # Apply dev overrides if present
+    if "dev_overrides" in config:
+        _apply_dev_overrides(config, config["dev_overrides"])
 
-    # Apply environment variable overrides
-    # Format: KIOSK_SECTION_KEY=value
-    # Example: KIOSK_AUDIO_SAMPLE_RATE=48000
-    for key, value in os.environ.items():
-        if key.startswith("KIOSK_"):
-            # Remove prefix and convert to lowercase dot notation
-            config_key = key[6:].lower().replace("_", ".")
+    # Validate config if STRICT_CONFIG is set
+    if os.getenv("STRICT_CONFIG"):
+        try:
+            from core.config_schema import config_to_dict, validate_config
 
-            # Try to parse as int, float, bool, or keep as string
-            try:
-                if value.lower() in ("true", "false"):
-                    value = value.lower() == "true"
-                elif "." in value:
-                    value = float(value)
-                else:
-                    value = int(value)
-            except ValueError:
-                pass  # Keep as string
+            validated = validate_config(config)
+            config = config_to_dict(validated)
+            print("✓ Config validation passed")
+        except ImportError:
+            print("Warning: pydantic not installed, skipping validation")
+        except Exception as e:
+            print(f"✗ Config validation failed: {e}")
+            raise
 
-            config_dict = _set_nested(config_dict, config_key, value)
-
-    return Config(config_dict)
+    return config
 
 
-def _set_nested(d: dict, key: str, value: Any) -> dict:
-    """Set nested dictionary value using dot notation.
+def _apply_dev_overrides(config: dict, overrides: dict):
+    """Apply dev overrides to config in-place.
 
     Args:
-        d: Dictionary
-        key: Dot-separated key
-        value: Value to set
+        config: Base configuration dictionary
+        overrides: Dev overrides dictionary
+    """
+    for key, value in overrides.items():
+        if isinstance(value, dict) and key in config and isinstance(config[key], dict):
+            # Recursively merge nested dicts
+            _apply_dev_overrides(config[key], value)
+        else:
+            # Override value
+            config[key] = value
+
+
+def get_nested(config: dict, path: str, default: Any = None) -> Any:
+    """Get nested config value using dot notation.
+
+    Args:
+        config: Configuration dictionary
+        path: Dot-separated path (e.g., 'render.resolution')
+        default: Default value if path not found
 
     Returns:
-        Modified dictionary
+        Config value or default
+
+    Examples:
+        >>> config = {'render': {'resolution': [1280, 1024]}}
+        >>> get_nested(config, 'render.resolution')
+        [1280, 1024]
+        >>> get_nested(config, 'render.missing', default=[800, 600])
+        [800, 600]
     """
-    keys = key.split(".")
-    current = d
+    keys = path.split(".")
+    value = config
 
-    for k in keys[:-1]:
-        if k not in current:
-            current[k] = {}
-        current = current[k]
+    for key in keys:
+        if isinstance(value, dict) and key in value:
+            value = value[key]
+        else:
+            return default
 
+    return value
+
+
+def set_nested(config: dict, path: str, value: Any):
+    """Set nested config value using dot notation.
+
+    Args:
+        config: Configuration dictionary
+        path: Dot-separated path (e.g., 'render.resolution')
+        value: Value to set
+
+    Examples:
+        >>> config = {}
+        >>> set_nested(config, 'render.resolution', [1920, 1080])
+        >>> config
+        {'render': {'resolution': [1920, 1080]}}
+    """
+    keys = path.split(".")
+    current = config
+
+    # Navigate to parent of target key
+    for key in keys[:-1]:
+        if key not in current:
+            current[key] = {}
+        current = current[key]
+
+    # Set the value
     current[keys[-1]] = value
-    return d
+
+
+# CLI argument override helpers
+def override_from_args(config: dict, args):
+    """Apply CLI argument overrides to config.
+
+    Args:
+        config: Configuration dictionary
+        args: Parsed argparse arguments
+
+    Common overrides:
+        --fullscreen -> render.fullscreen
+        --windowed -> render.fullscreen (False)
+        --resolution WxH -> render.resolution
+        --display N -> render.display
+    """
+    if hasattr(args, "fullscreen") and args.fullscreen:
+        set_nested(config, "render.fullscreen", True)
+
+    if hasattr(args, "windowed") and args.windowed:
+        set_nested(config, "render.fullscreen", False)
+
+    if hasattr(args, "resolution") and args.resolution:
+        # Parse "1920x1080" format
+        try:
+            w, h = map(int, args.resolution.lower().split("x"))
+            set_nested(config, "render.resolution", [w, h])
+        except (ValueError, AttributeError):
+            print(f"Warning: Invalid resolution format: {args.resolution}")
+
+    if hasattr(args, "display") and args.display is not None:
+        set_nested(config, "render.display", int(args.display))
