@@ -16,6 +16,16 @@ _font_cache = {}
 _FONT_CACHE_MAX_SIZE = 20  # Reasonable limit for widget fonts
 
 
+def evict_widget_font_cache():
+    """Clear the widget font cache.
+
+    This should be called during scene cleanup to prevent memory leaks.
+    Clears the _font_cache dict (maxsize=20) used by timeclock and now_playing widgets.
+    """
+    global _font_cache
+    _font_cache.clear()
+
+
 class MarqueeText:
     """Manages scrolling text animation for text that's too long to fit."""
 

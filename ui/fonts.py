@@ -413,6 +413,20 @@ def render_text(
     return font.render(text, antialias, color)
 
 
+def evict_all_font_caches():
+    """Clear all font and text rendering caches.
+
+    This should be called during scene cleanup to prevent memory leaks.
+    Clears:
+    - get_font LRU cache (maxsize=64)
+    - get_theme_font LRU cache (maxsize=64)
+    - _render_mixed_text_cached LRU cache (maxsize=256)
+    """
+    get_font.cache_clear()
+    get_theme_font.cache_clear()
+    _render_mixed_text_cached.cache_clear()
+
+
 def render_localized_text(
     text: str,
     size: int,

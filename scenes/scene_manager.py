@@ -121,6 +121,16 @@ class Scene:
         # Clear pygame event queue to prevent stale events
         pygame.event.clear()
 
+        # Evict global font and widget caches
+        try:
+            from ui.components.widgets import evict_widget_font_cache
+            from ui.fonts import evict_all_font_caches
+
+            evict_all_font_caches()
+            evict_widget_font_cache()
+        except Exception:
+            pass  # Gracefully handle if imports fail
+
         # Force garbage collection
         gc.collect()
 
