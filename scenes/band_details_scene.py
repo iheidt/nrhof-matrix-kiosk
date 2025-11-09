@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import logging
 import threading
+from pathlib import Path
 
 import pygame
 
@@ -17,6 +18,7 @@ from ui.components import (
     draw_title_card_container,
 )
 from ui.fonts import render_mixed_text
+from ui.image_transformer import transform_to_matrix
 from ui.logo_utils import calculate_logo_size
 from ui.tabs import Tabs
 
@@ -43,12 +45,17 @@ class BandDetailsScene(Scene):
         # Band data (extracted fields only - don't store full fieldData)
         self.band_name = "Band Name"  # Default placeholder
         self.logo_surface = None  # Cached logo surface
+        self.logo_vertical_offset = 0  # Vertical offset for square/tall logos
         self._loading_logo = False
         self._logo_url = None
 
         # Tabs
         self.tabs = None
         self._cached_language = None  # Track language for cache invalidation
+
+        # Matrix-style album art
+        self.matrix_image = None
+        self._matrix_image_loaded = False
 
         # Logger
         self.logger = logging.getLogger(__name__)
@@ -110,17 +117,49 @@ class BandDetailsScene(Scene):
             )
             if surface:
                 # Apply smart sizing based on aspect ratio (uses defaults from logo_utils)
-                width, height = calculate_logo_size(surface)
+                width, height, vertical_offset = calculate_logo_size(surface)
+                self.logo_vertical_offset = vertical_offset
 
                 # Scale to calculated size
                 self.logo_surface = pygame.transform.smoothscale(surface, (width, height))
-                self.logger.info(f"Logo loaded for {self.band_name} ({width}x{height})")
+                self.logger.info(
+                    f"Logo loaded for {self.band_name} ({width}x{height}, offset={vertical_offset})"
+                )
             else:
                 self.logger.warning(f"Failed to load logo for {self.band_name}")
         except Exception as e:
             self.logger.error(f"Error loading logo: {e}")
         finally:
             self._loading_logo = False
+
+    def _load_matrix_image(self):
+        """Load and transform test image into matrix style."""
+        if self._matrix_image_loaded:
+            return
+
+        try:
+            project_root = Path(__file__).parent.parent
+            src_path = project_root / "assets" / "images" / "test_weezer.webp"
+
+            if not src_path.exists():
+                self.logger.warning(f"Test image not found at {src_path}")
+                self._matrix_image_loaded = True
+                return
+
+            # Transform image to matrix style
+            self.matrix_image = transform_to_matrix(src_path)
+
+            if self.matrix_image:
+                w, h = self.matrix_image.get_size()
+                self.logger.info(f"Matrix image created ({w}x{h})")
+            else:
+                self.logger.warning("Matrix image transformation failed")
+
+            self._matrix_image_loaded = True
+
+        except Exception as e:
+            self.logger.error(f"Error loading matrix image: {e}")
+            self._matrix_image_loaded = True
 
     def handle_event(self, event: pygame.event.Event):
         """Handle band details input."""
@@ -296,7 +335,8 @@ class BandDetailsScene(Scene):
             logo_x = margin_left + 35 + logo_padding  # 35px to border edge + padding
             # The logo should be centered on the border line
             # border_y is the Y coordinate where the border is drawn (center of the 6px line)
-            logo_y = border_y - (self.logo_surface.get_height() // 2)
+            # Apply vertical offset for square/tall logos (shifts them up)
+            logo_y = border_y - (self.logo_surface.get_height() // 2) + self.logo_vertical_offset
 
             # Calculate gap boundaries
             gap_start_x = margin_left + 35  # Start of gap (at border edge)
@@ -370,9 +410,24 @@ class BandDetailsScene(Scene):
         # Draw content based on active tab
         content_text_y = tabs_y + 60
         if self.tabs.active_index == 0:
-            # First tab
-            content_surface = render_mixed_text("album", 36, "primary", self.color)
-            screen.blit(content_surface, (tabs_x, content_text_y))
+            # First tab - Album (show matrix-transformed image)
+            if not self._matrix_image_loaded:
+                self._load_matrix_image()
+
+            if self.matrix_image:
+                # Scale image to fit in content area (max 400px wide)
+                img_width = min(400, self.matrix_image.get_width())
+                img_height = int(
+                    self.matrix_image.get_height() * (img_width / self.matrix_image.get_width())
+                )
+                scaled_image = pygame.transform.smoothscale(
+                    self.matrix_image, (img_width, img_height)
+                )
+                screen.blit(scaled_image, (tabs_x, content_text_y))
+            else:
+                # Fallback text if image failed to load
+                content_surface = render_mixed_text("album", 36, "primary", self.color)
+                screen.blit(content_surface, (tabs_x, content_text_y))
         elif self.tabs.active_index == 1:
             # Second tab
             content_surface = render_mixed_text("ep", 36, "primary", self.color)

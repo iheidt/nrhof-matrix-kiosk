@@ -13,13 +13,14 @@ def calculate_logo_size(
     max_height: int = 130,
     min_width: int = 200,
     max_width: int = 600,
-) -> tuple[int, int]:
+    square_logo_offset: int = -20,
+) -> tuple[int, int, int]:
     """
     Calculate optimal logo dimensions based on aspect ratio.
 
     Handles three common cases:
     1. Wide/skinny logos (high aspect ratio): Apply min_width constraint
-    2. Square/tall logos (low aspect ratio): Apply max_height constraint
+    2. Square/tall logos (low aspect ratio): Apply max_height constraint + vertical offset
     3. Balanced logos (medium aspect ratio): Use target_height
 
     Args:
@@ -29,15 +30,16 @@ def calculate_logo_size(
         max_height: Maximum height for square/tall logos (default: 85)
         min_width: Minimum width for wide/skinny logos (default: 180)
         max_width: Maximum width for any logo (default: 400)
+        square_logo_offset: Vertical offset for square/tall logos (default: -20 to shift up)
 
     Returns:
-        tuple[int, int]: (width, height) for the scaled logo
+        tuple[int, int, int]: (width, height, vertical_offset) for the scaled logo
     """
     original_width = surface.get_width()
     original_height = surface.get_height()
 
     if original_height == 0:
-        return (min_width, min_height)
+        return (min_width, min_height, 0)
 
     aspect_ratio = original_width / original_height
 
@@ -51,16 +53,17 @@ def calculate_logo_size(
         if width > max_width:
             width = max_width
             height = int(width / aspect_ratio)
-        return (width, height)
+        return (width, height, 0)
 
     # Case 2: Square or tall logo (aspect ratio < 4.0)
     # Example: "eels" - more square/vertical
     elif aspect_ratio < 3.0:
         # Use max_height to allow square logos to be tall
+        # Apply vertical offset to shift logo up
         height = max_height
         width = int(height * aspect_ratio)
         width = min(width, max_width)  # Don't exceed max_width
-        return (width, height)
+        return (width, height, square_logo_offset)
 
     # Case 3: Balanced logo (2.0 <= aspect ratio <= 4.0)
     # Example: "weezer" - nice horizontal proportion
@@ -69,4 +72,4 @@ def calculate_logo_size(
         height = target_height
         width = int(height * aspect_ratio)
         width = min(width, max_width)  # Don't exceed max_width
-        return (width, height)
+        return (width, height, 0)
