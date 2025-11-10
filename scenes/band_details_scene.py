@@ -84,6 +84,16 @@ class BandDetailsScene(Scene):
         # Track last loaded tab to avoid reloading every frame
         self._last_loaded_tab_index = None
 
+        # Scroll state for album grid
+        self.scroll_offset = 0  # Current scroll position (pixels)
+        self.scroll_velocity = 0  # For smooth scrolling
+        self.max_scroll = 0  # Maximum scroll offset (calculated based on content)
+
+        # Touch drag state
+        self.is_dragging = False
+        self.drag_start_y = 0
+        self.drag_start_scroll = 0
+
     def set_band_data(self, band_data: dict):
         """Set the band data to display.
 
@@ -102,6 +112,7 @@ class BandDetailsScene(Scene):
                 self._last_loaded_tab_index = None  # Reset tab tracking
                 self.matrix_src_paths = []
                 self.matrix_images_cache = []
+                self._cached_language = None  # Force tab recreation for new band
 
             self.band_id = new_band_id  # Store band ID for album fetching
 
@@ -412,23 +423,15 @@ class BandDetailsScene(Scene):
         url_hash = hashlib.md5(url.encode()).hexdigest()
         return self.images_cache_dir / f"{url_hash}.png"
 
-    def _load_album_covers_for_tab(self, tab_index: int):
-        """Load album cover images for the selected tab.
+    def _load_album_covers_for_tab_type(self, album_type: str):
+        """Load album cover images for the selected album type.
 
         Args:
-            tab_index: 0=ALBUM, 1=EP, 2=LIVE, 3=ETC
+            album_type: One of 'album', 'ep', 'live', or 'etc'
         """
-        print(f"[DEBUG] _load_album_covers_for_tab called with tab_index={tab_index}")
-        self.logger.info(f"_load_album_covers_for_tab called with tab_index={tab_index}")
-
-        # Map tab index to album type
-        type_map = {0: "album", 1: "ep", 2: "live", 3: "etc"}
-        album_type = type_map.get(tab_index, "album")
-
-        self.logger.info(f"Mapped tab_index {tab_index} to album_type '{album_type}'")
+        self.logger.info(f"Loading album covers for type: {album_type}")
 
         # Fetch albums for this type
-        print(f"[DEBUG] Calling _fetch_albums_for_band for type={album_type}")
         self._fetch_albums_for_band(album_type)
 
         # Get albums for this type
@@ -437,8 +440,8 @@ class BandDetailsScene(Scene):
 
         # Extract cover image URLs
         self.matrix_src_paths = []
-        # Load and transform images (limit to 15 for grid)
-        for album in albums[:15]:
+        # Load all album covers (scrolling supported)
+        for album in albums:
             field_data = album.get("fieldData", {})
 
             # Try thumbnail first, fall back to cover
@@ -468,18 +471,36 @@ class BandDetailsScene(Scene):
         # Clear cache when tab changes
         self.matrix_images_cache = []
 
+        # Reset scroll position when tab changes
+        self.scroll_offset = 0
+        self.scroll_velocity = 0
+
         self.logger.info(f"Loaded {len(self.matrix_src_paths)} album covers for {album_type}")
 
     def handle_event(self, event: pygame.event.Event):
         """Handle band details input."""
-        # ESC or click nav_back to return to previous scene
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                self.ctx.intent_router.emit(Intent.GO_BACK)
-                return True
+        # Handle mouse wheel scrolling for album grid
+        if event.type == pygame.MOUSEWHEEL:
+            # Scroll speed: 20 pixels per wheel notch
+            scroll_speed = 20
+            self.scroll_offset -= event.y * scroll_speed
+            # Clamp scroll offset
+            self.scroll_offset = max(0, min(self.scroll_offset, self.max_scroll))
+            return True
 
-        # Click nav_back
+        # Handle touch drag scrolling
         if event.type == pygame.MOUSEBUTTONDOWN:
+            # Check if clicking in scrollable area (not on UI elements)
+            if not (self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos)):
+                if not (self.settings_rect and self.settings_rect.collidepoint(event.pos)):
+                    if not (self.tabs and self.tabs.handle_click(event.pos)):
+                        # Start drag
+                        self.is_dragging = True
+                        self.drag_start_y = event.pos[1]
+                        self.drag_start_scroll = self.scroll_offset
+                        return True
+
+            # Check nav_back click
             if self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intent.GO_BACK)
                 return True
@@ -487,9 +508,29 @@ class BandDetailsScene(Scene):
             if self.settings_rect and self.settings_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intent.GO_TO_SETTINGS)
                 return True
-            # Handle tabs click
-        if self.tabs and event.type == pygame.MOUSEBUTTONDOWN:
-            if self.tabs.handle_click(event.pos):
+            # Handle tabs click (already checked above)
+            if self.tabs and self.tabs.handle_click(event.pos):
+                return True
+
+        if event.type == pygame.MOUSEBUTTONUP:
+            if self.is_dragging:
+                self.is_dragging = False
+                return True
+
+        if event.type == pygame.MOUSEMOTION:
+            if self.is_dragging:
+                # Calculate drag distance
+                drag_delta = event.pos[1] - self.drag_start_y
+                # Update scroll (invert delta so dragging down scrolls up)
+                self.scroll_offset = self.drag_start_scroll - drag_delta
+                # Clamp scroll offset
+                self.scroll_offset = max(0, min(self.scroll_offset, self.max_scroll))
+                return True
+
+        # ESC to return to previous scene
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                self.ctx.intent_router.emit(Intent.GO_BACK)
                 return True
 
         return False
@@ -700,40 +741,69 @@ class BandDetailsScene(Scene):
             border_y = title_card_y_adjusted
             screen.blit(loading_surface, (logo_x, border_y - loading_surface.get_height() // 2))
 
-        # Create/update tabs based on language
+        # Create/update tabs based on language and available albums
         from core.localization import get_language, t
 
         current_language = get_language()
         if self.tabs is None or self._cached_language != current_language:
-            tab_labels = [
-                t("band_details.albums"),
-                t("band_details.ep"),
-                t("band_details.live"),
-                t("band_details.etc"),
-            ]
-            # Preserve active tab index when recreating
-            active_index = self.tabs.active_index if self.tabs else 0
-            self.tabs = Tabs(tab_labels, self.color)
-            self.tabs.active_index = active_index
+            # Fetch all album types to determine which tabs to show
+            album_types = ["album", "ep", "live", "etc"]
+            for album_type in album_types:
+                if album_type not in self.albums_by_type:
+                    self._fetch_albums_for_band(album_type)
+
+            # Build tab labels only for types that have albums
+            tab_labels = []
+            tab_type_map = []  # Map tab index to album type
+
+            if len(self.albums_by_type.get("album", [])) > 0:
+                tab_labels.append(t("band_details.albums"))
+                tab_type_map.append("album")
+            if len(self.albums_by_type.get("ep", [])) > 0:
+                tab_labels.append(t("band_details.ep"))
+                tab_type_map.append("ep")
+            if len(self.albums_by_type.get("live", [])) > 0:
+                tab_labels.append(t("band_details.live"))
+                tab_type_map.append("live")
+            if len(self.albums_by_type.get("etc", [])) > 0:
+                tab_labels.append(t("band_details.etc"))
+                tab_type_map.append("etc")
+
+            # Store the mapping for later use
+            self.tab_type_map = tab_type_map
+
+            # Only create tabs if we have at least one type with albums
+            if tab_labels:
+                # Preserve active tab index when recreating
+                active_index = self.tabs.active_index if self.tabs else 0
+                # Clamp to valid range
+                active_index = min(active_index, len(tab_labels) - 1)
+                self.tabs = Tabs(tab_labels, self.color)
+                self.tabs.active_index = active_index
+                # Force reload of albums for the active tab
+                self._last_loaded_tab_index = None
+            else:
+                self.tabs = None
+
             self._cached_language = current_language
 
-        # Draw tabs
+        # Draw tabs (if any exist)
         content_y = layout_info["content_start_y"]
         tabs_x = margin_left + 35 + 24  # Match title card padding
         tabs_y = content_y + 20  # Same offset as visualizers scene
-        self.tabs.draw(screen, tabs_x, tabs_y)
+
+        if self.tabs:
+            self.tabs.draw(screen, tabs_x, tabs_y)
 
         # Draw content based on active tab
         content_text_y = tabs_y + 60
 
         # Load album covers for the active tab (only when tab changes)
-        if self._last_loaded_tab_index != self.tabs.active_index:
-            print(f"[DEBUG] Tab changed to {self.tabs.active_index}, loading album covers")
-            self._load_album_covers_for_tab(self.tabs.active_index)
+        if self.tabs and self._last_loaded_tab_index != self.tabs.active_index:
+            # Map tab index to album type using tab_type_map
+            album_type = self.tab_type_map[self.tabs.active_index]
+            self._load_album_covers_for_tab_type(album_type)
             self._last_loaded_tab_index = self.tabs.active_index
-            print(
-                f"[DEBUG] After _load_album_covers_for_tab, matrix_src_paths has {len(self.matrix_src_paths)} items"
-            )
 
         # Display album covers if available
         if self.matrix_src_paths:
@@ -748,17 +818,16 @@ class BandDetailsScene(Scene):
             # Dark background
             bg_rgb = tuple(colors.get("background", (8, 6, 16)))
 
-            # Display images in a 3x5 grid layout
+            # Display images in a scrollable grid layout
             img_size = 180
             cols = 5
-            rows = 3
             top_margin = 30
             side_margin = 30  # 30px from container edges
 
             # Calculate container width from actual screen margins
             # The container spans from margin_left to (w - margin_right)
             container_width = w - margin_left - margin_right
-            available_height = h - content_text_y - 100
+            available_height = h - content_text_y - 150
 
             # Calculate spacing: leftmost at 30px from margin_left, rightmost at 30px from right edge
             # Available space for images and gaps: container_width - (2 * side_margin)
@@ -766,9 +835,21 @@ class BandDetailsScene(Scene):
             total_img_width = cols * img_size
             # Spacing between images (not at edges)
             horizontal_spacing = (available_width - total_img_width) / (cols - 1) if cols > 1 else 0
-            vertical_spacing = (
-                (available_height - (rows * img_size)) / (rows - 1) if rows > 1 else 0
-            ) - 30  # Reduce row spacing by 30px
+            # Fixed vertical spacing (reduced by 30px from original calculation)
+            vertical_spacing = 30  # Fixed spacing between rows
+
+            # Calculate total number of rows needed for all albums
+            total_albums = len(self.matrix_images_cache)
+            total_rows = (total_albums + cols - 1) // cols  # Ceiling division
+
+            # Calculate total content height
+            total_content_height = (
+                (total_rows * img_size) + ((total_rows - 1) * vertical_spacing) + (top_margin * 2)
+            )
+
+            # Update max scroll based on content height vs viewport height
+            viewport_height = available_height
+            self.max_scroll = max(0, total_content_height - viewport_height)
 
             # Generate cached images only once
             if not self.matrix_images_cache:
@@ -819,21 +900,36 @@ class BandDetailsScene(Scene):
 
                 self.logger.info(f"Cached {len(self.matrix_images_cache)} matrix images")
 
-            # Draw cached images in 3x5 grid with borders
-            # Start 30px from the actual left margin (not tabs_x)
-            start_x = margin_left + side_margin
-            start_y = content_text_y + top_margin
+            # Border width needs to be accounted for in viewport
             border_width = 3
 
+            # Create a clipping surface for the scrollable area (include border padding on all sides)
+            viewport_rect = pygame.Rect(
+                margin_left + side_margin - border_width,
+                content_text_y + top_margin - border_width,
+                int(available_width) + (border_width * 2),
+                int(viewport_height) + border_width,
+            )
+
+            # Create a surface for all album content (wider and taller to include borders)
+            content_width = int(available_width) + (border_width * 2)
+            content_height_with_borders = int(total_content_height) + border_width
+            content_surface = pygame.Surface(
+                (content_width, content_height_with_borders), pygame.SRCALPHA
+            )
+            content_surface.fill((0, 0, 0, 0))  # Transparent background
+
+            # Draw all albums onto the content surface
             img_index = 0
-            for row in range(rows):
+
+            for row in range(total_rows):
                 for col in range(cols):
                     if img_index < len(self.matrix_images_cache):
                         cached_image = self.matrix_images_cache[img_index]
                         if cached_image:
-                            # Calculate position
-                            x_pos = start_x + col * (img_size + horizontal_spacing)
-                            y_pos = start_y + row * (img_size + vertical_spacing)
+                            # Calculate position relative to content surface (add border_width offset for left and top padding)
+                            x_pos = border_width + (col * (img_size + horizontal_spacing))
+                            y_pos = border_width + (row * (img_size + vertical_spacing))
 
                             # Draw border rectangle
                             border_rect = pygame.Rect(
@@ -842,10 +938,21 @@ class BandDetailsScene(Scene):
                                 img_size + (border_width * 2),
                                 img_size + (border_width * 2),
                             )
-                            pygame.draw.rect(screen, primary_rgb, border_rect, border_width)
+                            pygame.draw.rect(
+                                content_surface, primary_rgb, border_rect, border_width
+                            )
                             # Draw image
-                            screen.blit(cached_image, (int(x_pos), int(y_pos)))
+                            content_surface.blit(cached_image, (int(x_pos), int(y_pos)))
                         img_index += 1
+
+            # Blit the scrolled portion of content surface to screen with clipping
+            screen.set_clip(viewport_rect)
+            screen.blit(
+                content_surface,
+                (viewport_rect.x, viewport_rect.y),
+                area=pygame.Rect(0, int(self.scroll_offset), content_width, int(viewport_height)),
+            )
+            screen.set_clip(None)  # Reset clipping
         else:
             # No albums available - show message
             no_albums_surface = render_mixed_text("No albums available", 36, "primary", self.color)
