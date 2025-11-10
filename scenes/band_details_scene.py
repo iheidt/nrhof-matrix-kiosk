@@ -9,6 +9,7 @@ import pygame
 
 from core.theme_loader import get_theme_loader
 from integrations.image_cache import ImageCache
+from integrations.webflow_constants import ALBUM_TYPE_UUIDS
 from routing.intent_router import Intent
 from scenes.scene_manager import Scene, register_scene
 from ui.components import (
@@ -322,7 +323,8 @@ class BandDetailsScene(Scene):
             f"[DEBUG] Filtering {len(albums)} albums for band_id={self.band_id}, type={album_type}"
         )
 
-        # Debug: show first album's all fields
+        # Debug: show first album's all fields and collect unique type values
+        unique_types = set()
         if albums:
             first_album = albums[0]
             field_data = first_album.get("fieldData", {})
@@ -331,8 +333,27 @@ class BandDetailsScene(Scene):
                 f"[DEBUG] Sample album 0: name={field_data.get('name')}, band={field_data.get('band')}, type={field_data.get('type')}"
             )
 
+            # Collect all unique type values to understand the data
+            type_examples = {}  # Map type UUID to example album names
+            for album in albums:
+                album_type_val = album.get("fieldData", {}).get("type")
+                album_name = album.get("fieldData", {}).get("name", "Unknown")
+                if album_type_val:
+                    unique_types.add(str(album_type_val))
+                    # Store first 3 examples for each type
+                    if album_type_val not in type_examples:
+                        type_examples[album_type_val] = []
+                    if len(type_examples[album_type_val]) < 3:
+                        type_examples[album_type_val].append(album_name)
+
+            print(f"[DEBUG] Found {len(unique_types)} unique type values: {sorted(unique_types)}")
+            print("[DEBUG] Type UUID examples:")
+            for type_uuid, examples in sorted(type_examples.items()):
+                print(f"  {type_uuid}: {', '.join(examples)}")
+
         # Count matches
         band_match_count = 0
+        type_match_count = 0
 
         for album in albums:
             field_data = album.get("fieldData", {})
@@ -351,27 +372,22 @@ class BandDetailsScene(Scene):
 
             band_match_count += 1
 
-            # TODO: Type filtering disabled - type field is a UUID reference
-            # We need to fetch the type collection to map UUIDs to type names
-            # For now, show all albums for this band
-            filtered_albums.append(album)
+            # Filter by type using UUID mapping
+            album_type_uuid = field_data.get("type", "")
 
-            # # Check album type
-            # album_type_value = field_data.get("type", "").lower()
-            #
-            # # Map types to tabs
-            # if album_type == "album" and album_type_value == "album":
-            #     filtered_albums.append(album)
-            # elif album_type == "ep" and album_type_value == "ep":
-            #     filtered_albums.append(album)
-            # elif album_type == "live" and album_type_value == "live":
-            #     filtered_albums.append(album)
-            # elif album_type == "etc" and album_type_value in ["bside", "demo", "other", "b-sides, demos & other"]:
-            #     filtered_albums.append(album)
+            # Map UUID to type name
+            mapped_type = ALBUM_TYPE_UUIDS.get(
+                album_type_uuid, "etc"
+            )  # Default to "etc" for unknown types
+
+            # Check if this album's type matches the requested tab type
+            if mapped_type == album_type:
+                filtered_albums.append(album)
+                type_match_count += 1
 
         # Cache the filtered albums
         print(
-            f"[DEBUG] Band matches: {band_match_count}/{len(albums)}, Caching {len(filtered_albums)} albums for type={album_type}"
+            f"[DEBUG] Band matches: {band_match_count}/{len(albums)}, Type matches: {type_match_count}, Caching {len(filtered_albums)} albums for type={album_type}"
         )
         self.albums_by_type[album_type] = filtered_albums
         self.logger.info(f"Fetched {len(filtered_albums)} albums for type: {album_type}")

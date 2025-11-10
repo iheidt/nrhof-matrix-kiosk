@@ -20,7 +20,12 @@ NR38_LIST_UUID = "a44a925c638540818d3602d8fd017a64"  # The NR-38 list
 # NR18_LIST_UUID = 'uuid-here'  # The NR-18 list
 # NRHOF_LIST_UUID = 'uuid-here'  # Hall of Fame list
 
-# Add other known UUID references here as needed
-# Example:
-# GENRE_ROCK_UUID = 'uuid-here'
-# VENUE_FILLMORE_UUID = 'uuid-here'
+# Album Type UUIDs
+# The 'type' field in albums contains these UUID references
+ALBUM_TYPE_UUIDS = {
+    "4262ef38e544375abd8743977f57d67c": "album",  # Studio albums
+    "b62bf6bb291d5526756a107fe9ed8c14": "ep",  # EPs
+    "de33be7c10d99644ab2e35542353e48f": "live",  # Live albums
+    "0df73aee8d73a899700d9f276f4bb85b": "etc",  # Demos/Acoustic
+    "8a6762e167ab1cca1451ff9a36f21b7e": "etc",  # Singles
+}
