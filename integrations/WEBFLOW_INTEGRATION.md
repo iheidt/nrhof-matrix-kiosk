@@ -4,6 +4,13 @@
 
 The NRHOF kiosk integrates with Webflow CMS to fetch and display band, album, and song data. This document provides everything you need to know about working with Webflow data in this project.
 
+## API Limits
+
+- **Pagination Limit**: Webflow API returns a maximum of 100 items per request
+- **Total Albums**: Currently 487 albums in the collection (as of Nov 2025)
+- **Implementation**: Use pagination with `offset` and `limit` parameters to fetch all items
+  - Example: To fetch 487 albums, make 5 requests (100 + 100 + 100 + 100 + 87)
+
 ## Architecture
 
 ### Components

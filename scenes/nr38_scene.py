@@ -98,15 +98,8 @@ class NR38Scene(Scene):
             # Check band item clicks
             for band_rect, band_data in self.band_rects:
                 if band_rect.collidepoint(event.pos):
-                    # Extract full band data for navigation
-                    full_band = band_data.get("_full_band", {})
-                    nav_data = {
-                        "name": band_data["name"],
-                        "rank": band_data["rank"],
-                        "id": band_data["id"],
-                        "fieldData": full_band.get("fieldData", {}),
-                    }
-                    self.ctx.intent_router.emit(Intent.GO_TO_BAND_DETAILS, band_data=nav_data)
+                    # Pass minimal band data (already filtered to essential fields)
+                    self.ctx.intent_router.emit(Intent.GO_TO_BAND_DETAILS, band_data=band_data)
                     return True
 
         return False
@@ -164,14 +157,23 @@ class NR38Scene(Scene):
                         "Unknown",
                     )
                     rank = field_data.get("rank", 999)
-                    # Store minimal data for list display
-                    # Full fieldData will be fetched when navigating to details
+
+                    # Extract only the fields actually used by band_details_scene
+                    minimal_field_data = {
+                        "name": field_data.get("name"),
+                        "logo": field_data.get("logo"),
+                        "card-pic-1": field_data.get("card-pic-1"),
+                        "color": field_data.get("color"),
+                        "complimentary-color---dark": field_data.get("complimentary-color---dark"),
+                    }
+
+                    # Store minimal data for list display and details
                     nr38_bands.append(
                         {
                             "name": display_name.lower(),  # Store display name as 'name' for rendering (lowercase)
                             "rank": rank,
                             "id": band.get("id"),  # Webflow item ID
-                            "_full_band": band,  # Keep reference to full band object for details navigation
+                            "fieldData": minimal_field_data,  # Only essential fields
                         },
                     )
 

@@ -22,6 +22,11 @@ build/
 # Runtime data
 runtime/
 
+# Cache directories (album data and transformed images)
+cache/
+cache/albums_cache.json
+cache/album_images/
+
 # OS
 .DS_Store
 

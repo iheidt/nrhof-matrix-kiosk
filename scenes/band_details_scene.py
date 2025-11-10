@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+import json
 import logging
 import threading
+import time
 from pathlib import Path
 
 import pygame
@@ -53,15 +55,33 @@ class BandDetailsScene(Scene):
         self.tabs = None
         self._cached_language = None  # Track language for cache invalidation
 
-        # Matrix-style album art
+        # Matrix image (legacy - now using albums)
+        self.matrix_src_path = None
         self.matrix_image = None
         self._matrix_image_loaded = False
+
+        # Band and album data
+        self.band_id = None  # Webflow band ID for fetching albums
+        self.albums_by_type = {}  # Cache albums by type
+        self.matrix_src_paths = []  # Album cover paths for current tab
+        self.matrix_images_cache = []  # Cached transformed images
 
         # Logger
         self.logger = logging.getLogger(__name__)
 
         # Image cache
         self.image_cache = ImageCache(logger=self.logger)
+
+        # Albums cache file
+        self.albums_cache_file = Path(__file__).parent.parent / "cache" / "albums_cache.json"
+        self.albums_cache_ttl_hours = 24  # Refresh daily
+
+        # Transformed images cache directory
+        self.images_cache_dir = Path(__file__).parent.parent / "cache" / "album_images"
+        self.images_cache_dir.mkdir(parents=True, exist_ok=True)
+
+        # Track last loaded tab to avoid reloading every frame
+        self._last_loaded_tab_index = None
 
     def set_band_data(self, band_data: dict):
         """Set the band data to display.
@@ -72,6 +92,17 @@ class BandDetailsScene(Scene):
         # Extract only what we need - don't store full band_data to save memory
         if band_data:
             self.band_name = band_data.get("name", "Band Name")
+            new_band_id = band_data.get("id")
+
+            # Clear albums cache when band changes
+            if self.band_id != new_band_id:
+                print(f"[DEBUG] Band changed from {self.band_id} to {new_band_id}, clearing cache")
+                self.albums_by_type = {}
+                self._last_loaded_tab_index = None  # Reset tab tracking
+                self.matrix_src_paths = []
+                self.matrix_images_cache = []
+
+            self.band_id = new_band_id  # Store band ID for album fetching
 
             # Extract logo URL from fieldData
             field_data = band_data.get("fieldData", {})
@@ -132,34 +163,283 @@ class BandDetailsScene(Scene):
         finally:
             self._loading_logo = False
 
-    def _load_matrix_image(self):
-        """Load and transform test image into matrix style."""
-        if self._matrix_image_loaded:
-            return
-
+    def _load_albums_from_cache_file(self):
+        """Load all albums from disk cache if available and not expired."""
         try:
-            project_root = Path(__file__).parent.parent
-            src_path = project_root / "assets" / "images" / "test_weezer.webp"
+            if not self.albums_cache_file.exists():
+                print("[DEBUG] No albums cache file found")
+                return None
 
-            if not src_path.exists():
-                self.logger.warning(f"Test image not found at {src_path}")
-                self._matrix_image_loaded = True
-                return
+            with open(self.albums_cache_file) as f:
+                cache_data = json.load(f)
 
-            # Transform image to matrix style
-            self.matrix_image = transform_to_matrix(src_path)
+            # Check expiration
+            cache_timestamp = cache_data.get("timestamp", 0)
+            cache_age_hours = (time.time() - cache_timestamp) / 3600
 
-            if self.matrix_image:
-                w, h = self.matrix_image.get_size()
-                self.logger.info(f"Matrix image created ({w}x{h})")
-            else:
-                self.logger.warning("Matrix image transformation failed")
+            if cache_age_hours > self.albums_cache_ttl_hours:
+                print(f"[DEBUG] Albums cache expired ({cache_age_hours:.1f} hours old)")
+                return None
 
-            self._matrix_image_loaded = True
+            albums = cache_data.get("albums", [])
+            print(
+                f"[DEBUG] Loaded {len(albums)} albums from cache file ({cache_age_hours:.1f} hours old)"
+            )
+            return albums
 
         except Exception as e:
-            self.logger.error(f"Error loading matrix image: {e}")
-            self._matrix_image_loaded = True
+            self.logger.error(f"Error loading albums cache: {e}")
+            return None
+
+    def _save_albums_to_cache_file(self, albums):
+        """Save all albums to disk cache."""
+        try:
+            # Ensure cache directory exists
+            self.albums_cache_file.parent.mkdir(parents=True, exist_ok=True)
+
+            cache_data = {
+                "timestamp": time.time(),
+                "ttl_hours": self.albums_cache_ttl_hours,
+                "albums": albums,
+            }
+
+            with open(self.albums_cache_file, "w") as f:
+                json.dump(cache_data, f)
+
+            print(f"[DEBUG] Saved {len(albums)} albums to cache file")
+
+        except Exception as e:
+            self.logger.error(f"Error saving albums cache: {e}")
+
+    def _fetch_albums_for_band(self, album_type: str):
+        """Fetch albums from Webflow for the current band and type.
+
+        Args:
+            album_type: One of 'album', 'ep', 'live', or 'etc'
+        """
+        print(
+            f"[DEBUG] _fetch_albums_for_band called with album_type={album_type}, band_id={self.band_id}"
+        )
+        if not self.band_id:
+            print("[DEBUG] No band_id, returning early")
+            self.logger.warning("No band ID set, cannot fetch albums")
+            return
+
+        print(f"[DEBUG] Fetching albums for band_id={self.band_id}, type={album_type}")
+        self.logger.info(f"Fetching albums for band_id={self.band_id}, type={album_type}")
+
+        # Check cache first - only use cache if it has albums
+        if album_type in self.albums_by_type and len(self.albums_by_type[album_type]) > 0:
+            print(f"[DEBUG] Using cached albums: {len(self.albums_by_type[album_type])} albums")
+            self.logger.info(
+                f"Using cached albums for type: {album_type} ({len(self.albums_by_type[album_type])} albums)"
+            )
+            return
+        elif album_type in self.albums_by_type:
+            print(
+                f"[DEBUG] Cache exists but empty ({len(self.albums_by_type[album_type])} albums), re-fetching..."
+            )
+
+        print("[DEBUG] Not in cache, checking disk cache...")
+
+        # Try to load from disk cache first
+        cached_albums = self._load_albums_from_cache_file()
+        if cached_albums:
+            albums = cached_albums
+            print(f"[DEBUG] Using {len(albums)} albums from disk cache, skipping Webflow fetch")
+        else:
+            print("[DEBUG] No valid disk cache, fetching from Webflow...")
+
+            try:
+                # Get webflow client from cache manager
+                print("[DEBUG] Checking for webflow_cache_manager...")
+                if (
+                    not hasattr(self.ctx, "webflow_cache_manager")
+                    or self.ctx.webflow_cache_manager is None
+                ):
+                    print("[DEBUG] Webflow cache manager NOT available")
+                    self.logger.warning("Webflow cache manager not available")
+                    return
+
+                print("[DEBUG] Webflow cache manager found")
+
+                webflow_client = self.ctx.webflow_cache_manager.client
+                if not webflow_client:
+                    print("[DEBUG] Webflow client is None")
+                    self.logger.warning("Webflow client not available")
+                    return
+
+                print(
+                    f"[DEBUG] Webflow client OK, fetching albums from collection {webflow_client.config.collection_id_albums}"
+                )
+
+                # Fetch all albums with pagination (Webflow limit is 100 per request)
+                # Total albums: 487, so we need 5 requests
+                all_albums = []
+                offset = 0
+                limit = 100
+
+                while True:
+                    print(f"[DEBUG] Fetching albums offset={offset}, limit={limit}")
+                    albums_batch = webflow_client.get_collection_items(
+                        webflow_client.config.collection_id_albums, limit=limit, offset=offset
+                    )
+
+                    if not albums_batch:
+                        break
+
+                    all_albums.extend(albums_batch)
+                    print(
+                        f"[DEBUG] Got {len(albums_batch)} albums, total so far: {len(all_albums)}"
+                    )
+
+                    # If we got fewer than limit, we've reached the end
+                    if len(albums_batch) < limit:
+                        break
+
+                    offset += limit
+
+                print(f"[DEBUG] Webflow returned: {len(all_albums)} total albums")
+
+                if not all_albums:
+                    print("[DEBUG] No albums returned from Webflow")
+                    self.logger.warning("No albums fetched from Webflow")
+                    return
+
+                albums = all_albums
+                self.logger.info(f"Fetched {len(albums)} total albums from Webflow")
+
+                # Save to disk cache
+                self._save_albums_to_cache_file(albums)
+
+            except Exception as e:
+                self.logger.error(f"Error fetching albums: {e}")
+                return
+
+        # Filter albums for this band and type
+        filtered_albums = []
+        print(
+            f"[DEBUG] Filtering {len(albums)} albums for band_id={self.band_id}, type={album_type}"
+        )
+
+        # Debug: show first album's all fields
+        if albums:
+            first_album = albums[0]
+            field_data = first_album.get("fieldData", {})
+            print(f"[DEBUG] First album fieldData keys: {list(field_data.keys())}")
+            print(
+                f"[DEBUG] Sample album 0: name={field_data.get('name')}, band={field_data.get('band')}, type={field_data.get('type')}"
+            )
+
+        # Count matches
+        band_match_count = 0
+
+        for album in albums:
+            field_data = album.get("fieldData", {})
+
+            # Check if album belongs to this band
+            album_band_id = field_data.get("band")
+            album_name = field_data.get("name", "Unknown")
+            album_type_value = field_data.get("type", "")
+
+            self.logger.debug(
+                f"Album: {album_name}, band_id={album_band_id}, type={album_type_value}"
+            )
+
+            if album_band_id != self.band_id:
+                continue
+
+            band_match_count += 1
+
+            # TODO: Type filtering disabled - type field is a UUID reference
+            # We need to fetch the type collection to map UUIDs to type names
+            # For now, show all albums for this band
+            filtered_albums.append(album)
+
+            # # Check album type
+            # album_type_value = field_data.get("type", "").lower()
+            #
+            # # Map types to tabs
+            # if album_type == "album" and album_type_value == "album":
+            #     filtered_albums.append(album)
+            # elif album_type == "ep" and album_type_value == "ep":
+            #     filtered_albums.append(album)
+            # elif album_type == "live" and album_type_value == "live":
+            #     filtered_albums.append(album)
+            # elif album_type == "etc" and album_type_value in ["bside", "demo", "other", "b-sides, demos & other"]:
+            #     filtered_albums.append(album)
+
+        # Cache the filtered albums
+        print(
+            f"[DEBUG] Band matches: {band_match_count}/{len(albums)}, Caching {len(filtered_albums)} albums for type={album_type}"
+        )
+        self.albums_by_type[album_type] = filtered_albums
+        self.logger.info(f"Fetched {len(filtered_albums)} albums for type: {album_type}")
+
+    def _get_image_cache_path(self, url: str) -> Path:
+        """Get the cache file path for a transformed image."""
+        import hashlib
+
+        url_hash = hashlib.md5(url.encode()).hexdigest()
+        return self.images_cache_dir / f"{url_hash}.png"
+
+    def _load_album_covers_for_tab(self, tab_index: int):
+        """Load album cover images for the selected tab.
+
+        Args:
+            tab_index: 0=ALBUM, 1=EP, 2=LIVE, 3=ETC
+        """
+        print(f"[DEBUG] _load_album_covers_for_tab called with tab_index={tab_index}")
+        self.logger.info(f"_load_album_covers_for_tab called with tab_index={tab_index}")
+
+        # Map tab index to album type
+        type_map = {0: "album", 1: "ep", 2: "live", 3: "etc"}
+        album_type = type_map.get(tab_index, "album")
+
+        self.logger.info(f"Mapped tab_index {tab_index} to album_type '{album_type}'")
+
+        # Fetch albums for this type
+        print(f"[DEBUG] Calling _fetch_albums_for_band for type={album_type}")
+        self._fetch_albums_for_band(album_type)
+
+        # Get albums for this type
+        albums = self.albums_by_type.get(album_type, [])
+        print(f"[DEBUG] Got {len(albums)} albums from cache for type={album_type}")
+
+        # Extract cover image URLs
+        self.matrix_src_paths = []
+        # Load and transform images (limit to 15 for grid)
+        for album in albums[:15]:
+            field_data = album.get("fieldData", {})
+
+            # Try thumbnail first, fall back to cover
+            cover_url = None
+            if "thumbnail-200-x-200" in field_data and field_data["thumbnail-200-x-200"]:
+                cover_url = field_data["thumbnail-200-x-200"].get("url")
+            elif "cover" in field_data and field_data["cover"]:
+                cover_url = field_data["cover"].get("url")
+
+            if cover_url:
+                # Check if we have a cached transformed image
+                cache_path = self._get_image_cache_path(cover_url)
+                if cache_path.exists():
+                    # Use cached transformed image
+                    self.matrix_src_paths.append(str(cache_path))
+                else:
+                    # Will need to download and transform
+                    self.matrix_src_paths.append(cover_url)
+                self.logger.info(
+                    f"Added album cover: {album.get('fieldData', {}).get('name', 'Unknown')} -> {cover_url}"
+                )
+            else:
+                self.logger.warning(
+                    f"No cover URL for album: {album.get('fieldData', {}).get('name', 'Unknown')}"
+                )
+
+        # Clear cache when tab changes
+        self.matrix_images_cache = []
+
+        self.logger.info(f"Loaded {len(self.matrix_src_paths)} album covers for {album_type}")
 
     def handle_event(self, event: pygame.event.Event):
         """Handle band details input."""
@@ -178,8 +458,9 @@ class BandDetailsScene(Scene):
             if self.settings_rect and self.settings_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intent.GO_TO_SETTINGS)
                 return True
-            # Check tabs click
-            if self.tabs and self.tabs.handle_click(event.pos):
+            # Handle tabs click
+        if self.tabs and event.type == pygame.MOUSEBUTTONDOWN:
+            if self.tabs.handle_click(event.pos):
                 return True
 
         return False
@@ -192,6 +473,12 @@ class BandDetailsScene(Scene):
         """Draw band details screen."""
         # Clear screen
         screen.fill(self.bg)
+
+        # Debug: confirm draw is being called
+        if not hasattr(self, "_draw_called"):
+            print("[DEBUG] BandDetailsScene.draw() called for the first time")
+            self.logger.info("BandDetailsScene.draw() called for the first time")
+            self._draw_called = True
         w, h = screen.get_size()
 
         # Get style and layout
@@ -409,33 +696,131 @@ class BandDetailsScene(Scene):
 
         # Draw content based on active tab
         content_text_y = tabs_y + 60
-        if self.tabs.active_index == 0:
-            # First tab - Album (show matrix-transformed image)
-            if not self._matrix_image_loaded:
-                self._load_matrix_image()
 
-            if self.matrix_image:
-                # Scale image to fit in content area (max 400px wide)
-                img_width = min(400, self.matrix_image.get_width())
-                img_height = int(
-                    self.matrix_image.get_height() * (img_width / self.matrix_image.get_width())
-                )
-                scaled_image = pygame.transform.smoothscale(
-                    self.matrix_image, (img_width, img_height)
-                )
-                screen.blit(scaled_image, (tabs_x, content_text_y))
-            else:
-                # Fallback text if image failed to load
-                content_surface = render_mixed_text("album", 36, "primary", self.color)
-                screen.blit(content_surface, (tabs_x, content_text_y))
-        elif self.tabs.active_index == 1:
-            # Second tab
-            content_surface = render_mixed_text("ep", 36, "primary", self.color)
-            screen.blit(content_surface, (tabs_x, content_text_y))
-        elif self.tabs.active_index == 2:
-            # Third tab
-            content_surface = render_mixed_text("live", 36, "primary", self.color)
-            screen.blit(content_surface, (tabs_x, content_text_y))
+        # Load album covers for the active tab (only when tab changes)
+        if self._last_loaded_tab_index != self.tabs.active_index:
+            print(f"[DEBUG] Tab changed to {self.tabs.active_index}, loading album covers")
+            self._load_album_covers_for_tab(self.tabs.active_index)
+            self._last_loaded_tab_index = self.tabs.active_index
+            print(
+                f"[DEBUG] After _load_album_covers_for_tab, matrix_src_paths has {len(self.matrix_src_paths)} items"
+            )
+
+        # Display album covers if available
+        if self.matrix_src_paths:
+            # Use exact primary color from theme for bright highlights to match UI
+            style = self.theme.get("style", {})
+            colors = style.get("colors", {})
+
+            # Primary color (#E91E63) - matches the hot pink in UI
+            primary_rgb = tuple(colors.get("primary", (233, 30, 99)))
+            # Pink 700 (#C2185B) for shadows - deeper but still vibrant
+            dim_rgb = (194, 24, 91)
+            # Dark background
+            bg_rgb = tuple(colors.get("background", (8, 6, 16)))
+
+            # Display images in a 3x5 grid layout
+            img_size = 180
+            cols = 5
+            rows = 3
+            top_margin = 30
+            side_margin = 30  # 30px from container edges
+
+            # Calculate container width from actual screen margins
+            # The container spans from margin_left to (w - margin_right)
+            container_width = w - margin_left - margin_right
+            available_height = h - content_text_y - 100
+
+            # Calculate spacing: leftmost at 30px from margin_left, rightmost at 30px from right edge
+            # Available space for images and gaps: container_width - (2 * side_margin)
+            available_width = container_width - (2 * side_margin)
+            total_img_width = cols * img_size
+            # Spacing between images (not at edges)
+            horizontal_spacing = (available_width - total_img_width) / (cols - 1) if cols > 1 else 0
+            vertical_spacing = (
+                (available_height - (rows * img_size)) / (rows - 1) if rows > 1 else 0
+            )
+
+            # Generate cached images only once
+            if not self.matrix_images_cache:
+                self.logger.info("Generating matrix transformations (one-time)...")
+                for src_path in self.matrix_src_paths:
+                    # Check if this is a cached file path or URL
+                    if src_path.startswith("http"):
+                        # It's a URL - need to download and transform
+                        cache_path = self._get_image_cache_path(src_path)
+
+                        matrix_image = transform_to_matrix(
+                            src_path,
+                            enable_flicker=False,
+                            color_bright=primary_rgb,
+                            color_dim=dim_rgb,
+                            color_bg=bg_rgb,
+                        )
+
+                        if matrix_image:
+                            # Scale to 180x180
+                            scaled_image = pygame.transform.smoothscale(
+                                matrix_image, (img_size, img_size)
+                            )
+
+                            # Save to disk cache
+                            try:
+                                pygame.image.save(scaled_image, str(cache_path))
+                                print(
+                                    f"[DEBUG] Saved transformed image to cache: {cache_path.name}"
+                                )
+                            except Exception as e:
+                                self.logger.error(f"Error saving image cache: {e}")
+
+                            self.matrix_images_cache.append(scaled_image)
+                        else:
+                            self.matrix_images_cache.append(None)
+                    else:
+                        # It's a cached file path - load from disk
+                        try:
+                            cached_image = pygame.image.load(src_path)
+                            print(
+                                f"[DEBUG] Loaded transformed image from cache: {Path(src_path).name}"
+                            )
+                            self.matrix_images_cache.append(cached_image)
+                        except Exception as e:
+                            self.logger.error(f"Error loading cached image: {e}")
+                            self.matrix_images_cache.append(None)
+
+                self.logger.info(f"Cached {len(self.matrix_images_cache)} matrix images")
+
+            # Draw cached images in 3x5 grid with borders
+            # Start 30px from the actual left margin (not tabs_x)
+            start_x = margin_left + side_margin
+            start_y = content_text_y + top_margin
+            border_width = 3
+
+            img_index = 0
+            for row in range(rows):
+                for col in range(cols):
+                    if img_index < len(self.matrix_images_cache):
+                        cached_image = self.matrix_images_cache[img_index]
+                        if cached_image:
+                            # Calculate position
+                            x_pos = start_x + col * (img_size + horizontal_spacing)
+                            y_pos = start_y + row * (img_size + vertical_spacing)
+
+                            # Draw border rectangle
+                            border_rect = pygame.Rect(
+                                int(x_pos) - border_width,
+                                int(y_pos) - border_width,
+                                img_size + (border_width * 2),
+                                img_size + (border_width * 2),
+                            )
+                            pygame.draw.rect(screen, primary_rgb, border_rect, border_width)
+                            # Draw image
+                            screen.blit(cached_image, (int(x_pos), int(y_pos)))
+                        img_index += 1
+        else:
+            # No albums available - show message
+            no_albums_surface = render_mixed_text("No albums available", 36, "primary", self.color)
+            screen.blit(no_albums_surface, (tabs_x, content_text_y))
 
         # Draw scanlines and footer
         draw_scanlines(screen)
