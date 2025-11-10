@@ -385,12 +385,25 @@ class BandDetailsScene(Scene):
                 filtered_albums.append(album)
                 type_match_count += 1
 
+        # Sort albums by year (oldest first)
+        # Convert year to int for proper sorting, handle missing/invalid years
+        def get_year(album):
+            year_str = album.get("fieldData", {}).get("year", "9999")
+            try:
+                return int(year_str) if year_str else 9999
+            except (ValueError, TypeError):
+                return 9999  # Put albums with invalid years at the end
+
+        filtered_albums.sort(key=get_year)
+
         # Cache the filtered albums
         print(
             f"[DEBUG] Band matches: {band_match_count}/{len(albums)}, Type matches: {type_match_count}, Caching {len(filtered_albums)} albums for type={album_type}"
         )
         self.albums_by_type[album_type] = filtered_albums
-        self.logger.info(f"Fetched {len(filtered_albums)} albums for type: {album_type}")
+        self.logger.info(
+            f"Fetched {len(filtered_albums)} albums for type: {album_type} (sorted by year)"
+        )
 
     def _get_image_cache_path(self, url: str) -> Path:
         """Get the cache file path for a transformed image."""
@@ -755,7 +768,7 @@ class BandDetailsScene(Scene):
             horizontal_spacing = (available_width - total_img_width) / (cols - 1) if cols > 1 else 0
             vertical_spacing = (
                 (available_height - (rows * img_size)) / (rows - 1) if rows > 1 else 0
-            )
+            ) - 30  # Reduce row spacing by 30px
 
             # Generate cached images only once
             if not self.matrix_images_cache:
