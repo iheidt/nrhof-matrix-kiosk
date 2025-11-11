@@ -35,6 +35,7 @@ class SettingsScene(Scene):
         self.settings_rect = None  # Store settings text rect for click detection
         self.lang_left_rect = None
         self.lang_right_rect = None
+        self.power_down_rect = None  # Store power down button rect for click detection
 
     def on_enter(self):
         """Called when scene becomes active."""
@@ -60,6 +61,14 @@ class SettingsScene(Scene):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intent.GO_BACK)
+                return True
+            # Check power down button click
+            if self.power_down_rect and self.power_down_rect.collidepoint(event.pos):
+                # Shut down the app
+                import sys
+
+                pygame.quit()
+                sys.exit(0)
                 return True
             # Toggle language - check which side was clicked
             if self.lang_left_rect and self.lang_left_rect.collidepoint(event.pos):
@@ -195,8 +204,11 @@ class SettingsScene(Scene):
 
         # Draw scanlines and footer
         draw_scanlines(screen)
-        self.settings_rect = draw_footer(
+        # Display "power down" text in footer instead of "settings"
+        power_down_text = t("settings.power_down")
+        self.power_down_rect = draw_footer(
             screen,
             self.color,
             show_settings=False,
-        )  # Hide settings when in settings
+            custom_text=power_down_text,
+        )

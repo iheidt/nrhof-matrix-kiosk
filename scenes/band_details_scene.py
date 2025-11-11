@@ -107,6 +107,9 @@ class BandDetailsScene(Scene):
                 self.matrix_src_paths = []
                 self.matrix_images_cache = []
                 self._cached_language = None
+                # Reset tabs to first tab (ALBUM) when switching bands
+                if self.tabs:
+                    self.tabs.active_index = 0
 
             self.band_id = new_band_id
 
@@ -191,8 +194,12 @@ class BandDetailsScene(Scene):
 
     def handle_event(self, event: pygame.event.Event):
         """Handle band details input."""
+        # Check if scrolling should be disabled (15 or fewer albums)
+        num_albums = len(self.matrix_src_paths)
+        scroll_enabled = num_albums > 15
+
         # Handle mouse wheel scrolling for album grid
-        if event.type == pygame.MOUSEWHEEL:
+        if event.type == pygame.MOUSEWHEEL and scroll_enabled:
             # Scroll speed: 20 pixels per wheel notch
             scroll_speed = 20
             self.scroll_offset -= event.y * scroll_speed
@@ -201,7 +208,7 @@ class BandDetailsScene(Scene):
             return True
 
         # Handle touch drag scrolling
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.MOUSEBUTTONDOWN and scroll_enabled:
             # Check if clicking in scrollable area (not on UI elements)
             if not (self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos)):
                 if not (self.settings_rect and self.settings_rect.collidepoint(event.pos)):
@@ -231,12 +238,15 @@ class BandDetailsScene(Scene):
 
         if event.type == pygame.MOUSEMOTION:
             if self.is_dragging:
-                # Calculate drag distance
-                drag_delta = event.pos[1] - self.drag_start_y
-                # Update scroll (invert delta so dragging down scrolls up)
-                self.scroll_offset = self.drag_start_scroll - drag_delta
-                # Clamp scroll offset
-                self.scroll_offset = max(0, min(self.scroll_offset, self.max_scroll))
+                # Only allow scrolling if more than 15 albums
+                num_albums = len(self.matrix_src_paths)
+                if num_albums > 15:
+                    # Calculate drag distance
+                    drag_delta = event.pos[1] - self.drag_start_y
+                    # Update scroll (invert delta so dragging down scrolls up)
+                    self.scroll_offset = self.drag_start_scroll - drag_delta
+                    # Clamp scroll offset
+                    self.scroll_offset = max(0, min(self.scroll_offset, self.max_scroll))
                 return True
 
         # ESC to return to previous scene

@@ -7,7 +7,7 @@ import pygame
 
 from core.localization import t
 from core.theme_loader import get_theme_loader
-from ui.fonts import render_mixed_text
+from ui.fonts import render_localized_text, render_mixed_text
 from ui.image_transformer import transform_to_matrix
 
 
@@ -227,28 +227,41 @@ class AlbumGridRenderer:
         score = metadata.get("score")
 
         # Album name (bottom-left)
+        # Use render_localized_text for consistent font treatment with marquee scroller
+        # English text uses IBM Plex Mono Italic, Japanese text uses Noto Sans JP
         if album_name:
-            font_path = Path("assets/fonts/IBMPlexMono-Regular.ttf")
-            font = pygame.font.Font(str(font_path), 18)
+            # Lowercase for English text (matching marquee scroller behavior)
+            display_name = album_name.lower()
             max_width = img_size - 20
-            truncated_name = album_name
-            name_surface = font.render(truncated_name, True, primary_rgb)
+            truncated_name = display_name
+            name_surface = render_localized_text(
+                truncated_name,
+                18,
+                "primary",  # Uses IBM Plex Mono Italic for English
+                primary_rgb,
+            )
+            # Truncate if too wide
             while name_surface.get_width() > max_width and len(truncated_name) > 0:
                 truncated_name = truncated_name[:-1]
-                name_surface = font.render(truncated_name, True, primary_rgb)
+                name_surface = render_localized_text(
+                    truncated_name,
+                    18,
+                    "primary",
+                    primary_rgb,
+                )
             name_x = int(x_pos) + 10
             name_y = int(y_pos) + img_size - name_surface.get_height() - 10
             surface.blit(name_surface, (name_x, name_y))
 
         # Score (top-right) + flame if >= 9.0
         if score is not None:
-            score_font_path = Path("assets/fonts/IBMPlexMono-Italic.ttf")
+            score_font_path = Path("assets/fonts/IBMPlexMono-SemiBoldItalic.ttf")
             score_font = pygame.font.Font(str(score_font_path), 30)
             score_text = f"{score:.1f}"
             score_surface = score_font.render(score_text, True, primary_rgb)
             flame_width = flame_icon.get_width() + 5 if score >= 9.0 and flame_icon else 0
-            score_x = int(x_pos) + img_size - score_surface.get_width() - flame_width - 18
-            score_y = int(y_pos) + 18
+            score_x = int(x_pos) + img_size - score_surface.get_width() - flame_width - 15
+            score_y = int(y_pos) + 10
             surface.blit(score_surface, (score_x, score_y))
 
             if score >= 9.0 and flame_icon:

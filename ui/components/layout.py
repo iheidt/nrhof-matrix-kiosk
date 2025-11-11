@@ -53,7 +53,12 @@ def draw_back_arrow(surface: Surface, color: tuple = (140, 255, 140)) -> pygame.
     return pygame.Rect(x, y, text_surface.get_width(), text_surface.get_height())
 
 
-def draw_footer(surface: Surface, color: tuple = (140, 255, 140), show_settings: bool = True):
+def draw_footer(
+    surface: Surface,
+    color: tuple = (140, 255, 140),
+    show_settings: bool = True,
+    custom_text: str = None,
+):
     """Draw footer with settings card and company name div.
 
     Footer structure:
@@ -64,6 +69,7 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140), show_settings:
         surface: Pygame surface to draw on
         color: RGB color tuple (not used, colors from theme)
         show_settings: Whether to show the settings text (default: True)
+        custom_text: Optional custom text to display instead of settings (overrides show_settings)
 
     Returns:
         pygame.Rect: Rectangle for the settings text (for click detection), or None if hidden
@@ -109,14 +115,15 @@ def draw_footer(surface: Surface, color: tuple = (140, 255, 140), show_settings:
         border_fade_pct=footer_fade_pct,
     )
 
-    # Draw "settings" text (left aligned in card) - only if show_settings is True
+    # Draw "settings" text (left aligned in card) - only if show_settings is True or custom_text provided
     from core.localization import t
 
     primary_color = tuple(style["colors"]["primary"])
     settings_rect = None
-    if show_settings:
+    if custom_text or show_settings:
         micro_size = style["typography"]["fonts"]["micro"]
-        settings_content = t("footer.settings")
+        # Use custom text if provided, otherwise use settings text
+        settings_content = custom_text if custom_text else t("footer.settings")
         settings_font = get_localized_font(micro_size, "primary", settings_content)
         settings_text = settings_font.render(settings_content, True, primary_color)
         settings_x = content_rect.x

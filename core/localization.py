@@ -58,7 +58,7 @@ TRANSLATIONS = {
         "footer.settings": "settings",
         "footer.company": "BIG NERD INDUSTRIES INC. 2025",
         # Now Playing
-        "now_playing.title": "NOW PLAYING",
+        "now_playing.title": "now playing",
         "now_playing.listening": "listening",
         "now_playing.none_playing": "none playing",
         # Common
@@ -69,8 +69,9 @@ TRANSLATIONS = {
         "common.pm": "PM",
         # Settings
         "settings.title": "SETTINGS",
-        "settings.language_english": "English",
-        "settings.language_japanese": "Japanese",
+        "settings.language_english": "english",
+        "settings.language_japanese": "japanese",
+        "settings.power_down": "power down",
         # Splash
         "splash.title": "NRHOF",
         "splash.loading": "glow plugs starting...",
@@ -83,17 +84,17 @@ TRANSLATIONS = {
         # NR-18
         "nr18.title": "NR-18",
         # Visualizers
-        "visualizers.title": "VISUALIZERS",
+        "visualizers.title": "visualizers",
         "visualizers.bars": "bars",
         "visualizers.wave": "wave",
         "visualizers.lissajous": "lissajous",
         # Fate Maker
-        "fate_maker.title": "FATE MAKER",
+        "fate_maker.title": "fate maker",
         # Band Details
-        "band_details.albums": "ALBUM",
-        "band_details.ep": "EP",
-        "band_details.live": "LIVE",
-        "band_details.etc": "ETC",
+        "band_details.albums": "album",
+        "band_details.ep": "ep",
+        "band_details.live": "live",
+        "band_details.etc": "etc",
         "band_details.more": "more",
     },
     "jp": {
@@ -107,7 +108,7 @@ TRANSLATIONS = {
         "footer.settings": "設定",
         "footer.company": "BIG NERD INDUSTRIES INC. 2025",
         # Now Playing
-        "now_playing.title": "Now Playing",
+        "now_playing.title": "now playing",
         "now_playing.listening": "音楽認識中",
         "now_playing.none_playing": "再生なし",
         # Common
@@ -120,6 +121,7 @@ TRANSLATIONS = {
         "settings.title": "設定",
         "settings.language_english": "英語",
         "settings.language_japanese": "日本語",
+        "settings.power_down": "シャットダウンする",
         # Visualizers
         "visualizers.title": "ビジュアライザ",
         "visualizers.bars": "バー",
