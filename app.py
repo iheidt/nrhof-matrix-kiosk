@@ -309,13 +309,7 @@ def main():
         priority=50,
     )
 
-    # Localization hook - log language changes
-    def on_language_change(old_lang, new_lang):
-        print(f"[LOCALIZATION] Language changed: {old_lang} -> {new_lang}")
-
-    from core.localization import add_language_change_listener
-
-    add_language_change_listener(on_language_change)
+    # Localization logging is handled in core/localization/service.py
 
     # Execute APP_STARTUP hooks
     execute_hooks(LifecyclePhase.APP_STARTUP)

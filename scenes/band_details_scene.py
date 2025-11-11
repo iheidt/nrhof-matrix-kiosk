@@ -79,8 +79,10 @@ class BandDetailsScene(Scene):
 
         # Album display state
         self.matrix_src_paths = []
-        self.matrix_images_cache = []
+        self.matrix_images_cache = []  # Current tab's cache
         self.album_metadata = []
+        self._current_album_type = None  # Track currently loaded album type
+        self._tab_caches = {}  # Cache per album type: {"album": [...], "ep": [...]}
 
         # Load icons
         self.down_arrow_icon = self.icon_loader.load_down_arrow_icon()
@@ -101,6 +103,8 @@ class BandDetailsScene(Scene):
                 self.album_data_manager.albums_by_type = {}
                 self.matrix_src_paths = []
                 self.matrix_images_cache = []
+                self._current_album_type = None  # Reset album type tracking
+                self._tab_caches = {}  # Clear all tab caches
                 # Reset tabs to first tab when switching bands
                 self.tab_manager.reset_for_new_band()
 
@@ -129,7 +133,17 @@ class BandDetailsScene(Scene):
         Args:
             album_type: One of 'album', 'ep', 'live', or 'etc'
         """
-        self.logger.info(f"Loading album covers for type: {album_type}")
+        # Skip reload if we're already showing this album type
+        if self._current_album_type == album_type and self.matrix_images_cache:
+            self.logger.info(
+                f"Album type '{album_type}' already loaded (cache size: {len(self.matrix_images_cache)}), skipping reload"
+            )
+            return
+
+        self.logger.info(
+            f"Loading album covers for type: {album_type} (previous: {self._current_album_type}, cache size: {len(self.matrix_images_cache)})"
+        )
+        self._current_album_type = album_type
 
         # Fetch albums using data manager
         self.album_data_manager.fetch_albums_for_band(
@@ -174,8 +188,8 @@ class BandDetailsScene(Scene):
                     f"No cover URL for album: {album.get('fieldData', {}).get('name', 'Unknown')}"
                 )
 
-        # Clear cache when tab changes
-        self.matrix_images_cache = []
+        # Load cached images for this tab if available
+        self.matrix_images_cache = self._tab_caches.get(album_type, [])
 
         # Reset scroll position when tab changes
         self.scroll_handler.reset()
@@ -472,8 +486,11 @@ class BandDetailsScene(Scene):
                 content_text_y,
                 self.album_data_manager.get_image_cache_path,
             )
-            # Update scroll handler with new max scroll
             self.scroll_handler.set_max_scroll(max_scroll)
+
+            # Save cache for this tab
+            if self._current_album_type:
+                self._tab_caches[self._current_album_type] = self.matrix_images_cache
         else:
             # No albums available - show message
             no_albums_surface = render_mixed_text("No albums available", 36, "primary", self.color)
