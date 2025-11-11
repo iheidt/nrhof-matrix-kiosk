@@ -9,6 +9,7 @@ from ui.components import (
     MARGIN_RIGHT,
     MARGIN_TOP,
     draw_footer,
+    draw_hud,
     draw_scanlines,
     draw_status,
     draw_title_card_container,
@@ -203,8 +204,9 @@ class SettingsScene(Scene):
             theme={"layout": layout, "style": style},
         )
 
-        # Draw scanlines, status, and footer
+        # Draw overlays, HUD, and footer
         draw_scanlines(screen)
+        draw_hud(screen, self.color)
         draw_status(screen, self.color)
         # Display "power down" text in footer instead of "settings"
         power_down_text = t("settings.power_down")

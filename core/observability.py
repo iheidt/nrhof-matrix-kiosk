@@ -302,15 +302,18 @@ class PerformanceHUD:
         """Get current performance stats.
 
         Returns:
-            Dictionary with fps, queue_depth, voice_latency_ms
+            Dictionary with fps, queue_depth, voice_latency_ms, audio_level
         """
+        from core.app_state import get_app_state
         from core.event_bus import get_event_bus
 
         perf_monitor = get_performance_monitor()
         event_bus = get_event_bus()
+        app_state = get_app_state()
 
         fps_stats = perf_monitor.get_fps_stats()
         bus_metrics = event_bus.get_metrics()
+        music_present, audio_level = app_state.get_music_state()
 
         return {
             "fps": fps_stats["avg_fps"],
@@ -318,6 +321,7 @@ class PerformanceHUD:
             "queue_depth": bus_metrics["queue_size"],
             "events_dropped": bus_metrics["events_dropped"],
             "voice_latency_ms": self.last_voice_latency_ms,
+            "audio_level": audio_level,
         }
 
     def render(self, surface, font, x: int, y: int, color: tuple = (0, 255, 0)):
@@ -347,6 +351,12 @@ class PerformanceHUD:
 
         if stats["voice_latency_ms"] is not None:
             hud_parts.append(f"Voice: {stats['voice_latency_ms']:.0f}ms")
+
+        # Show audio level if > 0
+        if stats["audio_level"] > 0.0:
+            # Convert to percentage and show bar
+            level_pct = int(stats["audio_level"] * 100)
+            hud_parts.append(f"mic {level_pct}%")
 
         hud_text = " | ".join(hud_parts)
 

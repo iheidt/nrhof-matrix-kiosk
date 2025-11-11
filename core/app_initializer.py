@@ -3,7 +3,6 @@
 
 import os
 import sys
-import threading
 
 from core.app_context import AppContext
 from core.app_state import get_app_state
@@ -21,8 +20,9 @@ from routing.voice_commands import register_all_voice_commands
 from routing.voice_engine import VoiceEngine
 from routing.voice_router import VoiceRouter
 from scenes.scene_manager import SceneManager
-from scenes.scene_registry import get_preload_list, register_all_scenes
+from scenes.scene_registry import register_all_scenes
 from workers.audio_worker import AudioWorker
+from workers.mic_listener_worker import MicListenerWorker
 from workers.recognition_worker import RecognitionWorker
 from workers.song_recognition_worker import SongRecognitionWorker
 from workers.wake_word_worker import WakeWordWorker
@@ -217,6 +217,15 @@ def start_workers(cfg, voice_engine=None):
     sonos_source = SonosSource(config_dict, source_manager)
     sonos_source.start()
 
+    # Mic listener worker (debug - monitors mic input)
+    mic_listener_config = config_dict.get("mic_listener", {})
+    mic_listener_worker = None
+    if mic_listener_config.get("enabled", False):
+        event_bus = get_event_bus()
+        mic_listener_worker = MicListenerWorker(event_bus, mic_listener_config)
+        mic_listener_worker.start()
+        logger.info("MicListenerWorker started (debug mode)")
+
     return {
         "audio_worker": audio_worker,
         "recognition_worker": recognition_worker,
@@ -225,6 +234,7 @@ def start_workers(cfg, voice_engine=None):
         "source_manager": source_manager,
         "spotify_source": spotify_source,
         "sonos_source": sonos_source,
+        "mic_listener_worker": mic_listener_worker,
     }
 
 
@@ -243,116 +253,5 @@ def register_all_handlers(components):
     register_all_voice_commands(components["voice_router"], components["intent_router"])
 
 
-def start_3d_renderer_preload():
-    """Start 3D renderer initialization in background.
-
-    This initializes the Panda3D renderer and loads the D20 model
-    early so it's ready when MenuScene is displayed.
-    """
-
-    def _init_renderer():
-        try:
-            import os
-
-            from renderers.model_renderer import ModelRenderer
-
-            print("[PRELOAD] Initializing 3D renderer in background...")
-            renderer = ModelRenderer(width=512, height=512)
-
-            # Load D20 model
-            model_path = os.path.join(
-                os.path.dirname(os.path.dirname(__file__)),
-                "assets",
-                "models",
-                "d21.glb",
-            )
-            if os.path.exists(model_path):
-                renderer.load_model(model_path)
-                renderer.set_rotation(h=45, p=15, r=0)
-
-                # Store in d20 module's global
-                from ui.components import d20
-
-                d20._d20_renderer = renderer
-                d20._d20_init_attempted = True
-
-                print("[PRELOAD] ✓ 3D renderer preloaded successfully")
-            else:
-                print(f"[PRELOAD] Warning: D20 model not found at {model_path}")
-        except Exception as e:
-            print(f"[PRELOAD] Warning: Could not preload 3D renderer: {e}")
-            # Mark as attempted so d20 widget doesn't try again
-            try:
-                from ui.components import d20
-
-                d20._d20_init_attempted = True
-            except Exception:
-                pass
-
-    import threading
-
-    thread = threading.Thread(target=_init_renderer, daemon=True)
-    thread.start()
-    return thread
-
-
-def start_preload(scene_manager, app_context):
-    """Start background scene preloading.
-
-    Args:
-        scene_manager: SceneManager instance
-        app_context: AppContext instance
-
-    Returns:
-        threading.Thread: Waiter thread
-    """
-    # Initialize preload tracking
-    app_context.preload_progress = 0.0
-    app_context.preload_done = False
-
-    # Progress callback
-    def _progress(done, total):
-        app_context.preload_progress = float(done) / float(total)
-
-    # Start preload
-    scenes_to_preload = get_preload_list()
-    preload_thread = scene_manager.preload_lazy(
-        scenes_to_preload,
-        progress_cb=_progress,
-        sleep_between=0.05,
-    )
-
-    # Waiter thread to set preload_done
-    def _waiter():
-        preload_thread.join()
-        app_context.preload_done = True
-
-    waiter_thread = threading.Thread(target=_waiter, daemon=True)
-    waiter_thread.start()
-
-
-def start_webflow_refresh(webflow_cache_manager):
-    """Start background Webflow cache refresh.
-
-    Args:
-        webflow_cache_manager: WebflowCacheManager instance
-
-    Returns:
-        threading.Thread: Refresh thread
-    """
-    if webflow_cache_manager is None:
-        return None
-
-    logger = get_logger("app_initializer")
-
-    def _refresh():
-        logger.info("Starting Webflow cache refresh in background...")
-        success = webflow_cache_manager.refresh_all(force=False)
-        if success:
-            logger.info("Webflow cache refresh complete")
-        else:
-            logger.warning("Webflow cache refresh failed or skipped")
-
-    refresh_thread = threading.Thread(target=_refresh, daemon=True)
-    refresh_thread.start()
-    return refresh_thread
+# Preload functions moved to core/preload_manager.py to avoid duplication
+# Import them here for backwards compatibility

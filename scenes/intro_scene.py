@@ -5,7 +5,14 @@ import pygame
 
 from core.theme_loader import get_theme_loader
 from scenes.scene_manager import Scene, register_scene
-from ui.components import MARGIN_LEFT, MARGIN_TOP, draw_footer, draw_scanlines, draw_status
+from ui.components import (
+    MARGIN_LEFT,
+    MARGIN_TOP,
+    draw_footer,
+    draw_hud,
+    draw_scanlines,
+    draw_status,
+)
 from ui.fonts import render_mixed_text
 
 
@@ -177,7 +184,8 @@ class IntroScene(Scene):
                 cursor = render_mixed_text("_", self.base_font_size, self.font_type, self.color)
                 screen.blit(cursor, (cursor_x, y_pos))
 
-        # Draw overlays, status, and footer
+        # Draw overlays, HUD, status, and footer
         draw_scanlines(screen)
+        draw_hud(screen, self.color)
         draw_status(screen, self.color)
         draw_footer(screen, self.color, show_settings=False)  # Hide settings in intro

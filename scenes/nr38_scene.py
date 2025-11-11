@@ -17,6 +17,7 @@ from ui.components import (
     MARGIN_RIGHT,
     MARGIN_TOP,
     draw_footer,
+    draw_hud,
     draw_scanlines,
     draw_status,
     draw_title_card_container,
@@ -464,7 +465,8 @@ class NR38Scene(Scene):
                 band_rect = pygame.Rect(col3_x, y_pos, col3_width, line_height)
                 self.band_rects.append((band_rect, band))
 
-        # Draw scanlines, status, and footer
+        # Draw overlays, HUD, and footer
         draw_scanlines(screen)
+        draw_hud(screen, self.color)
         draw_status(screen, self.color)
         self.settings_rect = draw_footer(screen, self.color, show_settings=True)

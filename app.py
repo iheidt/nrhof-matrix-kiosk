@@ -207,6 +207,11 @@ def main():
 
                         get_app_state().clear_status()
                         print("[DEBUG] Status: cleared")
+                    # Debug: Toggle performance HUD
+                    elif event.key == pygame.K_h and (pygame.key.get_mods() & pygame.KMOD_CTRL):
+                        from core.observability import get_performance_hud
+
+                        get_performance_hud().toggle()
                     else:
                         scene_manager.handle_event(event)
                 else:

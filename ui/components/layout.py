@@ -211,3 +211,43 @@ def draw_status(surface: Surface, color: tuple = (140, 255, 140)):
     status_y = margin_top // 2 - status_text.get_height() // 2
 
     surface.blit(status_text, (status_x, status_y))
+
+
+def draw_hud(surface: Surface, color: tuple = (0, 255, 0)):
+    """Draw performance HUD in top-left margin if enabled.
+
+    Args:
+        surface: Pygame surface to draw on
+        color: RGB color tuple for HUD text (default: green)
+    """
+    from core.observability import get_performance_hud
+    from core.theme_loader import get_theme_loader
+    from ui.fonts import get_theme_font
+
+    hud = get_performance_hud()
+
+    if not hud.enabled:
+        return
+
+    w, h = surface.get_size()
+
+    # Load theme
+    theme_loader = get_theme_loader()
+    layout = theme_loader.load_layout("menu")
+    style = theme_loader.load_style("pipboy")
+
+    # Get margins
+    margins = layout.get("margins", {})
+    margin_left = margins.get("left", 50)
+    margin_top = margins.get("top", 50)
+
+    # Get font
+    pico_size = style["typography"]["fonts"]["pico"]
+    hud_font = get_theme_font(pico_size, "primary")
+
+    # Position in top-left with margins
+    hud_x = margin_left
+    hud_y = margin_top // 2 - hud_font.get_height() // 2
+
+    # Render HUD
+    hud.render(surface, hud_font, hud_x, hud_y, color)

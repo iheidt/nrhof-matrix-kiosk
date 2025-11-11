@@ -10,6 +10,8 @@ dev_overrides:
     auto_cycle: true       # splash -> intro -> menu
   audio:
     muted: true
+  mic_listener:
+    enabled: true          # Enable debug mic listener worker
 
 # Render settings
 render:
@@ -27,6 +29,13 @@ audio:
   music_threshold: 0.01      # RMS threshold for music detection
   music_debounce: 0.5        # Seconds before state change
   poll_interval: 0.1         # Audio monitoring interval (100ms)
+
+# Mic listener (debug worker for monitoring mic input)
+mic_listener:
+  enabled: false             # Enable mic listener worker
+  frame_duration_ms: 10      # Frame duration in ms (10ms = 160 samples at 16kHz)
+  update_interval_ms: 100    # How often to update audio level
+  log_interval_s: 5          # How often to log frame stats
 
 # Recognition settings (placeholder for future)
 recognizer:

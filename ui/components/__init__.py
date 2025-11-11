@@ -58,6 +58,7 @@ from .d20 import draw_d20
 from .layout import (
     draw_back_arrow,
     draw_footer,
+    draw_hud,
     draw_scanlines,
     draw_status,
 )

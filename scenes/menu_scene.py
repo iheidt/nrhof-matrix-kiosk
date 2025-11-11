@@ -13,6 +13,7 @@ from ui.components import (
     MARGIN_LEFT,
     draw_button,
     draw_footer,
+    draw_hud,
     draw_scanlines,
     draw_status,
     draw_title_card_container,
@@ -370,7 +371,8 @@ class MenuScene(Scene):
                 # Clear the indicator after duration
                 self.wake_word_detected_time = None
 
-        # Draw scanlines, status, and footer
+        # Draw overlays, HUD, and footer
         draw_scanlines(screen)
+        draw_hud(screen, self.color)
         draw_status(screen, self.color)
         self.settings_rect = draw_footer(screen, self.color)

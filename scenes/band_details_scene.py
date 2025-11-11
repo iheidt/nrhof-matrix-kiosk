@@ -21,6 +21,7 @@ from ui.components import (
     MARGIN_RIGHT,
     MARGIN_TOP,
     draw_footer,
+    draw_hud,
     draw_scanlines,
     draw_status,
     draw_title_card_container,
@@ -498,7 +499,8 @@ class BandDetailsScene(Scene):
             tabs_x = margin_left + 35 + 24
             screen.blit(no_albums_surface, (tabs_x, content_text_y))
 
-        # Scanlines, status, and footer
+        # Draw overlays, HUD, and footer
         draw_scanlines(screen)
+        draw_hud(screen, self.color)
         draw_status(screen, self.color)
         self.settings_rect = draw_footer(screen, self.color, show_settings=True)
