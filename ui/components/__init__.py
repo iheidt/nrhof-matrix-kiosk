@@ -59,6 +59,7 @@ from .layout import (
     draw_back_arrow,
     draw_footer,
     draw_scanlines,
+    draw_status,
 )
 from .marquee import MarqueeText
 from .now_playing import draw_now_playing
@@ -87,6 +88,7 @@ __all__ = [
     "draw_footer",
     "draw_back_arrow",
     "draw_scanlines",
+    "draw_status",
     # Widgets
     "draw_timeclock",
     "draw_d20",

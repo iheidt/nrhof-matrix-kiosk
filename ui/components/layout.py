@@ -169,3 +169,45 @@ def draw_footer(
     surface.blit(company_text, (company_x, company_y))
 
     return settings_rect
+
+
+def draw_status(surface: Surface, color: tuple = (140, 255, 140)):
+    """Draw status message in top-right margin if present.
+
+    Args:
+        surface: Pygame surface to draw on
+        color: RGB color tuple for status text
+    """
+    from core.app_state import get_app_state
+    from core.theme_loader import get_theme_loader
+    from ui.fonts import get_localized_font
+
+    app_state = get_app_state()
+    status_message = app_state.get_status()
+
+    if not status_message:
+        return
+
+    w, h = surface.get_size()
+
+    # Load theme
+    theme_loader = get_theme_loader()
+    layout = theme_loader.load_layout("menu")
+    style = theme_loader.load_style("pipboy")
+
+    # Get margins
+    margins = layout.get("margins", {})
+    margin_right = margins.get("right", 50)
+    margin_top = margins.get("top", 50)
+
+    # Render status text
+    micro_size = style["typography"]["fonts"]["micro"]
+    primary_color = tuple(style["colors"]["primary"])
+    status_font = get_localized_font(micro_size, "primary", status_message)
+    status_text = status_font.render(status_message, True, primary_color)
+
+    # Position in top-right with margins
+    status_x = w - margin_right - status_text.get_width()
+    status_y = margin_top // 2 - status_text.get_height() // 2
+
+    surface.blit(status_text, (status_x, status_y))

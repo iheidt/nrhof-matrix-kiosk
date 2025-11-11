@@ -10,6 +10,7 @@ from ui.components import (
     MARGIN_TOP,
     draw_footer,
     draw_scanlines,
+    draw_status,
     draw_title_card_container,
 )
 from ui.fonts import render_mixed_text
@@ -206,6 +207,7 @@ class VisualizersScene(Scene):
             content_surface = render_mixed_text("Lissajous Visualizer", 36, "primary", self.color)
             screen.blit(content_surface, (tabs_x, content_text_y))
 
-        # Draw scanlines and footer
+        # Draw scanlines, status, and footer
         draw_scanlines(screen)
+        draw_status(screen, self.color)
         self.settings_rect = draw_footer(screen, self.color, show_settings=True)

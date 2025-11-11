@@ -10,6 +10,7 @@ from ui.components import (
     MARGIN_TOP,
     draw_footer,
     draw_scanlines,
+    draw_status,
     draw_title_card_container,
 )
 from ui.fonts import render_mixed_text
@@ -202,8 +203,9 @@ class SettingsScene(Scene):
             theme={"layout": layout, "style": style},
         )
 
-        # Draw scanlines and footer
+        # Draw scanlines, status, and footer
         draw_scanlines(screen)
+        draw_status(screen, self.color)
         # Display "power down" text in footer instead of "settings"
         power_down_text = t("settings.power_down")
         self.power_down_rect = draw_footer(

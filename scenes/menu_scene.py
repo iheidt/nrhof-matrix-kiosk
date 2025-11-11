@@ -14,6 +14,7 @@ from ui.components import (
     draw_button,
     draw_footer,
     draw_scanlines,
+    draw_status,
     draw_title_card_container,
 )
 from ui.components.d20 import draw_d20
@@ -369,6 +370,7 @@ class MenuScene(Scene):
                 # Clear the indicator after duration
                 self.wake_word_detected_time = None
 
-        # Draw scanlines and footer
+        # Draw scanlines, status, and footer
         draw_scanlines(screen)
+        draw_status(screen, self.color)
         self.settings_rect = draw_footer(screen, self.color)

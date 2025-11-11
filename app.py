@@ -191,6 +191,22 @@ def main():
                     if event.key == pygame.K_q and (pygame.key.get_mods() & pygame.KMOD_CTRL):
                         running = False
                         event_bus.emit(EventType.SHUTDOWN, source="main_loop")
+                    # Debug: Test status display (remove after voice integration)
+                    elif event.key == pygame.K_l and (pygame.key.get_mods() & pygame.KMOD_CTRL):
+                        from core.app_state import get_app_state
+
+                        get_app_state().set_status("listening...")
+                        print("[DEBUG] Status: listening...")
+                    elif event.key == pygame.K_t and (pygame.key.get_mods() & pygame.KMOD_CTRL):
+                        from core.app_state import get_app_state
+
+                        get_app_state().set_status("thinking...")
+                        print("[DEBUG] Status: thinking...")
+                    elif event.key == pygame.K_c and (pygame.key.get_mods() & pygame.KMOD_CTRL):
+                        from core.app_state import get_app_state
+
+                        get_app_state().clear_status()
+                        print("[DEBUG] Status: cleared")
                     else:
                         scene_manager.handle_event(event)
                 else:

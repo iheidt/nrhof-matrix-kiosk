@@ -109,6 +109,10 @@ class AppState:
         self.recognition_successes: int = 0
         self.network_failures: int = 0
 
+        # UI feedback
+        self.status: str | None = None  # Short status message (e.g., "Listening...", "Thinking...")
+        self.status_updated_at: float = 0.0
+
     # Audio state methods
     def set_music_present(self, present: bool, level: float = 0.0):
         """Set music presence state.
@@ -349,6 +353,31 @@ class AppState:
             # Exponential moving average
             self.avg_render_time = 0.9 * self.avg_render_time + 0.1 * render_time
 
+    def set_status(self, status: str | None):
+        """Set UI status message.
+
+        Args:
+            status: Status message (e.g., "Listening...", "Thinking...") or None to clear
+        """
+        with self._lock:
+            self.status = status
+            self.status_updated_at = time.time()
+
+    def get_status(self) -> str | None:
+        """Get current UI status message.
+
+        Returns:
+            Status message or None
+        """
+        with self._lock:
+            return self.status
+
+    def clear_status(self):
+        """Clear UI status message."""
+        with self._lock:
+            self.status = None
+            self.status_updated_at = 0.0
+
     def get_metrics(self) -> dict[str, Any]:
         """Get all metrics.
 
@@ -370,6 +399,7 @@ class AppState:
                 "network_online": self.network.is_online,
                 "pending_syncs": len(self.pending_syncs),
                 "offline_mode": self.offline_mode,
+                "status": self.status,
             }
 
 
