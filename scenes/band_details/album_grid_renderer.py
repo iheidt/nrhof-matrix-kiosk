@@ -151,7 +151,6 @@ class AlbumGridRenderer:
                     scaled_image = pygame.transform.smoothscale(matrix_image, (img_size, img_size))
                     try:
                         pygame.image.save(scaled_image, str(cache_path))
-                        print(f"[DEBUG] Saved transformed image to cache: {cache_path.name}")
                     except Exception as e:
                         self.logger.error(f"Error saving image cache: {e}")
                     cached_images.append(scaled_image)
@@ -160,7 +159,6 @@ class AlbumGridRenderer:
             else:
                 try:
                     cached_image = pygame.image.load(src_path)
-                    print(f"[DEBUG] Loaded transformed image from cache: {Path(src_path).name}")
                     cached_images.append(cached_image)
                 except Exception as e:
                     self.logger.error(f"Error loading cached image: {e}")
