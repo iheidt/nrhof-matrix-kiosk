@@ -270,3 +270,95 @@ _performance_monitor = PerformanceMonitor()
 def get_performance_monitor() -> PerformanceMonitor:
     """Get global performance monitor instance."""
     return _performance_monitor
+
+
+class PerformanceHUD:
+    """Performance HUD for displaying diagnostics in footer."""
+
+    def __init__(self, enabled: bool = False):
+        """Initialize performance HUD.
+
+        Args:
+            enabled: Whether HUD is enabled by default
+        """
+        self.enabled = enabled
+        self.last_voice_latency_ms: float | None = None
+
+    def toggle(self):
+        """Toggle HUD visibility."""
+        self.enabled = not self.enabled
+        status = "enabled" if self.enabled else "disabled"
+        print(f"📊 Performance HUD {status}")
+
+    def set_voice_latency(self, latency_ms: float):
+        """Set last voice interaction latency.
+
+        Args:
+            latency_ms: Voice latency in milliseconds
+        """
+        self.last_voice_latency_ms = latency_ms
+
+    def get_stats(self) -> dict:
+        """Get current performance stats.
+
+        Returns:
+            Dictionary with fps, queue_depth, voice_latency_ms
+        """
+        from core.event_bus import get_event_bus
+
+        perf_monitor = get_performance_monitor()
+        event_bus = get_event_bus()
+
+        fps_stats = perf_monitor.get_fps_stats()
+        bus_metrics = event_bus.get_metrics()
+
+        return {
+            "fps": fps_stats["avg_fps"],
+            "p99_ms": fps_stats["p99_frame_time_ms"],
+            "queue_depth": bus_metrics["queue_size"],
+            "events_dropped": bus_metrics["events_dropped"],
+            "voice_latency_ms": self.last_voice_latency_ms,
+        }
+
+    def render(self, surface, font, x: int, y: int, color: tuple = (0, 255, 0)):
+        """Render HUD to surface.
+
+        Args:
+            surface: Pygame surface to render to
+            font: Pygame font to use
+            x: X position
+            y: Y position
+            color: Text color (default: green)
+        """
+        if not self.enabled:
+            return
+
+        stats = self.get_stats()
+
+        # Build HUD text
+        hud_parts = [
+            f"FPS: {stats['fps']:.1f}",
+            f"P99: {stats['p99_ms']:.0f}ms",
+            f"Q: {stats['queue_depth']}",
+        ]
+
+        if stats["events_dropped"] > 0:
+            hud_parts.append(f"⚠ Drops: {stats['events_dropped']}")
+
+        if stats["voice_latency_ms"] is not None:
+            hud_parts.append(f"Voice: {stats['voice_latency_ms']:.0f}ms")
+
+        hud_text = " | ".join(hud_parts)
+
+        # Render text
+        text_surface = font.render(hud_text, True, color)
+        surface.blit(text_surface, (x, y))
+
+
+# Global instance
+_performance_hud = PerformanceHUD()
+
+
+def get_performance_hud() -> PerformanceHUD:
+    """Get global performance HUD instance."""
+    return _performance_hud
