@@ -207,18 +207,8 @@ class BandDetailsScene(Scene):
             self.scroll_offset = max(0, min(self.scroll_offset, self.max_scroll))
             return True
 
-        # Handle touch drag scrolling
-        if event.type == pygame.MOUSEBUTTONDOWN and scroll_enabled:
-            # Check if clicking in scrollable area (not on UI elements)
-            if not (self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos)):
-                if not (self.settings_rect and self.settings_rect.collidepoint(event.pos)):
-                    if not (self.tabs and self.tabs.handle_click(event.pos)):
-                        # Start drag
-                        self.is_dragging = True
-                        self.drag_start_y = event.pos[1]
-                        self.drag_start_scroll = self.scroll_offset
-                        return True
-
+        # Handle mouse button down events
+        if event.type == pygame.MOUSEBUTTONDOWN:
             # Check nav_back click
             if self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intent.GO_BACK)
@@ -227,9 +217,21 @@ class BandDetailsScene(Scene):
             if self.settings_rect and self.settings_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intent.GO_TO_SETTINGS)
                 return True
-            # Handle tabs click (already checked above)
+            # Handle tabs click
             if self.tabs and self.tabs.handle_click(event.pos):
                 return True
+
+            # Handle touch drag scrolling (only if scroll enabled)
+            if scroll_enabled:
+                # Check if clicking in scrollable area (not on UI elements)
+                if not (self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos)):
+                    if not (self.settings_rect and self.settings_rect.collidepoint(event.pos)):
+                        if not (self.tabs and self.tabs.handle_click(event.pos)):
+                            # Start drag
+                            self.is_dragging = True
+                            self.drag_start_y = event.pos[1]
+                            self.drag_start_scroll = self.scroll_offset
+                            return True
 
         if event.type == pygame.MOUSEBUTTONUP:
             if self.is_dragging:

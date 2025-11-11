@@ -57,7 +57,8 @@ def draw_now_playing_overlay(screen: pygame.Surface, cfg: dict):
 
     from core.now_playing import get_now_playing_state
     from core.theme_loader import get_theme_loader
-    from ui.components.widgets import MarqueeText, draw_now_playing
+    from ui.components.marquee import MarqueeText
+    from ui.components.now_playing import draw_now_playing
 
     global _now_playing_marquee, _last_track_id, _last_progress_time, _last_progress_ms
     global \

@@ -16,7 +16,8 @@ from ui.components import (
     draw_scanlines,
     draw_title_card_container,
 )
-from ui.components.widgets import draw_d20, draw_timeclock
+from ui.components.d20 import draw_d20
+from ui.components.timeclock import draw_timeclock
 from ui.fonts import get_theme_font
 
 

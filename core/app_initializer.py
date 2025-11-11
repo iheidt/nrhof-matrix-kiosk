@@ -267,22 +267,22 @@ def start_3d_renderer_preload():
                 renderer.load_model(model_path)
                 renderer.set_rotation(h=45, p=15, r=0)
 
-                # Store in widgets module's global
-                from ui.components import widgets
+                # Store in d20 module's global
+                from ui.components import d20
 
-                widgets._d20_renderer = renderer
-                widgets._d20_init_attempted = True
+                d20._d20_renderer = renderer
+                d20._d20_init_attempted = True
 
                 print("[PRELOAD] ✓ 3D renderer preloaded successfully")
             else:
                 print(f"[PRELOAD] Warning: D20 model not found at {model_path}")
         except Exception as e:
             print(f"[PRELOAD] Warning: Could not preload 3D renderer: {e}")
-            # Mark as attempted so widgets don't try again
+            # Mark as attempted so d20 widget doesn't try again
             try:
-                from ui.components import widgets
+                from ui.components import d20
 
-                widgets._d20_init_attempted = True
+                d20._d20_init_attempted = True
             except Exception:
                 pass
 

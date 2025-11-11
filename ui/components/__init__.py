@@ -48,6 +48,11 @@ from .buttons import (
 )
 
 # ============================================================================
+# WIDGETS
+# ============================================================================
+from .d20 import draw_d20
+
+# ============================================================================
 # LAYOUT COMPONENTS
 # ============================================================================
 from .layout import (
@@ -55,6 +60,8 @@ from .layout import (
     draw_footer,
     draw_scanlines,
 )
+from .marquee import MarqueeText
+from .now_playing import draw_now_playing
 from .primary_card import (
     draw_card,
     draw_title_card,
@@ -63,16 +70,7 @@ from .primary_card import (
 from .secondary_card import (
     draw_secondary_card,
 )
-
-# ============================================================================
-# WIDGETS
-# ============================================================================
-from .widgets import (
-    MarqueeText,
-    draw_d20,
-    draw_now_playing,
-    draw_timeclock,
-)
+from .timeclock import draw_timeclock
 
 # ============================================================================
 # PUBLIC API
