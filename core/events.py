@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+"""Centralized event types for the entire application.
+
+All event types are defined here to avoid ad-hoc string events
+and ensure type safety across the codebase.
+"""
+
+from enum import Enum, auto
+
+__all__ = ["EventType"]
+
+
+class EventType(Enum):
+    """All possible events in the system."""
+
+    # Audio events
+    MUSIC_PRESENT = auto()
+    MUSIC_ABSENT = auto()
+    AUDIO_LEVEL_CHANGED = auto()
+
+    # Recognition events
+    TRACK_CONFIRMED = auto()
+    TRACK_RECOGNITION_FAILED = auto()
+    RECOGNITION_COOLDOWN = auto()
+    SONG_RECOGNIZED = auto()
+
+    # Voice events - Wake word
+    WAKE_WORD_DETECTED = auto()
+
+    # Voice events - Command lifecycle
+    VOICE_COMMAND_START = auto()  # User started speaking a command
+    VOICE_COMMAND_END = auto()  # User finished speaking
+    VOICE_COMMAND_PROCESSING = auto()  # Command being processed by AI
+    VOICE_COMMAND_SUCCESS = auto()  # Command successfully executed
+    VOICE_COMMAND_FAILED = auto()  # Command failed to execute
+    VOICE_COMMAND_CANCELLED = auto()  # Command cancelled by user
+
+    # Voice events - Recognition
+    VOICE_TRANSCRIPTION_READY = auto()  # Speech-to-text complete
+    VOICE_INTENT_RECOGNIZED = auto()  # Intent extracted from transcription
+
+    # Voice events - Feedback
+    VOICE_LISTENING_START = auto()  # Microphone opened, listening
+    VOICE_LISTENING_STOP = auto()  # Microphone closed
+    VOICE_TIMEOUT = auto()  # No speech detected within timeout
+    VOICE_ERROR = auto()  # Voice system error
+
+    # Scene events
+    SCENE_CHANGED = auto()
+
+    # System events
+    SHUTDOWN = auto()
+    LANGUAGE_CHANGED = auto()

@@ -10,42 +10,11 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from enum import Enum, auto
 from typing import Any
 
+from core.events import EventType
+
 __all__ = ["EventBus", "EventType", "Event", "get_event_bus"]
-
-
-class EventType(Enum):
-    """All possible events in the system."""
-
-    # Audio events
-    MUSIC_PRESENT = auto()
-    MUSIC_ABSENT = auto()
-    AUDIO_LEVEL_CHANGED = auto()
-
-    # Recognition events
-    TRACK_CONFIRMED = auto()
-    TRACK_RECOGNITION_FAILED = auto()
-    RECOGNITION_COOLDOWN = auto()
-    SONG_RECOGNIZED = auto()
-
-    # Voice events
-    WAKE_WORD_DETECTED = auto()
-    VOICE_COMMAND_START = auto()
-    VOICE_COMMAND_END = auto()
-
-    # Scene events
-    SCENE_CHANGED = auto()
-    # Note: SCENE_TRANSITION_START and SCENE_TRANSITION_END removed (unused)
-
-    # Network events
-    # Note: NET_FAILED, NET_OK, WEBFLOW_SYNC_* removed (unused)
-
-    # System events
-    SHUTDOWN = auto()
-    # Note: CONFIG_RELOADED and HEALTH_CHECK removed (unused)
-    LANGUAGE_CHANGED = auto()
 
 
 @dataclass
