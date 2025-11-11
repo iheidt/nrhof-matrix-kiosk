@@ -27,6 +27,10 @@ class EventType(Enum):
     # Voice events - Wake word
     WAKE_WORD_DETECTED = auto()
 
+    # Voice events - Speech detection (VAD)
+    VOICE_SPEECH_START = auto()  # VAD detected speech start
+    VOICE_SPEECH_END = auto()  # VAD detected speech end
+
     # Voice events - Command lifecycle
     VOICE_COMMAND_START = auto()  # User started speaking a command
     VOICE_COMMAND_END = auto()  # User finished speaking
@@ -47,6 +51,10 @@ class EventType(Enum):
 
     # Scene events
     SCENE_CHANGED = auto()
+
+    # Mixer events
+    MIXER_DUCK = auto()  # Duck audio for voice interaction
+    MIXER_UNDUCK = auto()  # Restore audio after voice interaction
 
     # System events
     SHUTDOWN = auto()

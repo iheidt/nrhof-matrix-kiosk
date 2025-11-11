@@ -2,6 +2,7 @@
 """Wake word detection worker - always listening for activation phrase."""
 
 import time
+import traceback
 from collections.abc import Callable
 
 import numpy as np
@@ -54,27 +55,24 @@ class WakeWordWorker(BaseWorker):
                     keyword_paths=self.keyword_paths,
                     sensitivities=[self.sensitivity] * len(self.keyword_paths),
                 )
-                self.logger.info(
-                    "Porcupine wake word detector initialized (custom)",
-                    keyword_paths=self.keyword_paths,
-                    sample_rate=self.porcupine.sample_rate,
-                    frame_length=self.porcupine.frame_length,
-                )
             else:
                 self.porcupine = pvporcupine.create(
                     access_key=self.access_key,
                     keywords=self.keywords,
                     sensitivities=[self.sensitivity] * len(self.keywords),
                 )
-                self.logger.info(
-                    "Porcupine wake word detector initialized (built-in)",
-                    keywords=self.keywords,
-                    sample_rate=self.porcupine.sample_rate,
-                    frame_length=self.porcupine.frame_length,
-                    version=self.porcupine.version,
-                )
+
+            # Clear log showing what was loaded
+            config_str = (
+                f"keywords={self.keywords}"
+                if not self.keyword_paths
+                else f"ppn={self.keyword_paths}"
+            )
+            self.logger.info(
+                f"Porcupine ready: {config_str} | sr={self.porcupine.sample_rate} frame={self.porcupine.frame_length}"
+            )
         except Exception as e:
-            self.logger.error("Failed to initialize Porcupine", error=str(e))
+            self.logger.error(f"Failed to initialize Porcupine: {e}\n{traceback.format_exc()}")
             self.enabled = False
             return
 
@@ -101,6 +99,7 @@ class WakeWordWorker(BaseWorker):
         self.logger.info(f"Requesting {frame_length} samples per frame (native 16kHz)")
 
         frame_count = 0
+        last_log_time = time.time()
 
         while self._running:
             try:
@@ -115,7 +114,22 @@ class WakeWordWorker(BaseWorker):
                 if len(audio_frame) < frame_length:
                     continue
 
+                # Sleep to match audio frame rate (512 samples @ 16kHz = 32ms)
+                # This prevents spinning on the same buffer
+                time.sleep(0.032)
+
                 frame_count += 1
+
+                # Log stats every 10 seconds
+                current_time = time.time()
+                if current_time - last_log_time >= 10.0:
+                    elapsed = current_time - last_log_time
+                    fps = frame_count / elapsed
+                    self.logger.info(
+                        f"Wake word: {frame_count} frames in {elapsed:.1f}s ({fps:.1f} fps)"
+                    )
+                    frame_count = 0
+                    last_log_time = current_time
 
                 # Convert float32 [-1, 1] to int16 [-32768, 32767] for Porcupine
                 # No resampling needed - mic is natively 16kHz
@@ -141,14 +155,16 @@ class WakeWordWorker(BaseWorker):
                     self.logger.info("Wake word detected!", keyword=keyword)
 
                     # Emit event
-                    self.event_bus.emit(EventType.WAKE_WORD_DETECTED, keyword=keyword)
+                    self.event_bus.emit(EventType.WAKE_WORD_DETECTED, payload={"keyword": keyword})
 
                     # Call callback if set
                     if self.on_wake_word:
                         self.on_wake_word(keyword)
 
             except Exception as e:
-                self.logger.error("Error in wake word detection loop", error=str(e))
+                self.logger.error(
+                    f"Error in wake word detection loop: {e}\n{traceback.format_exc()}"
+                )
                 time.sleep(0.1)
 
         self.logger.info("Wake word detection loop ended")

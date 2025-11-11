@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import time
 
 import pygame
 
@@ -45,10 +44,6 @@ class MenuScene(Scene):
         self.button_start_y = 0
         self.settings_rect = None  # Store settings text rect for click detection
 
-        # Wake word detection indicator
-        self.wake_word_detected_time = None
-        self.wake_word_indicator_duration = 2.0  # Show red dot for 2 seconds
-
         # Subscribe to wake word events
         # Get event bus from app_context if available, otherwise use global
         event_bus = getattr(self.ctx, "event_bus", None) if self.ctx else None
@@ -58,11 +53,11 @@ class MenuScene(Scene):
             event_bus = get_event_bus()
         event_bus.subscribe(EventType.WAKE_WORD_DETECTED, self._on_wake_word_detected)
 
-    def _on_wake_word_detected(self, **kwargs):
+    def _on_wake_word_detected(self, event):
         """Handle wake word detection event."""
-        keyword = kwargs.get("keyword", "unknown")
+        keyword = event.payload.get("keyword", "unknown") if event.payload else "unknown"
         print(f"[MENU] Wake word detected: {keyword}")
-        self.wake_word_detected_time = time.time()
+        # Status is now handled by VoiceEventHandler
 
     def on_enter(self):
         """Initialize menu display."""
@@ -355,21 +350,7 @@ class MenuScene(Scene):
             theme={"style": style, "layout": layout},
         )
 
-        # Draw wake word indicator (red dot in top-right corner)
-        if self.wake_word_detected_time is not None:
-            elapsed = time.time() - self.wake_word_detected_time
-            if elapsed < self.wake_word_indicator_duration:
-                # Draw pulsing red dot
-                pulse = 0.5 + 0.5 * abs((elapsed % 0.5) - 0.25) / 0.25  # Pulse between 0.5 and 1.0
-                dot_radius = int(15 * pulse)
-                dot_x = screen.get_width() - 30
-                dot_y = 30
-                pygame.draw.circle(screen, (255, 0, 0), (dot_x, dot_y), dot_radius)
-                # Draw outer ring
-                pygame.draw.circle(screen, (255, 100, 100), (dot_x, dot_y), dot_radius + 3, 2)
-            else:
-                # Clear the indicator after duration
-                self.wake_word_detected_time = None
+        # Wake word indicator removed - status now shown via AppState.status
 
         # Draw overlays, HUD, and footer
         draw_scanlines(screen)

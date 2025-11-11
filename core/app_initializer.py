@@ -9,6 +9,7 @@ from core.app_state import get_app_state
 from core.event_bus import get_event_bus
 from core.logger import get_logger
 from core.source_manager import SourceManager
+from core.voice_event_handler import init_voice_event_handler
 from integrations.sonos_source import SonosSource
 from integrations.spotify_source import SpotifySource
 from integrations.webflow_cache import WebflowCache, WebflowCacheManager
@@ -25,6 +26,7 @@ from workers.audio_worker import AudioWorker
 from workers.mic_listener_worker import MicListenerWorker
 from workers.recognition_worker import RecognitionWorker
 from workers.song_recognition_worker import SongRecognitionWorker
+from workers.vad_worker import VADWorker
 from workers.wake_word_worker import WakeWordWorker
 
 
@@ -143,6 +145,9 @@ def create_app_components(cfg, screen):
     event_bus = get_event_bus()
     app_state = get_app_state()
 
+    # Initialize voice event handler (subscribes to wake word and VAD events)
+    init_voice_event_handler()
+
     # Attach event_bus and app_state to app_context for dependency injection
     app_context.event_bus = event_bus
     app_context.app_state = app_state
@@ -190,15 +195,8 @@ def start_workers(cfg, voice_engine=None):
     recognition_worker = RecognitionWorker(config_dict)
     recognition_worker.start()
 
-    # Wake word worker (new)
+    # Wake word worker (new) - uses event-based system via VoiceEventHandler
     wake_word_worker = WakeWordWorker(config_dict)
-    if wake_word_worker.enabled and voice_engine:
-        # Set callback to activate voice engine when wake word detected
-        def on_wake_word(keyword):
-            logger.info("Wake word detected, activating voice engine", keyword=keyword)
-            voice_engine.start_listening()
-
-        wake_word_worker.set_callback(on_wake_word)
     wake_word_worker.start()
 
     # Song recognition worker (legacy ambient ACR - disabled)
@@ -225,6 +223,15 @@ def start_workers(cfg, voice_engine=None):
         mic_listener_worker = MicListenerWorker(event_bus, mic_listener_config)
         mic_listener_worker.start()
         logger.info("MicListenerWorker started (debug mode)")
+
+    # VAD worker (voice activity detection)
+    vad_config = config_dict.get("vad", {})
+    vad_worker = None
+    if vad_config.get("enabled", False):
+        event_bus = get_event_bus()
+        vad_worker = VADWorker(event_bus, vad_config)
+        vad_worker.start()
+        logger.info("VADWorker started")
 
     return {
         "audio_worker": audio_worker,

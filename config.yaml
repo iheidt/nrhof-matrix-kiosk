@@ -60,9 +60,17 @@ localization:
 wake_word:
   enabled: true  # Set to true when you have Picovoice access key in .env
   picovoice_access_key: "${PICOVOICE_ACCESS_KEY}"  # Loaded from .env
-  keywords: ["hey google"]  # Built-in keywords: jarvis, alexa, computer, etc.
-  keyword_paths: []  # Custom .ppn files
-  sensitivity: 0.65  # 0.0 (least sensitive) to 1.0 (most sensitive)
+  keywords: ["picovoice"]  # Built-in keywords: jarvis, alexa, computer, etc.
+  keyword_paths: []  # Custom .ppn files (e.g., "assets/wake_words/hey-nerd.ppn")
+  sensitivity: 0.75  # 0.0 (least sensitive) to 1.0 (most sensitive)
+
+# Voice Activity Detection (WebRTC VAD)
+vad:
+  enabled: true
+  sample_rate: 16000
+  frame_duration_ms: 10  # Must be 10, 20, or 30
+  aggressiveness: 2  # 0-3, higher = more aggressive
+  tail_ms: 700  # Silence duration before declaring speech end
 
 # Voice control and streaming audio (reserved for future implementation)
 voice:
