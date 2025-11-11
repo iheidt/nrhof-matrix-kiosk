@@ -36,9 +36,12 @@ def load_config(config_path: str = "config.yaml") -> dict[str, Any]:
     # Expand environment variables in config
     config = _expand_env_vars(config)
 
-    # Apply dev overrides if present
-    if "dev_overrides" in config:
+    # Apply dev overrides if NRHOF_DEV=1 is set
+    if os.getenv("NRHOF_DEV", "0") == "1" and "dev_overrides" in config:
+        print("⚙️  Applying dev_overrides (NRHOF_DEV=1)")
         _apply_dev_overrides(config, config["dev_overrides"])
+        # Remove dev_overrides from final config
+        del config["dev_overrides"]
 
     # Validate config if STRICT_CONFIG is set
     if os.getenv("STRICT_CONFIG", "1") != "0":

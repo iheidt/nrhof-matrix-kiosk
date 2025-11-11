@@ -55,6 +55,32 @@ wake_word:
   keyword_paths: []  # Custom .ppn files
   sensitivity: 0.65  # 0.0 (least sensitive) to 1.0 (most sensitive)
 
+# Voice control and streaming audio (reserved for future implementation)
+voice:
+  # Speech-to-text provider (future: whisper, deepgram, etc.)
+  stt_provider: null
+  stt_model: null
+
+  # Text-to-speech provider (future: elevenlabs, openai, etc.)
+  tts_provider: null
+  tts_voice: null
+
+  # Audio ducking (reduce background volume during voice interaction)
+  ducking:
+    enabled: false
+    gain_db: -12.0  # Volume reduction in dB
+    fade_duration_ms: 300  # Fade in/out duration
+
+  # Acoustic echo cancellation (future)
+  aec:
+    enabled: false
+    filter_length: 512  # AEC filter length in samples
+
+  # Voice activity detection
+  vad:
+    enabled: false
+    threshold: 0.5  # Voice activity threshold
+
 # Spotify Integration (Primary music source)
 spotify:
   enabled: true
