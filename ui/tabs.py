@@ -31,7 +31,6 @@ class Tabs:
         self.active_surfaces = []
         self.inactive_surfaces = []
 
-        print(f"🔤 Tabs: Rendering '{labels}' with font_size={self.font_size}, font_type='primary'")
         for label in labels:
             # Active tab: full color (use italic)
             surface = render_mixed_text(label, self.font_size, "primary_italic", color)

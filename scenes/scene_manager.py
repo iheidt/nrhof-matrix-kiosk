@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 import gc
-import threading
-import time
 from collections.abc import Callable
 
 import pygame
 
 from core.mem_probe import get_memory_probe
+
+from .scene_cache import SceneCache
+from .scene_transitions import SceneTransition
 
 # Global scene registry
 _scene_registry: dict[str, type["Scene"]] = {}
@@ -293,27 +294,16 @@ class SceneManager:
     def __init__(self, screen: pygame.Surface, config: dict):
         self.screen = screen
         self.config = config
-        self.scenes: dict[str, Scene] = {}
         self.current_scene: Scene | None = None
         self.current_scene_name: str | None = None
-        self._lazy_factories: dict[str, Callable] = {}  # Lazy loading factories
         self._scene_history: list = []  # Navigation history stack
-        self._paused_scenes: dict[str, Scene] = {}  # Scenes that are paused but not destroyed
 
-        # Slide transition state
-        self._transition_active = False
-        self._transition_progress = 0.0  # 0.0 to 1.0
-        self._transition_duration = 0.4  # seconds (adjust for speed)
-        self._transition_start_time = 0.0
-        self._transition_from_scene: Scene | None = None
-        self._transition_from_name: str | None = None
-        self._transition_to_scene: Scene | None = None
-        self._transition_to_name: str | None = None
-        self._transition_direction = 1  # 1 = left to right (forward), -1 = right to left (back)
+        # Use modular components
+        self._cache = SceneCache()
+        self._transition = SceneTransition(duration=0.4)
 
-        # Offscreen surfaces for smooth transitions
-        self._from_surface: pygame.Surface | None = None
-        self._to_surface: pygame.Surface | None = None
+        # Backward compatibility - expose cache.scenes as self.scenes
+        self.scenes = self._cache.scenes
 
         # Import lifecycle manager
         try:
@@ -327,7 +317,7 @@ class SceneManager:
 
     def register_scene(self, name: str, scene: Scene):
         """Register a scene with a name."""
-        self.scenes[name] = scene
+        self._cache.register(name, scene)
 
     def register_lazy(self, name: str, factory: Callable):
         """Register a lazy-loaded scene factory.
@@ -336,32 +326,7 @@ class SceneManager:
             name: Scene name
             factory: Callable that returns a Scene instance when called
         """
-        self._lazy_factories[name] = factory
-
-    def _ease_out_cubic(self, t: float) -> float:
-        """Cubic easing out - decelerating to zero velocity.
-
-        Args:
-            t: Progress from 0.0 to 1.0
-
-        Returns:
-            Eased value from 0.0 to 1.0
-        """
-        return 1 - pow(1 - t, 3)
-
-    def _ease_in_out_cubic(self, t: float) -> float:
-        """Cubic easing in/out - acceleration until halfway, then deceleration.
-
-        Args:
-            t: Progress from 0.0 to 1.0
-
-        Returns:
-            Eased value from 0.0 to 1.0
-        """
-        if t < 0.5:
-            return 4 * t * t * t
-        else:
-            return 1 - pow(-2 * t + 2, 3) / 2
+        self._cache.register_lazy(name, factory)
 
     def _ensure_loaded(self, name: str):
         """Ensure a scene is loaded, instantiating from factory if needed.
@@ -369,25 +334,14 @@ class SceneManager:
         Args:
             name: Scene name to ensure is loaded
         """
-        # Already loaded
-        if name in self.scenes:
-            return
-
-        # Load from lazy factory
-        if name in self._lazy_factories:
-            factory = self._lazy_factories[name]
-            scene = factory()
-            self.register_scene(name, scene)
-            return
-
-        # Not found anywhere - will raise error in switch_to
+        self._cache.ensure_loaded(name)
 
     def preload_lazy(
         self,
         names: list,
         progress_cb: Callable[[int, int], None] | None = None,
         sleep_between: float = 0.0,
-    ) -> threading.Thread:
+    ):
         """Preload lazy scenes in a background thread.
 
         Args:
@@ -398,19 +352,7 @@ class SceneManager:
         Returns:
             Thread object (already started)
         """
-
-        def _preload_worker():
-            total = len(names)
-            for i, name in enumerate(names):
-                self._ensure_loaded(name)
-                if progress_cb:
-                    progress_cb(i + 1, total)
-                if sleep_between > 0:
-                    time.sleep(sleep_between)
-
-        thread = threading.Thread(target=_preload_worker, daemon=True)
-        thread.start()
-        return thread
+        return self._cache.preload_lazy(names, progress_cb, sleep_between)
 
     def switch_to(
         self,
@@ -441,7 +383,7 @@ class SceneManager:
             raise ValueError(f"Scene '{name}' not registered")
 
         # Skip if already transitioning
-        if self._transition_active:
+        if self._transition.active:
             return
 
         # Skip if trying to switch to the same scene (unless it's the first scene)
@@ -457,21 +399,10 @@ class SceneManager:
         transition_direction = -1 if is_going_back else 1
 
         if use_transition and self.current_scene:
-            # Start slide transition
-            self._transition_active = True
-            self._transition_progress = 0.0
-            self._transition_start_time = time.time()
-            self._transition_direction = transition_direction
-
-            # Store from scene
-            self._transition_from_scene = self.current_scene
-            self._transition_from_name = self.current_scene_name
-
             # Prepare to scene
-            if name in self._paused_scenes:
-                self._transition_to_scene = self._paused_scenes.pop(name)
-            else:
-                self._transition_to_scene = self.scenes[name]
+            to_scene = self._cache.resume(name)
+            if not to_scene:
+                to_scene = self._cache.get(name)
                 # Call on_enter for new scene
                 if self._has_lifecycle:
                     from core.lifecycle import LifecyclePhase
@@ -479,22 +410,25 @@ class SceneManager:
                     self._lifecycle.execute(
                         LifecyclePhase.SCENE_BEFORE_ENTER,
                         scene_name=name,
-                        scene=self._transition_to_scene,
+                        scene=to_scene,
                     )
-                self._transition_to_scene.on_enter()
+                to_scene.on_enter()
                 if self._has_lifecycle:
                     self._lifecycle.execute(
                         LifecyclePhase.SCENE_AFTER_ENTER,
                         scene_name=name,
-                        scene=self._transition_to_scene,
+                        scene=to_scene,
                     )
 
-            self._transition_to_name = name
-
-            # Create offscreen surfaces for smooth rendering
-            screen_size = self.screen.get_size()
-            self._from_surface = pygame.Surface(screen_size)
-            self._to_surface = pygame.Surface(screen_size)
+            # Start slide transition
+            self._transition.start(
+                self.current_scene,
+                self.current_scene_name,
+                to_scene,
+                name,
+                transition_direction,
+                self.screen.get_size(),
+            )
 
         else:
             # Instant switch (no transition)
@@ -510,7 +444,7 @@ class SceneManager:
                             scene=self.current_scene,
                         )
                     self.current_scene.on_pause()
-                    self._paused_scenes[self.current_scene_name] = self.current_scene
+                    self._cache.pause(self.current_scene_name, self.current_scene)
                 else:
                     # Exit current scene
                     if self._has_lifecycle:
@@ -530,8 +464,9 @@ class SceneManager:
                         )
 
             # Check if resuming a paused scene
-            if name in self._paused_scenes:
-                self.current_scene = self._paused_scenes.pop(name)
+            resumed_scene = self._cache.resume(name)
+            if resumed_scene:
+                self.current_scene = resumed_scene
                 if self._has_lifecycle:
                     from core.lifecycle import LifecyclePhase
 
@@ -543,7 +478,7 @@ class SceneManager:
                 self.current_scene.on_resume()
             else:
                 # Enter new scene
-                self.current_scene = self.scenes[name]
+                self.current_scene = self._cache.get(name)
                 if self._has_lifecycle:
                     from core.lifecycle import LifecyclePhase
 
@@ -582,19 +517,15 @@ class SceneManager:
 
     def update(self, dt: float):
         """Update current scene and handle transitions."""
-        if self._transition_active:
-            # Update transition progress
-            elapsed = time.time() - self._transition_start_time
-            self._transition_progress = min(1.0, elapsed / self._transition_duration)
-
+        if self._transition.active:
             # Update both scenes during transition
-            if self._transition_from_scene:
-                self._transition_from_scene.update(dt)
-            if self._transition_to_scene:
-                self._transition_to_scene.update(dt)
+            if self._transition.from_scene:
+                self._transition.from_scene.update(dt)
+            if self._transition.to_scene:
+                self._transition.to_scene.update(dt)
 
             # Check if transition is complete
-            if self._transition_progress >= 1.0:
+            if self._transition.update():
                 self._finish_transition()
         elif self.current_scene:
             self.current_scene.update(dt)
@@ -602,72 +533,35 @@ class SceneManager:
     def _finish_transition(self):
         """Complete the transition and clean up."""
         # Exit/cleanup the from scene
-        if self._transition_from_scene:
+        if self._transition.from_scene:
             if self._has_lifecycle:
                 from core.lifecycle import LifecyclePhase
 
                 self._lifecycle.execute(
                     LifecyclePhase.SCENE_BEFORE_EXIT,
-                    scene_name=self._transition_from_name,
-                    scene=self._transition_from_scene,
+                    scene_name=self._transition.from_name,
+                    scene=self._transition.from_scene,
                 )
-            self._transition_from_scene.on_exit()
+            self._transition.from_scene.on_exit()
             if self._has_lifecycle:
                 self._lifecycle.execute(
                     LifecyclePhase.SCENE_AFTER_EXIT,
-                    scene_name=self._transition_from_name,
-                    scene=self._transition_from_scene,
+                    scene_name=self._transition.from_name,
+                    scene=self._transition.from_scene,
                 )
 
         # Set new current scene
-        self.current_scene = self._transition_to_scene
-        self.current_scene_name = self._transition_to_name
+        self.current_scene = self._transition.to_scene
+        self.current_scene_name = self._transition.to_name
 
-        # Reset transition state
-        self._transition_active = False
-        self._transition_progress = 0.0
-        self._transition_from_scene = None
-        self._transition_from_name = None
-        self._transition_to_scene = None
-        self._transition_to_name = None
-
-        # Explicitly delete transition surfaces to free memory immediately
-        if self._from_surface is not None:
-            del self._from_surface
-            self._from_surface = None
-        if self._to_surface is not None:
-            del self._to_surface
-            self._to_surface = None
+        # Complete transition (cleans up surfaces)
+        self._transition.complete()
 
     def draw(self):
         """Draw current scene with slide transition if active."""
-        if self._transition_active:
-            # Apply easing to progress
-            eased_progress = self._ease_in_out_cubic(self._transition_progress)
-
-            # Render both scenes to offscreen surfaces
-            if self._transition_from_scene and self._from_surface:
-                self._transition_from_scene.draw(self._from_surface)
-            if self._transition_to_scene and self._to_surface:
-                self._transition_to_scene.draw(self._to_surface)
-
-            # Calculate slide positions
-            screen_width = self.screen.get_width()
-
-            if self._transition_direction == 1:
-                # Forward: from slides left, to slides in from right
-                from_x = int(-screen_width * eased_progress)
-                to_x = int(screen_width * (1.0 - eased_progress))
-            else:
-                # Back: from slides right, to slides in from left
-                from_x = int(screen_width * eased_progress)
-                to_x = int(-screen_width * (1.0 - eased_progress))
-
-            # Draw both scenes at their slide positions
-            if self._from_surface:
-                self.screen.blit(self._from_surface, (from_x, 0))
-            if self._to_surface:
-                self.screen.blit(self._to_surface, (to_x, 0))
+        if self._transition.active:
+            # Render transition
+            self._transition.render(self.screen)
         elif self.current_scene:
             self.current_scene.draw(self.screen)
 
@@ -677,24 +571,24 @@ class SceneManager:
         Args:
             name: Scene name to destroy
         """
-        if name in self.scenes:
-            scene = self.scenes[name]
+        scene = self._cache.get(name)
+        if scene:
             if self._has_lifecycle:
                 from core.lifecycle import LifecyclePhase
 
                 self._lifecycle.execute(LifecyclePhase.SCENE_DESTROY, scene_name=name, scene=scene)
             scene.on_destroy()
-            del self.scenes[name]
+            del self._cache.scenes[name]
 
         # Also remove from paused scenes if present
-        if name in self._paused_scenes:
-            del self._paused_scenes[name]
+        if self._cache.is_paused(name):
+            self._cache.resume(name)  # Remove from paused
 
     def cleanup_all(self):
         """Cleanup all scenes (called on app shutdown)."""
         # Destroy all scenes
-        for name in list(self.scenes.keys()):
+        for name in list(self._cache.scenes.keys()):
             self.destroy_scene(name)
 
-        # Clear paused scenes
-        self._paused_scenes.clear()
+        # Clear cache
+        self._cache.clear()
