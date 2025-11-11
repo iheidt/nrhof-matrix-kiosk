@@ -126,8 +126,11 @@ def create_app_components(cfg, screen):
     """
     logger = get_logger("app_initializer")
 
+    # Get event bus for injection
+    event_bus = get_event_bus()
+
     voice_router = VoiceRouter()
-    intent_router = IntentRouter()
+    intent_router = IntentRouter(event_bus=event_bus)  # Inject event_bus
     voice_engine = VoiceEngine(voice_router)
     scene_manager = SceneManager(screen, cfg)
     app_context = AppContext(
