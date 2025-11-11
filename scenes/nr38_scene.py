@@ -70,7 +70,11 @@ class NR38Scene(Scene):
             self._loading = True
             self._loaded = False  # Reset loaded flag to force refresh
             # Fetch bands in background thread
-            thread = threading.Thread(target=self._fetch_bands, daemon=True)
+            thread = threading.Thread(
+                target=self._fetch_bands,
+                daemon=True,
+                name="nr38_fetch_bands",
+            )
             thread.start()
 
     def on_exit(self):

@@ -44,7 +44,11 @@ class VoiceEngine:
             return
 
         self.running = True
-        self.thread = threading.Thread(target=self._listen_loop, daemon=True)
+        self.thread = threading.Thread(
+            target=self._listen_loop,
+            daemon=True,
+            name="voice_engine_listen",
+        )
         self.thread.start()
         print("Voice engine started")
 
@@ -84,7 +88,11 @@ class VoiceEngine:
             # If wakeword was triggered, process speech
             if self.listening_for_command:
                 # Process STT in a separate thread to avoid blocking
-                stt_thread = threading.Thread(target=self._process_stt, daemon=True)
+                stt_thread = threading.Thread(
+                    target=self._process_stt,
+                    daemon=True,
+                    name="voice_stt_process",
+                )
                 stt_thread.start()
                 # Reset flag immediately so we don't trigger multiple times
                 self.listening_for_command = False

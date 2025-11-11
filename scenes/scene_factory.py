@@ -146,7 +146,12 @@ class SceneFactory:
         Args:
             scene_names: List of scene names to preload
         """
-        thread = threading.Thread(target=self.preload, args=(scene_names,), daemon=True)
+        thread = threading.Thread(
+            target=self.preload,
+            args=(scene_names,),
+            daemon=True,
+            name="scene_preload_async",
+        )
         thread.start()
 
     def get_cached_scenes(self) -> list:

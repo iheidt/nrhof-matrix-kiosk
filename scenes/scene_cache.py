@@ -120,7 +120,11 @@ class SceneCache:
                 if sleep_between > 0:
                     time.sleep(sleep_between)
 
-        thread = threading.Thread(target=_preload_worker, daemon=True)
+        thread = threading.Thread(
+            target=_preload_worker,
+            daemon=True,
+            name="scene_preload_worker",
+        )
         thread.start()
         return thread
 

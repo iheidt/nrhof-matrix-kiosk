@@ -34,7 +34,12 @@ class LogoManager:
         self._logo_url = logo_url
         self._loading_logo = True
         self.logo_surface = None
-        thread = threading.Thread(target=self._load_logo, args=(band_name,), daemon=True)
+        thread = threading.Thread(
+            target=self._load_logo,
+            args=(band_name,),
+            daemon=True,
+            name=f"logo_load_{band_name}",
+        )
         thread.start()
 
     def stop_loading(self):

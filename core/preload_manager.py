@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Preload management - background loading of scenes, assets, and caches."""
 
-import threading
-
 from core.logger import get_logger
+from core.thread_pool import create_named_thread, submit_preload_task
 from scenes.scene_registry import get_preload_list
 
 
@@ -53,9 +52,9 @@ def start_3d_renderer_preload():
             except Exception:
                 pass
 
-    thread = threading.Thread(target=_init_renderer, daemon=True)
-    thread.start()
-    return thread
+    # Submit to thread pool to cap concurrent preloads
+    future = submit_preload_task(_init_renderer, name="3d_renderer_init")
+    return future
 
 
 def start_preload(scene_manager, app_context):
@@ -89,7 +88,11 @@ def start_preload(scene_manager, app_context):
         preload_thread.join()
         app_context.preload_done = True
 
-    waiter_thread = threading.Thread(target=_waiter, daemon=True)
+    waiter_thread = create_named_thread(
+        target=_waiter,
+        name="preload_waiter",
+        daemon=True,
+    )
     waiter_thread.start()
 
 
@@ -115,6 +118,10 @@ def start_webflow_refresh(webflow_cache_manager):
         else:
             logger.warning("Webflow cache refresh failed or skipped")
 
-    refresh_thread = threading.Thread(target=_refresh, daemon=True)
+    refresh_thread = create_named_thread(
+        target=_refresh,
+        name="webflow_refresh",
+        daemon=True,
+    )
     refresh_thread.start()
     return refresh_thread
