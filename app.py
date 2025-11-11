@@ -22,14 +22,13 @@ from core.app_initializer import (
     initialize_renderer,
     parse_arguments,
     register_all_handlers,
-    start_preload,
-    start_webflow_refresh,
-    start_workers,
 )
 from core.config_loader import load_config
 from core.event_bus import EventType
 from core.mem_probe import start_trace
 from core.observability import get_crash_guard, get_event_tap, get_performance_monitor
+from core.preload_manager import start_3d_renderer_preload, start_preload, start_webflow_refresh
+from core.worker_manager import start_workers
 from overlays import draw_now_playing_overlay
 
 
@@ -125,8 +124,6 @@ def main():
     components["scene_manager"].switch_to("SplashScene", use_transition=False)
 
     # Start 3D renderer preload in background (for MenuScene D20)
-    from core.app_initializer import start_3d_renderer_preload
-
     start_3d_renderer_preload()
 
     # Start background preload

@@ -62,8 +62,8 @@ class VisualizersScene(Scene):
                 self.ctx.intent_router.emit(Intent.GO_BACK)
                 return True
 
-        # Handle mouse clicks
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        # Handle mouse clicks (ignore scroll wheel events)
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button in (1, 2, 3):
             # Check nav_back click
             if self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intent.GO_BACK)

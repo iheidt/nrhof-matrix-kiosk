@@ -206,8 +206,8 @@ class BandDetailsScene(Scene):
         if self.scroll_handler.handle_wheel_scroll(event, num_albums):
             return True
 
-        # Handle mouse button down events
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        # Handle mouse button down events (ignore scroll wheel events)
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button in (1, 2, 3):
             # Check nav_back click
             if self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intent.GO_BACK)

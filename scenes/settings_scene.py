@@ -57,8 +57,8 @@ class SettingsScene(Scene):
                 self.trigger_wakeword()
                 return True
 
-        # Click nav_back or language toggle
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        # Click nav_back or language toggle (ignore scroll wheel events)
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button in (1, 2, 3):
             if self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intent.GO_BACK)
                 return True

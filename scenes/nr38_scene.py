@@ -50,6 +50,7 @@ class NR38Scene(Scene):
         self._nav_back_surface = None
         self._title_surface = None
         self._title_overlap = None
+        self._title_overlap_language = None  # Track language used for overlap calculation
         self._cached_language = None  # Track language for cache invalidation
 
         # Webflow data
@@ -85,8 +86,8 @@ class NR38Scene(Scene):
                 self.ctx.intent_router.emit(Intent.GO_BACK)
                 return True
 
-        # Handle mouse clicks
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        # Handle mouse clicks (ignore scroll wheel events)
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button in (1, 2, 3):
             # Check nav_back click
             if self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos):
                 self.ctx.intent_router.emit(Intent.GO_BACK)
@@ -224,7 +225,6 @@ class NR38Scene(Scene):
                 "primary",
                 self.color,
             )
-            self._cached_language = current_language
         nav_back_x = MARGIN_LEFT
         nav_back_y = MARGIN_TOP
         screen.blit(self._nav_back_surface, (nav_back_x, nav_back_y))
@@ -263,6 +263,10 @@ class NR38Scene(Scene):
                 (255, 255, 255),
             )
             self._title_overlap = self._title_surface.get_height() // 2
+            self._title_overlap_language = current_language  # Store language used for overlap
+            self._cached_language = (
+                current_language  # Update cache after recalculating both surfaces
+            )
         title_text = t("nr38.title")  # Still need text for draw_title_card_container
         title_overlap = self._title_overlap
 
@@ -270,7 +274,8 @@ class NR38Scene(Scene):
         title_card_y_adjusted = title_card_y + title_overlap
 
         # Language-specific adjustment for Japanese
-        if current_language == "jp":
+        # Only apply offset if overlap was calculated in English but we're displaying in Japanese
+        if current_language == "jp" and self._title_overlap_language == "en":
             title_card_y_adjusted += 18  # Additional offset for Japanese to match English position
 
         # Draw the full-width title card container
