@@ -22,13 +22,13 @@ from core.app_initializer import (
     initialize_renderer,
     parse_arguments,
     register_all_handlers,
+    start_workers,
 )
 from core.config_loader import load_config
 from core.event_bus import EventType, get_event_bus
 from core.mem_probe import start_trace
 from core.observability import get_crash_guard, get_event_tap, get_performance_monitor
 from core.preload_manager import start_3d_renderer_preload, start_preload, start_webflow_refresh
-from core.worker_manager import start_workers
 from overlays import draw_now_playing_overlay
 
 
