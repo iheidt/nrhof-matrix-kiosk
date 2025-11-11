@@ -91,7 +91,7 @@ TRANSLATIONS = {
         # Fate Maker
         "fate_maker.title": "fate maker",
         # Band Details
-        "band_details.albums": "album",
+        "band_details.album": "album",
         "band_details.ep": "ep",
         "band_details.live": "live",
         "band_details.etc": "etc",
@@ -141,7 +141,7 @@ TRANSLATIONS = {
         # Fate Maker
         "fate_maker.title": "運命師",
         # Band Details
-        "band_details.albums": "アルバム",
+        "band_details.album": "アルバム",
         "band_details.ep": "ep",
         "band_details.live": "ライブ",
         "band_details.etc": "他",

@@ -7,7 +7,14 @@ import pygame
 from core.theme_loader import get_theme_loader
 from integrations.image_cache import ImageCache
 from routing.intent_router import Intent
-from scenes.band_details import AlbumDataManager, AlbumGridRenderer, IconLoader, LogoManager
+from scenes.band_details import (
+    AlbumDataManager,
+    AlbumGridRenderer,
+    IconLoader,
+    LogoManager,
+    ScrollHandler,
+    TabManager,
+)
 from scenes.scene_manager import Scene, register_scene
 from ui.components import (
     MARGIN_LEFT,
@@ -18,7 +25,6 @@ from ui.components import (
     draw_title_card_container,
 )
 from ui.fonts import render_mixed_text
-from ui.tabs import Tabs
 
 
 @register_scene("BandDetailsScene")
@@ -63,28 +69,18 @@ class BandDetailsScene(Scene):
         self.icon_loader = IconLoader(self.logger)
         self.logo_manager = LogoManager(self.logger, self.image_cache, self.color)
 
+        # Initialize managers
+        self.scroll_handler = ScrollHandler(scroll_speed=20)
+        self.tab_manager = TabManager(self.color, self.logger)
+
         # Band data
         self.band_name = "Band Name"
         self.band_id = None
-
-        # Tabs
-        self.tabs = None
-        self._cached_language = None
-        self._last_loaded_tab_index = None
-        self.tab_type_map = []
 
         # Album display state
         self.matrix_src_paths = []
         self.matrix_images_cache = []
         self.album_metadata = []
-
-        # Scroll state
-        self.scroll_offset = 0
-        self.scroll_velocity = 0
-        self.max_scroll = 0
-        self.is_dragging = False
-        self.drag_start_y = 0
-        self.drag_start_scroll = 0
 
         # Load icons
         self.down_arrow_icon = self.icon_loader.load_down_arrow_icon()
@@ -103,13 +99,10 @@ class BandDetailsScene(Scene):
             # Clear albums cache when band changes
             if self.band_id != new_band_id:
                 self.album_data_manager.albums_by_type = {}
-                self._last_loaded_tab_index = None
                 self.matrix_src_paths = []
                 self.matrix_images_cache = []
-                self._cached_language = None
-                # Reset tabs to first tab (ALBUM) when switching bands
-                if self.tabs:
-                    self.tabs.active_index = 0
+                # Reset tabs to first tab when switching bands
+                self.tab_manager.reset_for_new_band()
 
             self.band_id = new_band_id
 
@@ -185,8 +178,7 @@ class BandDetailsScene(Scene):
         self.matrix_images_cache = []
 
         # Reset scroll position when tab changes
-        self.scroll_offset = 0
-        self.scroll_velocity = 0
+        self.scroll_handler.reset()
 
         self.logger.info(
             f"Loaded {len(self.matrix_src_paths)} album covers with metadata for {album_type}"
@@ -194,17 +186,10 @@ class BandDetailsScene(Scene):
 
     def handle_event(self, event: pygame.event.Event):
         """Handle band details input."""
-        # Check if scrolling should be disabled (15 or fewer albums)
         num_albums = len(self.matrix_src_paths)
-        scroll_enabled = num_albums > 15
 
-        # Handle mouse wheel scrolling for album grid
-        if event.type == pygame.MOUSEWHEEL and scroll_enabled:
-            # Scroll speed: 20 pixels per wheel notch
-            scroll_speed = 20
-            self.scroll_offset -= event.y * scroll_speed
-            # Clamp scroll offset
-            self.scroll_offset = max(0, min(self.scroll_offset, self.max_scroll))
+        # Handle mouse wheel scrolling
+        if self.scroll_handler.handle_wheel_scroll(event, num_albums):
             return True
 
         # Handle mouse button down events
@@ -218,37 +203,24 @@ class BandDetailsScene(Scene):
                 self.ctx.intent_router.emit(Intent.GO_TO_SETTINGS)
                 return True
             # Handle tabs click
-            if self.tabs and self.tabs.handle_click(event.pos):
+            if self.tab_manager.handle_click(event.pos):
                 return True
 
             # Handle touch drag scrolling (only if scroll enabled)
-            if scroll_enabled:
+            if self.scroll_handler.is_scroll_enabled(num_albums):
                 # Check if clicking in scrollable area (not on UI elements)
                 if not (self.nav_back_rect and self.nav_back_rect.collidepoint(event.pos)):
                     if not (self.settings_rect and self.settings_rect.collidepoint(event.pos)):
-                        if not (self.tabs and self.tabs.handle_click(event.pos)):
+                        if not self.tab_manager.handle_click(event.pos):
                             # Start drag
-                            self.is_dragging = True
-                            self.drag_start_y = event.pos[1]
-                            self.drag_start_scroll = self.scroll_offset
-                            return True
+                            return self.scroll_handler.start_drag(event.pos[1])
 
         if event.type == pygame.MOUSEBUTTONUP:
-            if self.is_dragging:
-                self.is_dragging = False
+            if self.scroll_handler.end_drag():
                 return True
 
         if event.type == pygame.MOUSEMOTION:
-            if self.is_dragging:
-                # Only allow scrolling if more than 15 albums
-                num_albums = len(self.matrix_src_paths)
-                if num_albums > 15:
-                    # Calculate drag distance
-                    drag_delta = event.pos[1] - self.drag_start_y
-                    # Update scroll (invert delta so dragging down scrolls up)
-                    self.scroll_offset = self.drag_start_scroll - drag_delta
-                    # Clamp scroll offset
-                    self.scroll_offset = max(0, min(self.scroll_offset, self.max_scroll))
+            if self.scroll_handler.update_drag(event.pos[1], num_albums):
                 return True
 
         # ESC to return to previous scene
@@ -463,74 +435,35 @@ class BandDetailsScene(Scene):
             screen.blit(loading_surface, (logo_x, border_y - loading_surface.get_height() // 2))
 
         # Create/update tabs based on language and available albums
-        current_language = get_language()
-        if self.tabs is None or self._cached_language != current_language:
-            # Fetch all album types to determine which tabs to show
-            album_types = ["album", "ep", "live", "etc"]
-            for at in album_types:
-                if at not in self.album_data_manager.albums_by_type:
-                    self.album_data_manager.fetch_albums_for_band(
-                        self.band_id, at, self.ctx.webflow_cache_manager
-                    )
-
-            # Build tab labels only for types that have albums
-            tab_labels = []
-            tab_type_map = []  # Map tab index to album type
-
-            if len(self.album_data_manager.albums_by_type.get("album", [])) > 0:
-                tab_labels.append(t("band_details.albums"))
-                tab_type_map.append("album")
-            if len(self.album_data_manager.albums_by_type.get("ep", [])) > 0:
-                tab_labels.append(t("band_details.ep"))
-                tab_type_map.append("ep")
-            if len(self.album_data_manager.albums_by_type.get("live", [])) > 0:
-                tab_labels.append(t("band_details.live"))
-                tab_type_map.append("live")
-            if len(self.album_data_manager.albums_by_type.get("etc", [])) > 0:
-                tab_labels.append(t("band_details.etc"))
-                tab_type_map.append("etc")
-
-            # Store the mapping for later use
-            self.tab_type_map = tab_type_map
-
-            # Only create tabs if we have at least one type with albums
-            if tab_labels:
-                # Preserve active tab index when recreating
-                active_index = self.tabs.active_index if self.tabs else 0
-                active_index = min(active_index, len(tab_labels) - 1)
-                self.tabs = Tabs(tab_labels, self.color)
-                self.tabs.active_index = active_index
-                self._last_loaded_tab_index = None
-            else:
-                self.tabs = None
-
-            self._cached_language = current_language
+        self.tab_manager.update_tabs(
+            self.album_data_manager, self.band_id, self.ctx.webflow_cache_manager
+        )
 
         # Draw tabs (if any exist)
         content_y = layout_info["content_start_y"]
         tabs_x = margin_left + 35 + 24  # Match title card padding
         tabs_y = content_y + 20  # Same offset as visualizers scene
 
-        if self.tabs:
-            self.tabs.draw(screen, tabs_x, tabs_y)
+        self.tab_manager.draw(screen, tabs_x, tabs_y)
 
         # Content area baseline
         content_text_y = tabs_y + 60
 
         # Load album covers for the active tab (only when tab changes)
-        if self.tabs and self._last_loaded_tab_index != self.tabs.active_index:
-            album_type = self.tab_type_map[self.tabs.active_index]
-            self._load_album_covers_for_tab_type(album_type)
-            self._last_loaded_tab_index = self.tabs.active_index
+        if self.tab_manager.should_reload_tab():
+            album_type = self.tab_manager.get_active_album_type()
+            if album_type:
+                self._load_album_covers_for_tab_type(album_type)
+                self.tab_manager.mark_tab_loaded()
 
         # Render album grid
         if self.matrix_src_paths:
-            self.matrix_images_cache, self.max_scroll = self.album_grid_renderer.render_grid(
+            self.matrix_images_cache, max_scroll = self.album_grid_renderer.render_grid(
                 screen,
                 self.matrix_src_paths,
                 self.matrix_images_cache,
                 self.album_metadata,
-                self.scroll_offset,
+                self.scroll_handler.get_scroll_offset(),
                 self.flame_icon,
                 self.down_arrow_icon,
                 self.theme,
@@ -539,6 +472,8 @@ class BandDetailsScene(Scene):
                 content_text_y,
                 self.album_data_manager.get_image_cache_path,
             )
+            # Update scroll handler with new max scroll
+            self.scroll_handler.set_max_scroll(max_scroll)
         else:
             # No albums available - show message
             no_albums_surface = render_mixed_text("No albums available", 36, "primary", self.color)
