@@ -11,6 +11,7 @@ opencv-python>=4.8.0
 # Optional: enable if you want SVG -> raster conversion at runtime
 cairosvg==2.7.1
 PyYAML==6.0.3
+psutil>=5.9.0  # System and process monitoring for performance metrics
 git+https://github.com/acrcloud/acrcloud_sdk_python.git
 pvporcupine==3.0.2
 
@@ -19,5 +20,5 @@ spotipy==2.23.0
 soco==0.30.4
 
 # 3D rendering
-panda3d>=1.10.13  # Real-time 3D rendering engine
+panda3d>=1.10.14  # Real-time 3D rendering engine (Python 3.12 support added in 1.10.14)
 Pillow>=10.0.0  # Image processing for textures

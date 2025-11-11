@@ -5,8 +5,7 @@
 .spotify_cache*
 
 # Python virtual environments
-.venv*/
-venv*/
+.venv312/
 
 # Python cache and build artifacts
 __pycache__/

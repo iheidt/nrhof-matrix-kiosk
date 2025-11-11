@@ -13,7 +13,7 @@
         "PYTHONUNBUFFERED": "1",
         "SDL_AUDIODRIVER": "dummy"
       },
-      "python": "${workspaceFolder}/.venv311/bin/python"
+      "python": "${workspaceFolder}/.venv312/bin/python"
     }
   ]
 }

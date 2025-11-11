@@ -49,7 +49,7 @@ make pi-logs                 # View Pi logs
 
 ## Requirements
 - **macOS** (primary) or Raspberry Pi OS
-- Python 3.11+
+- Python 3.12+
 - Dependencies in `requirements.txt`:
 
 ```bash
