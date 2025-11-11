@@ -7,6 +7,7 @@ colors:
   background: "#080610"     # Deep purple blue
   dim: "#2C405B"            # Dim blue
   accent: "#C4F3FF"         # Powder blue
+  disabled: "#740f31"       # 50% of primary (inactive/disabled state)
 
   # Card colors
   card_bg: "#0A0214"        # Very dark purple

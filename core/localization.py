@@ -94,6 +94,7 @@ TRANSLATIONS = {
         "band_details.ep": "EP",
         "band_details.live": "LIVE",
         "band_details.etc": "ETC",
+        "band_details.more": "more",
     },
     "jp": {
         # Menu
@@ -142,6 +143,7 @@ TRANSLATIONS = {
         "band_details.ep": "ep",
         "band_details.live": "ライブ",
         "band_details.etc": "他",
+        "band_details.more": "もっと",
     },
 }
 

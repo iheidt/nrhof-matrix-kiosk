@@ -775,7 +775,7 @@ def draw_now_playing(
     pygame.draw.circle(surface, bg_color_solid, (circle_x, circle_y), inner_radius, 0)
 
     # Load and draw SVG icon (40x40px)
-    icon_path = Path(__file__).parent.parent.parent / "assets" / "images" / "icon_happysad.svg"
+    icon_path = Path(__file__).parent.parent.parent / "assets" / "icons" / "icon_happysad.svg"
     if icon_path.exists():
         icon_surface = load_icon(icon_path, (40, 40), fill_color=title_color)
         if icon_surface:

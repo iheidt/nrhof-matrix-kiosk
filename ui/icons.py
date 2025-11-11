@@ -34,10 +34,18 @@ def load_icon(path: Path, size: tuple[int, int], fill_color: tuple = None) -> Su
             if fill_color:
                 # Convert RGB tuple to hex
                 hex_color = f"#{fill_color[0]:02x}{fill_color[1]:02x}{fill_color[2]:02x}"
-                # Replace fill attributes (simple approach)
+                # Replace ALL fill attributes (including fill="none", fill="black", etc.)
                 import re
 
+                # Replace existing fill="anything"
                 svg_content = re.sub(r'fill="[^"]*"', f'fill="{hex_color}"', svg_content)
+                # Replace existing fill='anything'
+                svg_content = re.sub(r"fill='[^']*'", f'fill="{hex_color}"', svg_content)
+
+                # Add fill attribute to <path> elements that don't have one
+                svg_content = re.sub(
+                    r"<path(?![^>]*fill=)([^>]*)>", f'<path fill="{hex_color}"\\1>', svg_content
+                )
             png_bytes = cairosvg.svg2png(
                 bytestring=svg_content.encode(),
                 output_width=size[0],
