@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
 """Spotify integration for Now Playing metadata and control."""
 
-import threading
 import time
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
-from core.logger import get_logger
 from core.now_playing import Track
 from core.source_manager import SourceManager
+from workers.base import BaseWorker
 
-logger = get_logger("spotify_source")
 
-
-class SpotifySource:
+class SpotifySource(BaseWorker):
     """Polls Spotify for currently playing track and updates SourceManager."""
 
     def __init__(self, config: dict, source_manager: SourceManager):
@@ -24,28 +21,28 @@ class SpotifySource:
             config: Configuration dict
             source_manager: SourceManager instance
         """
-        self.config = config
+        # Initialize BaseWorker FIRST (sets up self.logger)
+        super().__init__(config, logger_name="spotify_source")
+
         self.source_manager = source_manager
         self.enabled = config.get("spotify", {}).get("enabled", False)
 
-        # Initialize state
-        self.running = False
-        self.thread: threading.Thread | None = None
+        # Spotify client
         self.sp: spotipy.Spotify | None = None
 
         # Polling settings
         self.poll_interval = config.get("spotify", {}).get("poll_interval_seconds", 2.0)
 
         if not self.enabled:
-            logger.info("Spotify integration disabled in config")
+            self.logger.info("Spotify integration disabled in config")
             return
 
         # Initialize Spotify client
         try:
             self._init_spotify()
-            logger.info("Spotify client initialized")
+            self.logger.info("Spotify client initialized")
         except Exception as e:
-            logger.error("Failed to initialize Spotify client", error=str(e))
+            self.logger.error("Failed to initialize Spotify client", error=str(e))
             self.enabled = False
 
     def _init_spotify(self):
@@ -69,36 +66,17 @@ class SpotifySource:
     def start(self):
         """Start polling Spotify."""
         if not self.enabled:
-            logger.info("Spotify source not started (disabled)")
+            self.logger.info("Spotify source not started (disabled)")
             return
 
-        if self.running:
-            logger.warning("Spotify source already running")
-            return
+        # Call BaseWorker.start() which handles threading
+        super().start()
 
-        self.running = True
-        self.thread = threading.Thread(target=self._poll_loop, daemon=True)
-        self.thread.start()
-        logger.info("Spotify polling started")
+    def _worker_loop(self):
+        """Main polling loop (BaseWorker implementation)."""
+        self.logger.info("Spotify poll loop started")
 
-    def stop(self):
-        """Stop polling Spotify."""
-        if not self.running:
-            return
-
-        logger.info("Stopping Spotify source...")
-        self.running = False
-
-        if self.thread:
-            self.thread.join(timeout=5.0)
-
-        logger.info("Spotify source stopped")
-
-    def _poll_loop(self):
-        """Main polling loop."""
-        logger.info("Spotify poll loop started")
-
-        while self.running:
+        while self._running:
             try:
                 # Get current playback - use currently_playing() for podcast/audiobook support
                 currently_playing = self.sp.currently_playing()
@@ -125,15 +103,15 @@ class SpotifySource:
                     self.source_manager.set_from("spotify", None)
 
             except Exception as e:
-                logger.error(f"Error polling Spotify: {type(e).__name__}: {e}")
+                self.logger.error(f"Error polling Spotify: {type(e).__name__}: {e}")
                 # Uncomment for full traceback during debugging:
                 # import traceback
-                # logger.error(f"Traceback: {traceback.format_exc()}")
+                # self.logger.error(f"Traceback: {traceback.format_exc()}")
 
             # Sleep
             time.sleep(self.poll_interval)
 
-        logger.info("Spotify poll loop ended")
+        self.logger.info("Spotify poll loop ended")
 
     def _parse_playback(self, playback: dict) -> Track | None:
         """Parse Spotify playback response into Track.
@@ -246,7 +224,7 @@ class SpotifySource:
             )
 
         except Exception as e:
-            logger.error("Failed to parse Spotify playback", error=str(e))
+            self.logger.error("Failed to parse Spotify playback", error=str(e))
             return None
 
     def get_current_track(self) -> Track | None:
@@ -263,6 +241,6 @@ class SpotifySource:
             if playback and playback.get("is_playing"):
                 return self._parse_playback(playback)
         except Exception as e:
-            logger.error("Error getting current track", error=str(e))
+            self.logger.error("Error getting current track", error=str(e))
 
         return None

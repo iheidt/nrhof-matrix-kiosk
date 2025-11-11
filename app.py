@@ -24,7 +24,7 @@ from core.app_initializer import (
     register_all_handlers,
 )
 from core.config_loader import load_config
-from core.event_bus import EventType
+from core.event_bus import EventType, get_event_bus
 from core.mem_probe import start_trace
 from core.observability import get_crash_guard, get_event_tap, get_performance_monitor
 from core.preload_manager import start_3d_renderer_preload, start_preload, start_webflow_refresh
@@ -241,13 +241,20 @@ def main():
 
     print("\nShutting down...")
 
+    # Emit SHUTDOWN event - all workers subscribed to this will auto-stop
+    event_bus = get_event_bus()
+    event_bus.emit(EventType.SHUTDOWN, source="main")
+
     # Execute APP_SHUTDOWN hooks
     execute_hooks(LifecyclePhase.APP_SHUTDOWN, components=components, workers=workers)
 
-    # Stop workers
+    # Give workers a moment to process SHUTDOWN event and stop gracefully
+    time.sleep(0.5)
+
+    # Join worker threads (they should already be stopping)
     for worker in workers.values():
-        if hasattr(worker, "stop"):
-            worker.stop()
+        if hasattr(worker, "_thread") and worker._thread:
+            worker._thread.join(timeout=2.0)
 
     # Cleanup scenes
     scene_manager.cleanup_all()

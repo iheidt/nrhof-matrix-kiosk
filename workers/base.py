@@ -5,6 +5,7 @@ import threading
 from abc import ABC, abstractmethod
 
 from core.event_bus import get_event_bus
+from core.events import EventType
 from core.logger import get_logger
 
 
@@ -34,6 +35,9 @@ class BaseWorker(ABC):
         # Thread management
         self._running = False
         self._thread: threading.Thread | None = None
+
+        # Subscribe to SHUTDOWN event for graceful shutdown
+        self.event_bus.subscribe(EventType.SHUTDOWN, self._on_shutdown)
 
     def start(self):
         """Start the worker thread."""
@@ -106,6 +110,15 @@ class BaseWorker(ABC):
         Subclasses can override to release resources.
         """
         pass
+
+    def _on_shutdown(self, event):
+        """Handle SHUTDOWN event.
+
+        Args:
+            event: Shutdown event
+        """
+        self.logger.debug(f"{self.__class__.__name__} received SHUTDOWN event")
+        self.stop()
 
     def _execute_lifecycle_hook(self, phase: str):
         """Execute lifecycle hook if available.
