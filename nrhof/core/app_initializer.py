@@ -180,74 +180,50 @@ def create_app_components(cfg, screen):
 
 
 def start_workers(cfg, voice_engine=None):
-    """Start background workers.
+    """Start background workers using WorkerRegistry.
 
     Args:
         cfg: Config object
         voice_engine: VoiceEngine instance (for wake word callback)
 
     Returns:
-        dict: Dictionary of workers
+        WorkerRegistry: Registry containing all workers
     """
+    from nrhof.core.worker_registry import WorkerRegistry
+
     logger = get_logger("app_initializer")
     config_dict = cfg
+    event_bus = get_event_bus()
 
-    # Audio worker (always runs)
-    audio_worker = AudioWorker(config_dict)
-    audio_worker.start()
+    # Create worker registry
+    registry = WorkerRegistry()
 
-    # Recognition worker (legacy, may be disabled)
-    recognition_worker = RecognitionWorker(config_dict)
-    recognition_worker.start()
+    # Register core workers
+    registry.register("audio_worker", AudioWorker(config_dict))
+    registry.register("recognition_worker", RecognitionWorker(config_dict))
+    registry.register("wake_word_worker", WakeWordWorker(config_dict))
+    registry.register("song_recognition_worker", SongRecognitionWorker(config_dict))
 
-    # Wake word worker (new) - uses event-based system via VoiceEventHandler
-    wake_word_worker = WakeWordWorker(config_dict)
-    wake_word_worker.start()
-
-    # Song recognition worker (legacy ambient ACR - disabled)
-    song_recognition_worker = SongRecognitionWorker(config_dict)
-    song_recognition_worker.start()
-
-    # Source Manager (new music source arbitration)
+    # Register source manager and sources
     source_manager = SourceManager(config_dict)
     logger.info("SourceManager initialized")
+    registry.register("source_manager", source_manager)
+    registry.register("spotify_source", SpotifySource(config_dict, source_manager))
+    registry.register("sonos_source", SonosSource(config_dict, source_manager))
 
-    # Spotify source (primary music source - priority 1)
-    spotify_source = SpotifySource(config_dict, source_manager)
-    spotify_source.start()
-
-    # Sonos source (secondary music source - priority 2)
-    sonos_source = SonosSource(config_dict, source_manager)
-    sonos_source.start()
-
-    # Mic listener worker (debug - monitors mic input)
+    # Register optional workers (conditional)
     mic_listener_config = config_dict.get("mic_listener", {})
-    mic_listener_worker = None
     if mic_listener_config.get("enabled", False):
-        event_bus = get_event_bus()
-        mic_listener_worker = MicListenerWorker(event_bus, mic_listener_config)
-        mic_listener_worker.start()
-        logger.info("MicListenerWorker started (debug mode)")
+        registry.register("mic_listener_worker", MicListenerWorker(event_bus, mic_listener_config))
 
-    # VAD worker (voice activity detection)
     vad_config = config_dict.get("vad", {})
-    vad_worker = None
     if vad_config.get("enabled", False):
-        event_bus = get_event_bus()
-        vad_worker = VADWorker(event_bus, vad_config)
-        vad_worker.start()
-        logger.info("VADWorker started")
+        registry.register("vad_worker", VADWorker(event_bus, vad_config))
 
-    return {
-        "audio_worker": audio_worker,
-        "recognition_worker": recognition_worker,
-        "wake_word_worker": wake_word_worker,
-        "song_recognition_worker": song_recognition_worker,
-        "source_manager": source_manager,
-        "spotify_source": spotify_source,
-        "sonos_source": sonos_source,
-        "mic_listener_worker": mic_listener_worker,
-    }
+    # Start all workers
+    registry.start_all()
+
+    return registry
 
 
 def register_all_handlers(components):

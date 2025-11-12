@@ -73,7 +73,9 @@ def main():
     register_hook(
         LifecyclePhase.APP_SHUTDOWN,
         "log_shutdown",
-        lambda ctx: print(f"[LIFECYCLE] App shutting down. Workers: {list(ctx['workers'].keys())}"),
+        lambda ctx: print(
+            f"[LIFECYCLE] App shutting down. Workers: {ctx['worker_registry'].list_workers()}"
+        ),
         priority=100,
     )
 
@@ -123,8 +125,8 @@ def main():
     # Register all handlers
     register_all_handlers(components)
 
-    # Start workers (pass voice_engine for wake word callback)
-    workers = start_workers(cfg, components["voice_engine"])
+    # Start workers using WorkerRegistry
+    worker_registry = start_workers(cfg, components["voice_engine"])
 
     # Start voice engine
     components["voice_engine"].start()
@@ -276,15 +278,15 @@ def main():
     event_bus.emit(EventType.SHUTDOWN, source="main")
 
     # Execute APP_SHUTDOWN hooks
-    execute_hooks(LifecyclePhase.APP_SHUTDOWN, components=components, workers=workers)
+    execute_hooks(
+        LifecyclePhase.APP_SHUTDOWN, components=components, worker_registry=worker_registry
+    )
 
-    # Give workers a moment to process SHUTDOWN event and stop gracefully
+    # Stop all workers gracefully using registry
+    worker_registry.stop_all()
+
+    # Give workers a moment to fully stop
     time.sleep(0.5)
-
-    # Join worker threads (they should already be stopping)
-    for worker in workers.values():
-        if hasattr(worker, "_thread") and worker._thread:
-            worker._thread.join(timeout=2.0)
 
     # Cleanup scenes
     scene_manager.cleanup_all()
