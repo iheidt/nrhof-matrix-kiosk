@@ -1,9 +1,10 @@
 """Worker registry for managing worker lifecycle."""
 
-import logging
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from nrhof.core.logging_utils import setup_logger
+
+logger = setup_logger(__name__)
 
 
 class WorkerRegistry:

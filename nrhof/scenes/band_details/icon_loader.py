@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Icon loader for band details scene."""
-import logging
 from pathlib import Path
 
 import pygame
@@ -12,7 +11,7 @@ from nrhof.ui.icons import load_icon
 class IconLoader:
     """Handles loading and colorizing icons from theme."""
 
-    def __init__(self, logger: logging.Logger):
+    def __init__(self, logger):
         self.logger = logger
 
     def load_down_arrow_icon(self) -> pygame.Surface | None:

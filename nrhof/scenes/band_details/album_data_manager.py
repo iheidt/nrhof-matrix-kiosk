@@ -2,7 +2,6 @@
 """Album data manager for fetching and caching album data from Webflow."""
 import hashlib
 import json
-import logging
 import time
 from pathlib import Path
 
@@ -14,7 +13,7 @@ class AlbumDataManager:
 
     def __init__(
         self,
-        logger: logging.Logger,
+        logger,
         albums_cache_file: Path,
         albums_cache_ttl_hours: int,
         images_cache_dir: Path,

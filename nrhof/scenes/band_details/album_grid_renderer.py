@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Album grid renderer for band details scene."""
-import logging
 from pathlib import Path
 
 import pygame
@@ -14,7 +13,7 @@ from nrhof.ui.image_transformer import transform_to_matrix
 class AlbumGridRenderer:
     """Handles rendering of album grid with scrolling and metadata overlays."""
 
-    def __init__(self, logger: logging.Logger):
+    def __init__(self, logger):
         self.logger = logger
 
     def render_grid(

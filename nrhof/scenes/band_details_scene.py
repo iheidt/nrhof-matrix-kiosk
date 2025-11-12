@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-import logging
 from pathlib import Path
 
 import pygame
 
+from nrhof.core.logging_utils import setup_logger
 from nrhof.core.theme_loader import get_theme_loader
 from nrhof.integrations.image_cache import ImageCache
 from nrhof.routing.intent_router import Intent
@@ -49,7 +49,7 @@ class BandDetailsScene(Scene):
         self.settings_rect = None  # Store settings text rect for click detection
 
         # Logger
-        self.logger = logging.getLogger(__name__)
+        self.logger = setup_logger(__name__)
 
         # Image cache
         self.image_cache = ImageCache(logger=self.logger)

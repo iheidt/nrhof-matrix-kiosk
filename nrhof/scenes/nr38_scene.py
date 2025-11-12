@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-import logging
 import threading
 from typing import Any
 
 import pygame
 
 from nrhof.core.localization import get_language
+from nrhof.core.logging_utils import setup_logger
 from nrhof.core.theme_loader import get_theme_loader
 from nrhof.integrations.webflow_cache import WebflowCache, WebflowCacheManager
 from nrhof.integrations.webflow_client import create_webflow_client
@@ -33,7 +33,7 @@ class NR38Scene(Scene):
         super().__init__(ctx)
 
         # Logger
-        self.logger = logging.getLogger(__name__)
+        self.logger = setup_logger(__name__)
 
         # Load theme
         self.theme_loader = get_theme_loader()

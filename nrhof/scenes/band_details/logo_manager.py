@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Logo manager for band details scene."""
-import logging
 import threading
 
 import pygame
@@ -12,7 +11,7 @@ from nrhof.ui.logo_utils import calculate_logo_size
 class LogoManager:
     """Handles loading and sizing band logos."""
 
-    def __init__(self, logger: logging.Logger, image_cache: ImageCache, color: tuple):
+    def __init__(self, logger, image_cache: ImageCache, color: tuple):
         self.logger = logger
         self.image_cache = image_cache
         self.color = color

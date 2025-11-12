@@ -1,6 +1,5 @@
 """Webflow CMS integration for syncing track playback data."""
 
-import logging
 import os
 import time
 from dataclasses import dataclass
@@ -8,6 +7,8 @@ from threading import Lock
 from typing import Any
 
 import requests
+
+from nrhof.core.logging_utils import setup_logger
 
 
 @dataclass
@@ -30,9 +31,9 @@ class WebflowClient:
 
     BASE_URL = "https://api.webflow.com/v2"
 
-    def __init__(self, config: WebflowConfig, logger: logging.Logger | None = None):
+    def __init__(self, config: WebflowConfig, logger=None):
         self.config = config
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger = logger or setup_logger(__name__)
         self._lock = Lock()
         self._last_sync: dict[str, float] = {}
         self._retry_backoff: dict[str, float] = {}
@@ -257,7 +258,7 @@ class WebflowClient:
 
 def create_webflow_client(
     config: dict[str, Any],
-    logger: logging.Logger | None = None,
+    logger=None,
 ) -> WebflowClient | None:
     """Create Webflow client from config."""
     webflow_config = config.get("integrations", {}).get("webflow", {})

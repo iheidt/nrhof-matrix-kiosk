@@ -2,7 +2,6 @@
 
 import hashlib
 import io
-import logging
 import re
 from pathlib import Path
 from threading import Lock
@@ -10,6 +9,8 @@ from typing import Any
 
 import pygame
 import requests
+
+from nrhof.core.logging_utils import setup_logger
 
 try:
     import cairosvg
@@ -25,7 +26,7 @@ class ImageCache:
     def __init__(
         self,
         cache_dir: str = "runtime/image_cache",
-        logger: logging.Logger | None = None,
+        logger=None,
     ):
         """Initialize image cache.
 
@@ -35,7 +36,7 @@ class ImageCache:
         """
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger = logger or setup_logger(__name__)
         self._memory_cache: dict[str, pygame.Surface] = {}  # In-memory cache
         self._svg_cache: dict[str, bytes] = {}  # Cache SVG content for re-rendering
         self._lock = Lock()

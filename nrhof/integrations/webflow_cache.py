@@ -1,11 +1,12 @@
 """Webflow CMS cache manager with pagination and local storage."""
 
 import json
-import logging
 import time
 from pathlib import Path
 from threading import Lock
 from typing import Any
+
+from nrhof.core.logging_utils import setup_logger
 
 
 class WebflowCache:
@@ -14,7 +15,7 @@ class WebflowCache:
     def __init__(
         self,
         cache_dir: str = "runtime/webflow_cache",
-        logger: logging.Logger | None = None,
+        logger=None,
     ):
         """Initialize cache manager.
 
@@ -24,7 +25,7 @@ class WebflowCache:
         """
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger = logger or setup_logger(__name__)
         self._lock = Lock()
 
         # Cache metadata
@@ -180,7 +181,7 @@ class WebflowCacheManager:
         self,
         webflow_client,
         cache: WebflowCache,
-        logger: logging.Logger | None = None,
+        logger=None,
     ):
         """Initialize cache manager.
 
@@ -191,7 +192,7 @@ class WebflowCacheManager:
         """
         self.client = webflow_client
         self.cache = cache
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger = logger or setup_logger(__name__)
         self._refreshing = False
 
     def _fetch_all_pages(self, collection_id: str, collection_name: str) -> list[dict[str, Any]]:

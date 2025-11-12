@@ -8,18 +8,17 @@ Manages:
 - Tab rendering and click handling
 """
 
-import logging
-
 import pygame
 
 from nrhof.core.localization import get_language, t
+from nrhof.core.logging_utils import setup_logger
 from nrhof.ui.tabs import Tabs
 
 
 class TabManager:
     """Manages tabs for the band details scene."""
 
-    def __init__(self, color: tuple, logger: logging.Logger = None):
+    def __init__(self, color: tuple, logger=None):
         """Initialize tab manager.
 
         Args:
@@ -27,7 +26,7 @@ class TabManager:
             logger: Optional logger instance
         """
         self.color = color
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger = logger or setup_logger(__name__)
 
         # Tab state
         self.tabs = None
