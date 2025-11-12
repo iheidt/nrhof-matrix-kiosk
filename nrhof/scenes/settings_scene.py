@@ -3,7 +3,7 @@ import pygame
 
 from nrhof.core.theme_loader import get_theme_loader
 from nrhof.routing.intent_router import Intent
-from nrhof.scenes.scene_manager import Scene, register_scene
+from nrhof.scenes.scene_manager import Scene
 from nrhof.ui.components import (
     MARGIN_LEFT,
     MARGIN_RIGHT,
@@ -17,7 +17,6 @@ from nrhof.ui.components import (
 from nrhof.ui.fonts import render_mixed_text
 
 
-@register_scene("SettingsScene")
 class SettingsScene(Scene):
     """Settings configuration scene."""
 

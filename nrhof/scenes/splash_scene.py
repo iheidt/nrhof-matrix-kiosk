@@ -6,11 +6,10 @@ import pygame
 from nrhof.__version__ import __version__
 from nrhof.core.theme_loader import get_theme_loader
 from nrhof.renderers import FrameState, Shape, Text
-from nrhof.scenes.scene_manager import Scene, register_scene
+from nrhof.scenes.scene_manager import Scene
 from nrhof.ui.fonts import render_mixed_text
 
 
-@register_scene("SplashScene")
 class SplashScene(Scene):
     """Splash screen with loading progress."""
 

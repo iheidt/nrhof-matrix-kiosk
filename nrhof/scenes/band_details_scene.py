@@ -15,7 +15,7 @@ from nrhof.scenes.band_details import (
     ScrollHandler,
     TabManager,
 )
-from nrhof.scenes.scene_manager import Scene, register_scene
+from nrhof.scenes.scene_manager import Scene
 from nrhof.ui.components import (
     MARGIN_LEFT,
     MARGIN_RIGHT,
@@ -29,7 +29,6 @@ from nrhof.ui.components import (
 from nrhof.ui.fonts import render_mixed_text
 
 
-@register_scene("BandDetailsScene")
 class BandDetailsScene(Scene):
     """Band details scene - displays information about a selected band from NR-38."""
 

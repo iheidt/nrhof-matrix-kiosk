@@ -7,7 +7,7 @@ from nrhof.core.localization import get_language
 from nrhof.core.theme_loader import get_theme_loader
 from nrhof.renderers import FrameState
 from nrhof.routing.intent_router import Intent
-from nrhof.scenes.scene_manager import Scene, register_scene
+from nrhof.scenes.scene_manager import Scene
 from nrhof.ui.components import (
     MARGIN_LEFT,
     draw_button,
@@ -22,7 +22,6 @@ from nrhof.ui.components.timeclock import draw_timeclock
 from nrhof.ui.fonts import get_theme_font
 
 
-@register_scene("MenuScene")
 class MenuScene(Scene):
     """Menu selection scene with 3 options."""
 

@@ -3,7 +3,7 @@ import pygame
 
 from nrhof.core.theme_loader import get_theme_loader
 from nrhof.routing.intent_router import Intent
-from nrhof.scenes.scene_manager import Scene, register_scene
+from nrhof.scenes.scene_manager import Scene
 from nrhof.ui.components import (
     MARGIN_LEFT,
     MARGIN_RIGHT,
@@ -20,7 +20,6 @@ from nrhof.ui.tabs import Tabs
 # Visualizers will be added here later
 
 
-@register_scene("VisualizersScene")
 class VisualizersScene(Scene):
     """Visualizers scene."""
 

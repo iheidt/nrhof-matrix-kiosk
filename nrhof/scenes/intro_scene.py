@@ -4,7 +4,7 @@ import time
 import pygame
 
 from nrhof.core.theme_loader import get_theme_loader
-from nrhof.scenes.scene_manager import Scene, register_scene
+from nrhof.scenes.scene_manager import Scene
 from nrhof.ui.components import (
     MARGIN_LEFT,
     MARGIN_TOP,
@@ -16,7 +16,6 @@ from nrhof.ui.components import (
 from nrhof.ui.fonts import render_mixed_text
 
 
-@register_scene("IntroScene")
 class IntroScene(Scene):
     """Typewriter intro sequence scene."""
 

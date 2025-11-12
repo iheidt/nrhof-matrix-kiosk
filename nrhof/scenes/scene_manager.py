@@ -9,40 +9,6 @@ from nrhof.core.mem_probe import get_memory_probe
 from .scene_cache import SceneCache
 from .scene_transitions import SceneTransition
 
-# Global scene registry
-_scene_registry: dict[str, type["Scene"]] = {}
-
-
-def register_scene(name: str):
-    """Decorator to automatically register a scene class.
-
-    Args:
-        name: Name to register the scene under
-
-    Returns:
-        Decorator function
-
-    Example:
-        @register_scene("IntroScene")
-        class IntroScene(Scene):
-            pass
-    """
-
-    def decorator(cls: type[Scene]) -> type[Scene]:
-        _scene_registry[name] = cls
-        return cls
-
-    return decorator
-
-
-def get_registered_scenes() -> dict[str, type["Scene"]]:
-    """Get all registered scene classes.
-
-    Returns:
-        Dictionary mapping scene names to scene classes
-    """
-    return _scene_registry.copy()
-
 
 class Scene:
     """Base class for all scenes."""

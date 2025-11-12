@@ -11,7 +11,7 @@ from nrhof.integrations.webflow_cache import WebflowCache, WebflowCacheManager
 from nrhof.integrations.webflow_client import create_webflow_client
 from nrhof.integrations.webflow_constants import NR38_LIST_UUID
 from nrhof.routing.intent_router import Intent
-from nrhof.scenes.scene_manager import Scene, register_scene
+from nrhof.scenes.scene_manager import Scene
 from nrhof.ui.components import (
     MARGIN_LEFT,
     MARGIN_RIGHT,
@@ -25,7 +25,6 @@ from nrhof.ui.components import (
 from nrhof.ui.fonts import get_localized_font, get_theme_font, render_mixed_text
 
 
-@register_scene("NR38Scene")
 class NR38Scene(Scene):
     """NR-38 scene."""
 
