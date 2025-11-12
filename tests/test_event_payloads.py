@@ -1,6 +1,6 @@
 """Test event payload type definitions."""
 
-from core.event_payloads import (
+from nrhof.core.event_payloads import (
     LanguageChangedPayload,
     NowPlayingPayload,
     SceneChangedPayload,

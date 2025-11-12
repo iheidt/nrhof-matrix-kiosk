@@ -2,7 +2,7 @@
 
 import time
 
-from workers.base import BaseWorker
+from nrhof.workers.base import BaseWorker
 
 
 class DummyWorker(BaseWorker):

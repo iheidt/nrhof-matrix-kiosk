@@ -11,10 +11,10 @@ import math
 
 import numpy as np
 
-from core.audio_io import (
+from nrhof.core.audio_io import (
     cleanup as audio_io_cleanup,
 )
-from core.audio_io import (
+from nrhof.core.audio_io import (
     get_mic_frame,
     get_mic_frame_size,
     get_mic_sample_rate,

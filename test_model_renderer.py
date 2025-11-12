@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import sys
 
-sys.path.insert(0, ".")
-
 import numpy as np
 from PIL import Image
 
-from renderers.model_renderer import ModelRenderer
+from nrhof.renderers.model_renderer import ModelRenderer
+
+sys.path.insert(0, ".")
 
 print("=== Model Renderer Test ===")
 

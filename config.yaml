@@ -13,6 +13,14 @@ dev_overrides:
   mic_listener:
     enabled: true          # Enable debug mic listener worker
 
+# Fonts configuration
+fonts:
+  directory: "assets/fonts"
+  mono: "IBMPlexMono-Regular.ttf"
+  mono_bold: "IBMPlexMono-SemiBoldItalic.ttf"
+  sans: "Compadre-Extended.otf"
+  sans_bold: "Compadre-Extended.otf"
+
 # Render settings
 render:
   backend: "pygame"          # pygame (current) | swift (future Metal renderer)

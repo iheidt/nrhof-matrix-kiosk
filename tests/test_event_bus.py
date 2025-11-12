@@ -1,6 +1,6 @@
 """Test event bus dependency injection."""
 
-from core.event_bus import EventBus, EventType
+from nrhof.core.event_bus import EventBus, EventType
 
 
 def test_event_bus_creation():

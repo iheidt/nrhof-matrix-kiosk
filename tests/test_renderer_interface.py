@@ -1,7 +1,8 @@
 """Test renderer interface."""
 
 from renderers import FrameState
-from renderers.base import RendererBase
+
+from nrhof.renderers.base import RendererBase
 
 
 class MockRenderer(RendererBase):

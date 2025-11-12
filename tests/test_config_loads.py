@@ -1,6 +1,6 @@
 """Test configuration loading."""
 
-from core.config_loader import load_config
+from nrhof.core.config_loader import load_config
 
 
 def test_config_parses():

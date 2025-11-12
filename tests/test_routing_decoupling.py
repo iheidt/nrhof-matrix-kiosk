@@ -1,6 +1,6 @@
 """Test routing layer decoupling."""
 
-from routing.intent_router import Intent, IntentRouter
+from nrhof.routing.intent_router import Intent, IntentRouter
 
 
 class MockSceneController:
