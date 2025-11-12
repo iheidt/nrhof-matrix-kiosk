@@ -1,7 +1,6 @@
 """Test renderer interface."""
 
-from renderers import FrameState
-
+from nrhof.renderers import FrameState
 from nrhof.renderers.base import RendererBase
 
 

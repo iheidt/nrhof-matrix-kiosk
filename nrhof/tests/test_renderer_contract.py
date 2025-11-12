@@ -1,6 +1,6 @@
 """Test renderer interface contract."""
 
-from renderers import create_renderer
+from nrhof.renderers import create_renderer
 
 
 def test_renderer_init_shutdown():

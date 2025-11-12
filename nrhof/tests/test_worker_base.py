@@ -37,7 +37,7 @@ def test_worker_start_stop():
 
 def test_worker_event_bus_injection():
     """Test that workers can accept injected event bus."""
-    from core.event_bus import EventBus
+    from nrhof.core.event_bus import EventBus
 
     custom_bus = EventBus()
     worker = DummyWorker(config={}, event_bus=custom_bus)

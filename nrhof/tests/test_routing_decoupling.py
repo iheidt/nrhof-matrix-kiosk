@@ -34,7 +34,7 @@ def test_intent_routing_with_injected_controller():
     router.set_scene_controller(controller)
 
     # Register a handler that uses the controller
-    def go_home(**kwargs):
+    def go_home(event_bus, **kwargs):
         ctrl = router.get_scene_controller()
         if ctrl:
             ctrl.switch_to("MenuScene")
@@ -51,9 +51,11 @@ def test_routing_without_scenes_import():
     """Test that routing module doesn't import scenes."""
     import sys
 
+    # Import the modules to ensure they're loaded
+
     # Check that scenes module is not in the routing module's dependencies
-    router_module = sys.modules["routing.intent_router"]
-    handlers_module = sys.modules["routing.intent_handlers"]
+    router_module = sys.modules["nrhof.routing.intent_router"]
+    handlers_module = sys.modules["nrhof.routing.intent_handlers"]
 
     # This is a basic check - the modules should load without scenes
     assert router_module is not None
