@@ -133,15 +133,20 @@ def create_app_components(cfg, screen):
 
     voice_router = VoiceRouter()
     intent_router = IntentRouter(event_bus=event_bus)  # Inject event_bus
-    voice_engine = VoiceEngine(voice_router)
     scene_manager = SceneManager(screen, cfg)
+
+    # Create app_context first so we can pass it to VoiceEngine
     app_context = AppContext(
         cfg,
         scene_manager,
         voice_router,
-        voice_engine,
+        None,  # voice_engine will be set after creation
         intent_router,
     )
+
+    # Create VoiceEngine with context and wire it back to app_context
+    voice_engine = VoiceEngine(voice_router, ctx=app_context)
+    app_context.voice_engine = voice_engine
     event_bus = get_event_bus()
     app_state = get_app_state()
 

@@ -10,18 +10,24 @@ from openai import OpenAI
 from scipy.io import wavfile
 
 from routing.voice_router import VoiceRouter
+from voice.aec import AEC
+from voice.asr import ASR
+from voice.nlu import GrammarNLU
+from voice.tts import TTS
 
 
 class VoiceEngine:
     """Voice engine adapter for microphone input and wakeword detection."""
 
-    def __init__(self, router: VoiceRouter):
+    def __init__(self, router: VoiceRouter, ctx=None):
         """Initialize voice engine with router.
 
         Args:
             router: VoiceRouter instance to send transcribed text to
+            ctx: Application context (optional)
         """
         self.router = router
+        self.ctx = ctx
         self.running = False
         self.thread = None
         self.listening_for_command = False
@@ -29,6 +35,12 @@ class VoiceEngine:
         # Audio settings
         self.sample_rate = 16000  # 16kHz for Whisper
         self.duration = 2.5  # seconds
+
+        # Voice pipeline components (stubs for now)
+        self.asr = ASR(ctx)
+        self.nlu = GrammarNLU()
+        self.tts = TTS()
+        self.aec = AEC()
 
         # OpenAI client (optional - only if API key is set)
         api_key = os.getenv("OPENAI_API_KEY")
