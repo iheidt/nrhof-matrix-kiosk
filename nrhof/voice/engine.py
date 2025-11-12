@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+"""Voice engine orchestrator - coordinates wake word, VAD, ASR, NLU, TTS pipeline."""
+
 import os
 import tempfile
 import threading
@@ -9,7 +10,6 @@ import sounddevice as sd
 from openai import OpenAI
 from scipy.io import wavfile
 
-from nrhof.routing.voice_router import VoiceRouter
 from nrhof.voice.aec import AEC
 from nrhof.voice.asr import ASR
 from nrhof.voice.nlu import GrammarNLU
@@ -17,16 +17,25 @@ from nrhof.voice.tts import TTS
 
 
 class VoiceEngine:
-    """Voice engine adapter for microphone input and wakeword detection."""
+    """Voice engine orchestrator for the complete voice pipeline.
 
-    def __init__(self, router: VoiceRouter, ctx=None):
+    Coordinates:
+    - Wake word detection (via external trigger)
+    - Voice Activity Detection (VAD)
+    - Automatic Speech Recognition (ASR)
+    - Natural Language Understanding (NLU)
+    - Text-to-Speech (TTS)
+    - Acoustic Echo Cancellation (AEC)
+    """
+
+    def __init__(self, voice_router, ctx=None):
         """Initialize voice engine with router.
 
         Args:
-            router: VoiceRouter instance to send transcribed text to
+            voice_router: VoiceRouter instance to send recognized intents to
             ctx: Application context (optional)
         """
-        self.router = router
+        self.router = voice_router
         self.ctx = ctx
         self.running = False
         self.thread = None
@@ -36,7 +45,7 @@ class VoiceEngine:
         self.sample_rate = 16000  # 16kHz for Whisper
         self.duration = 2.5  # seconds
 
-        # Voice pipeline components (stubs for now)
+        # Voice pipeline components
         self.asr = ASR(ctx)
         self.nlu = GrammarNLU()
         self.tts = TTS()
@@ -51,21 +60,21 @@ class VoiceEngine:
             print("Warning: OPENAI_API_KEY not set. STT will not work.")
 
     def start(self):
-        """Start the voice engine microphone thread."""
+        """Start the voice engine orchestration thread."""
         if self.running:
             return
 
         self.running = True
         self.thread = threading.Thread(
-            target=self._listen_loop,
+            target=self._orchestration_loop,
             daemon=True,
-            name="voice_engine_listen",
+            name="voice_engine_orchestrator",
         )
         self.thread.start()
         print("Voice engine started")
 
     def stop(self):
-        """Stop the voice engine microphone thread."""
+        """Stop the voice engine orchestration thread."""
         if not self.running:
             return
 
@@ -75,35 +84,31 @@ class VoiceEngine:
         print("Voice engine stopped")
 
     def trigger_wakeword(self):
-        """Trigger wakeword detection (for testing or actual detection).
+        """Trigger wake word detection (called by wake word worker).
 
         Sets the engine into listening mode, ready to process the next speech input.
         """
         self.listening_for_command = True
         print("wakeword detected")
 
-    def _listen_loop(self):
-        """Background thread that will listen for microphone input.
+    def _orchestration_loop(self):
+        """Background orchestration loop.
 
-        This is a placeholder that will eventually:
-        1. Capture audio from microphone
-        2. Detect wakeword (or use trigger_wakeword() for testing)
-        3. When listening_for_command is True, transcribe speech
-        4. Call self.router.process_text(transcribed_text)
+        Coordinates the voice pipeline:
+        1. Wait for wake word trigger (set by external wake word worker)
+        2. When triggered, process speech through ASR → NLU → Router
+        3. Return to idle state
         """
         last_idle_print = time.time()
 
         while self.running:
-            # TODO: Add Porcupine wakeword detection here
-            # TODO: When wakeword detected, call self.trigger_wakeword()
-
-            # If wakeword was triggered, process speech
+            # Check if wake word was triggered
             if self.listening_for_command:
                 # Process STT in a separate thread to avoid blocking
                 stt_thread = threading.Thread(
-                    target=self._process_stt,
+                    target=self._process_speech_pipeline,
                     daemon=True,
-                    name="voice_stt_process",
+                    name="voice_speech_pipeline",
                 )
                 stt_thread.start()
                 # Reset flag immediately so we don't trigger multiple times
@@ -118,13 +123,38 @@ class VoiceEngine:
             # Sleep briefly to avoid busy-waiting
             time.sleep(0.1)
 
-    def _process_stt(self):
-        """Process speech-to-text in a separate thread."""
+    def _process_speech_pipeline(self):
+        """Process complete speech pipeline: ASR → NLU → Router."""
+        try:
+            # Step 1: ASR (Automatic Speech Recognition)
+            text = self._run_asr()
+            if not text:
+                return
+
+            print(f"transcribed text: {text}")
+
+            # Step 2: NLU (Natural Language Understanding) - optional
+            # For now, pass raw text to router
+            # In future: intent = self.nlu.parse(text)
+
+            # Step 3: Route to voice router
+            self.router.process_text(text)
+
+        except Exception as e:
+            print(f"Speech pipeline error: {e}")
+            self.listening_for_command = False
+
+    def _run_asr(self) -> str | None:
+        """Run Automatic Speech Recognition.
+
+        Returns:
+            Transcribed text or None if failed
+        """
         try:
             # Check if OpenAI client is available
             if not self.openai_client:
                 print("STT error: OpenAI API key not set")
-                return
+                return None
 
             # Record audio
             print("recording command...")
@@ -156,15 +186,9 @@ class VoiceEngine:
             except Exception:
                 pass
 
-            # Get transcribed text
-            text = transcript.text.strip()
-            print(f"transcribed text: {text}")
-
-            # Route to voice router
-            if text:
-                self.router.process_text(text)
+            # Return transcribed text
+            return transcript.text.strip()
 
         except Exception as e:
-            print(f"STT error: {e}")
-            # Reset state on error
-            self.listening_for_command = False
+            print(f"ASR error: {e}")
+            return None

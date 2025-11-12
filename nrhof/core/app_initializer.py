@@ -18,10 +18,10 @@ from nrhof.renderers import create_renderer
 from nrhof.routing.intent_handlers import register_all_intents
 from nrhof.routing.intent_router import IntentRouter
 from nrhof.routing.voice_commands import register_all_voice_commands
-from nrhof.routing.voice_engine import VoiceEngine
 from nrhof.routing.voice_router import VoiceRouter
 from nrhof.scenes.registry import register_all_scenes
 from nrhof.scenes.scene_manager import SceneManager
+from nrhof.voice.engine import VoiceEngine
 from nrhof.workers.audio_worker import AudioWorker
 from nrhof.workers.mic_listener_worker import MicListenerWorker
 from nrhof.workers.recognition_worker import RecognitionWorker
