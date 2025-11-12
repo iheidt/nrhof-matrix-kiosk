@@ -258,9 +258,9 @@ class BaseAudioScene(Scene):
         super().__init__(ctx)
         import numpy as np
 
-        from audio_source import get_sample_rate
+        from nrhof.core.audio_io import get_mic_sample_rate
 
-        self.sample_rate = get_sample_rate()  # Use actual audio source sample rate
+        self.sample_rate = get_mic_sample_rate()  # Use actual audio source sample rate
         self.fft_size = fft_size
         self.audio_buffer = np.zeros(self.fft_size)
         self.back_arrow_rect = None
@@ -278,9 +278,11 @@ class BaseAudioScene(Scene):
 
     def update_audio_buffer(self):
         """Update audio buffer from centralized audio source."""
-        from audio_source import get_audio_frame
+        from nrhof.core.audio_io import get_mic_frame
 
-        self.audio_buffer = get_audio_frame(length=self.fft_size)
+        frame = get_mic_frame()
+        if frame is not None:
+            self.audio_buffer = frame
 
     def on_exit(self):
         """Clean up when leaving scene."""

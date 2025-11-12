@@ -9,8 +9,9 @@ import time
 
 import numpy as np
 
-from audio_source import get_audio_frame, get_sample_rate
 from nrhof.core.app_state import TrackInfo, get_app_state
+from nrhof.core.audio_io import get_mic_frame as get_audio_frame
+from nrhof.core.audio_io import get_mic_sample_rate as get_sample_rate
 from nrhof.core.event_bus import EventType
 
 from .base import BaseWorker
@@ -149,10 +150,10 @@ class RecognitionWorker(BaseWorker):
             buffer = []
 
             # Collect audio in chunks
-            chunk_size = 2048
             while len(buffer) < samples_needed:
-                chunk = get_audio_frame(length=chunk_size)
-                buffer.extend(chunk)
+                chunk = get_audio_frame()
+                if chunk is not None:
+                    buffer.extend(chunk)
 
                 # Check if music stopped
                 music_present, _ = self.app_state.get_music_state()

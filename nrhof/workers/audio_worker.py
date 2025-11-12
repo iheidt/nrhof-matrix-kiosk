@@ -9,11 +9,15 @@ import time
 
 import numpy as np
 
-from audio_source import get_audio_frame, get_sample_rate
 from nrhof.core.app_state import get_app_state
+from nrhof.core.audio_io import get_mic_frame, get_mic_sample_rate
 from nrhof.core.event_bus import EventType
 
 from .base import BaseWorker
+
+# Compatibility aliases
+get_audio_frame = get_mic_frame
+get_sample_rate = get_mic_sample_rate
 
 
 class AudioWorker(BaseWorker):
@@ -50,7 +54,7 @@ class AudioWorker(BaseWorker):
         while self._running:
             try:
                 # Get audio frame
-                frame = get_audio_frame(length=self.frame_size)
+                frame = get_audio_frame()
 
                 # Calculate RMS level
                 rms = np.sqrt(np.mean(frame**2))

@@ -8,7 +8,7 @@ from collections.abc import Callable
 import numpy as np
 import pvporcupine
 
-from audio_source import get_audio_frame
+from nrhof.core.audio_io import get_mic_frame as get_audio_frame
 from nrhof.core.event_bus import EventType
 
 from .base import BaseWorker
@@ -104,7 +104,7 @@ class WakeWordWorker(BaseWorker):
         while self._running:
             try:
                 # Get audio frame (float32 samples) - mic is now natively 16kHz
-                audio_frame = get_audio_frame(length=frame_length)
+                audio_frame = get_audio_frame()
 
                 if audio_frame is None:
                     time.sleep(0.01)

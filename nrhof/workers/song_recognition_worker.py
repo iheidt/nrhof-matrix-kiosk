@@ -7,8 +7,9 @@ import wave
 
 import numpy as np
 
-from audio_source import get_audio_frame, get_sample_rate
 from nrhof.core.app_state import get_app_state
+from nrhof.core.audio_io import get_mic_frame as get_audio_frame
+from nrhof.core.audio_io import get_mic_sample_rate as get_sample_rate
 from nrhof.core.event_bus import EventType
 from nrhof.core.song_recognition import SongInfo, SongRecognizer
 

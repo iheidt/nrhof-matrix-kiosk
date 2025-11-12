@@ -8,6 +8,9 @@ version = "0.1.0"
 description = "NRHOF Matrix Kiosk Application"
 requires-python = ">=3.12"
 
+[project.scripts]
+nrhof = "nrhof.__main__:main"
+
 [tool.setuptools]
 packages = ["nrhof"]
 
