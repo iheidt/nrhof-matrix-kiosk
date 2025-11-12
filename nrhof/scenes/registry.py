@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""Scene factory for creating and managing scene instances."""
+"""Consolidated scene registry - definitions, factory, and registration."""
 
 import importlib
 import threading
@@ -9,7 +8,7 @@ from typing import TYPE_CHECKING
 from nrhof.core.app_context import AppContext
 
 if TYPE_CHECKING:
-    from .scene_manager import Scene
+    from nrhof.scenes.scene_manager import Scene, SceneManager
 
 
 class SceneDefinition:
@@ -20,7 +19,7 @@ class SceneDefinition:
 
         Args:
             name: Scene name for registration
-            module_path: Python module path (e.g., 'scenes.menu_scene')
+            module_path: Python module path (e.g., 'nrhof.scenes.menu_scene')
             class_name: Class name within the module
             eager_load: Whether to load immediately or lazily
         """
@@ -48,7 +47,7 @@ class SceneFactory:
         """
         self._app_context = app_context
         self._definitions: dict[str, SceneDefinition] = {}
-        self._instances: dict[str, Scene] = {}
+        self._instances: dict[str, "Scene"] = {}
         self._factories: dict[str, Callable] = {}
         self._lock = threading.Lock()
 
@@ -60,7 +59,7 @@ class SceneFactory:
         """
         self._definitions[definition.name] = definition
 
-    def register_definitions(self, definitions: list):
+    def register_definitions(self, definitions: list[SceneDefinition]):
         """Register multiple scene definitions.
 
         Args:
@@ -127,7 +126,7 @@ class SceneFactory:
         # Instantiate with app context
         return scene_class(self._app_context)
 
-    def preload(self, scene_names: list):
+    def preload(self, scene_names: list[str]):
         """Preload scenes in the background.
 
         Args:
@@ -140,7 +139,7 @@ class SceneFactory:
                 except Exception as e:
                     print(f"Warning: Failed to preload scene '{scene_name}': {e}")
 
-    def preload_async(self, scene_names: list):
+    def preload_async(self, scene_names: list[str]):
         """Preload scenes asynchronously in a background thread.
 
         Args:
@@ -154,7 +153,7 @@ class SceneFactory:
         )
         thread.start()
 
-    def get_cached_scenes(self) -> list:
+    def get_cached_scenes(self) -> list[str]:
         """Get list of currently cached scene names.
 
         Returns:
@@ -193,3 +192,70 @@ class SceneFactory:
 
         self._factories[scene_name] = factory
         return factory
+
+
+# ============================================================================
+# Scene Definitions
+# ============================================================================
+
+SCENE_DEFINITIONS = [
+    # Eager-loaded scenes (loaded immediately)
+    SceneDefinition("SplashScene", "nrhof.scenes.splash_scene", "SplashScene", eager_load=True),
+    # Lazy-loaded scenes (loaded on demand)
+    SceneDefinition("IntroScene", "nrhof.scenes.intro_scene", "IntroScene"),
+    SceneDefinition("MenuScene", "nrhof.scenes.menu_scene", "MenuScene"),
+    SceneDefinition("NR38Scene", "nrhof.scenes.nr38_scene", "NR38Scene"),
+    SceneDefinition("BandDetailsScene", "nrhof.scenes.band_details_scene", "BandDetailsScene"),
+    SceneDefinition("SettingsScene", "nrhof.scenes.settings_scene", "SettingsScene"),
+    SceneDefinition("VisualizersScene", "nrhof.scenes.visualizers_scene", "VisualizersScene"),
+]
+
+
+# ============================================================================
+# Registration Functions
+# ============================================================================
+
+
+def create_scene_factory(app_context: AppContext) -> SceneFactory:
+    """Create and configure the scene factory.
+
+    Args:
+        app_context: AppContext instance
+
+    Returns:
+        Configured SceneFactory instance
+    """
+    factory = SceneFactory(app_context)
+    factory.register_definitions(SCENE_DEFINITIONS)
+    return factory
+
+
+def register_all_scenes(scene_manager: "SceneManager", app_context: AppContext):
+    """Register all scenes with the scene manager using SceneFactory.
+
+    Args:
+        scene_manager: SceneManager instance
+        app_context: AppContext instance
+    """
+    # Create scene factory
+    factory = create_scene_factory(app_context)
+
+    # Register scenes
+    for definition in SCENE_DEFINITIONS:
+        if definition.eager_load:
+            # Eager load: create instance immediately
+            scene_instance = factory.create(definition.name)
+            scene_manager.register_scene(definition.name, scene_instance)
+        else:
+            # Lazy load: register factory for later instantiation
+            scene_factory = factory.create_factory(definition.name)
+            scene_manager.register_lazy(definition.name, scene_factory)
+
+
+def get_preload_list() -> list[str]:
+    """Get list of scene names to preload in background.
+
+    Returns:
+        List of scene names (excludes eager-loaded scenes)
+    """
+    return [definition.name for definition in SCENE_DEFINITIONS if not definition.eager_load]

@@ -188,8 +188,14 @@ def render_localized_text(
     # - Japanese text uses Noto Sans JP
     if has_japanese:
         # Create a Japanese font loader that returns Noto Sans JP
-        def _get_japanese_font(size: int) -> pygame.font.Font:
-            """Get Japanese font (Noto Sans JP)."""
+        def _get_japanese_font(size: int, font_type: str, text: str) -> pygame.font.Font:
+            """Get Japanese font (Noto Sans JP).
+
+            Args:
+                size: Font size
+                font_type: Font type (unused for Japanese)
+                text: Text to render (unused)
+            """
             # Go up from nrhof/ui/fonts/localization.py to project root
             project_root = Path(__file__).parent.parent.parent.parent
             jp_font_path = project_root / "assets" / "fonts" / "NotoSansJP-Regular.ttf"

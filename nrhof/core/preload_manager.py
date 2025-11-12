@@ -3,7 +3,7 @@
 
 from nrhof.core.logger import get_logger
 from nrhof.core.thread_pool import create_named_thread, submit_preload_task
-from nrhof.scenes.scene_registry import get_preload_list
+from nrhof.scenes.registry import get_preload_list
 
 
 def start_3d_renderer_preload():
