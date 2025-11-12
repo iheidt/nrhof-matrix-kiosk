@@ -1,0 +1,25 @@
+# Development Environment Configuration
+# Inherits from config/base.yaml and overrides specific settings
+# Activate with: NRHOF_ENV=dev (default)
+
+# Render settings for development
+render:
+  fullscreen: false
+  resolution: [1280, 1024]  # Keep full resolution for dev
+
+# Audio settings
+audio:
+  muted: true  # Mute audio in dev to avoid noise
+
+# Mic listener for debugging
+mic_listener:
+  enabled: true  # Enable debug mic listener worker
+
+# Feature flags
+flags:
+  skip_intro: true  # Skip intro for faster iteration
+  offline_mode: false
+
+# Logging
+logging:
+  level: "DEBUG"  # Verbose logging in dev

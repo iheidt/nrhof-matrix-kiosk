@@ -5,11 +5,11 @@
       "name": "NRHOF Dev",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/app.py",
+      "module": "nrhof",
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",
       "env": {
-        "NRHOF_DEV": "1",
+        "NRHOF_ENV": "dev",
         "PYTHONUNBUFFERED": "1",
         "SDL_AUDIODRIVER": "dummy"
       },

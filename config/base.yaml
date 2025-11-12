@@ -1,17 +1,7 @@
-# NRHOF Matrix Kiosk Configuration
-
-# Development overrides (activated when NRHOF_DEV=1)
-dev_overrides:
-  window:
-    fullscreen: false
-    width: 1280
-    height: 720
-  flow:
-    auto_cycle: true       # splash -> intro -> menu
-  audio:
-    muted: true
-  mic_listener:
-    enabled: true          # Enable debug mic listener worker
+# NRHOF Matrix Kiosk - Base Configuration
+# Shared settings across all environments
+# Environment-specific overrides in config/envs/{env}.yaml
+# Set NRHOF_ENV=dev|prod to switch environments (default: dev)
 
 # Fonts configuration
 fonts:

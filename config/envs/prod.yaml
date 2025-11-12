@@ -1,0 +1,25 @@
+# Production Environment Configuration
+# Inherits from config/base.yaml and overrides specific settings
+# Activate with: NRHOF_ENV=prod
+
+# Render settings for production (kiosk mode)
+render:
+  fullscreen: true
+  resolution: [1280, 1024]  # Full resolution for kiosk
+
+# Audio settings
+audio:
+  muted: false  # Enable audio in production
+
+# Mic listener
+mic_listener:
+  enabled: false  # Disable debug worker in production
+
+# Feature flags
+flags:
+  skip_intro: false  # Show full intro in production
+  offline_mode: false
+
+# Logging
+logging:
+  level: "INFO"  # Less verbose logging in production

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Configuration loader with YAML support and dev overrides."""
+"""Configuration loader with environment-based config support."""
 
 import os
 import re
@@ -9,19 +9,28 @@ from typing import Any
 import yaml
 
 
-def load_config(config_path: str = "config.yaml") -> dict[str, Any]:
-    """Load configuration from YAML file with dev overrides.
+def load_config(config_path: str = "config/base.yaml") -> dict[str, Any]:
+    """Load configuration from YAML files with environment-based overrides.
+
+    Loads base config from config/base.yaml and merges with environment-specific
+    config from config/envs/{NRHOF_ENV}.yaml (default: dev).
 
     Args:
-        config_path: Path to config file (default: config.yaml)
+        config_path: Path to base config file (default: config/base.yaml)
 
     Returns:
-        Configuration dictionary with dev overrides applied
+        Configuration dictionary with environment overrides applied
 
     Raises:
         FileNotFoundError: If config file doesn't exist
         yaml.YAMLError: If config file is invalid YAML
+
+    Environment Variables:
+        NRHOF_ENV: Environment name (dev|prod, default: dev)
     """
+    # Determine environment
+    env = os.getenv("NRHOF_ENV", "dev")
+
     # Load base config
     config_file = Path(config_path)
     if not config_file.exists():
@@ -33,15 +42,20 @@ def load_config(config_path: str = "config.yaml") -> dict[str, Any]:
     if config is None:
         config = {}
 
+    # Load environment-specific config
+    env_config_path = Path(f"config/envs/{env}.yaml")
+    if env_config_path.exists():
+        print(f"⚙️  Loading {env} environment config")
+        with open(env_config_path) as f:
+            env_config = yaml.safe_load(f)
+        if env_config:
+            # Merge environment config into base config
+            _deep_merge(config, env_config)
+    else:
+        print(f"⚠️  No environment config found for '{env}' (expected: {env_config_path})")
+
     # Expand environment variables in config
     config = _expand_env_vars(config)
-
-    # Apply dev overrides if NRHOF_DEV=1 is set
-    if os.getenv("NRHOF_DEV", "0") == "1" and "dev_overrides" in config:
-        print("⚙️  Applying dev_overrides (NRHOF_DEV=1)")
-        _apply_dev_overrides(config, config["dev_overrides"])
-        # Remove dev_overrides from final config
-        del config["dev_overrides"]
 
     # Validate config if STRICT_CONFIG is set
     if os.getenv("STRICT_CONFIG", "1") != "0":
@@ -86,20 +100,20 @@ def _expand_env_vars(obj: Any) -> Any:
         return obj
 
 
-def _apply_dev_overrides(config: dict, overrides: dict):
-    """Apply dev overrides to config in-place.
+def _deep_merge(base: dict, override: dict):
+    """Deep merge override dict into base dict in-place.
 
     Args:
-        config: Base configuration dictionary
-        overrides: Dev overrides dictionary
+        base: Base configuration dictionary (modified in-place)
+        override: Override configuration dictionary
     """
-    for key, value in overrides.items():
-        if isinstance(value, dict) and key in config and isinstance(config[key], dict):
+    for key, value in override.items():
+        if isinstance(value, dict) and key in base and isinstance(base[key], dict):
             # Recursively merge nested dicts
-            _apply_dev_overrides(config[key], value)
+            _deep_merge(base[key], value)
         else:
             # Override value
-            config[key] = value
+            base[key] = value
 
 
 def get_nested(config: dict, path: str, default: Any = None) -> Any:
