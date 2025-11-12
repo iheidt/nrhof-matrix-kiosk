@@ -15,9 +15,9 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 
-logger = get_logger("voice_diagnostics")
+logger = setup_logger("voice_diagnostics")
 
 
 @dataclass

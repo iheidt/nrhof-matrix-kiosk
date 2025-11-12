@@ -4,10 +4,10 @@
 import time
 from typing import Literal
 
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 from nrhof.core.now_playing import Track, get_now_playing_state
 
-logger = get_logger("source_manager")
+logger = setup_logger("source_manager")
 
 
 class SourceManager:
@@ -74,7 +74,7 @@ class SourceManager:
         # If no new track, clear if this was the active source
         if track is None:
             if current_track and current_track.source == source:
-                logger.info("Source inactive, clearing track", source=source)
+                logger.info(f"Source inactive, clearing track: source={source}")
                 self.now_playing.clear()
                 self.last_update_time = current_time
                 return True
@@ -83,9 +83,7 @@ class SourceManager:
         # Validate confidence for ACRCloud (vinyl) sources
         if source == "vinyl" and track.confidence < self.confidence_threshold:
             logger.debug(
-                "Rejecting low-confidence vinyl match",
-                confidence=track.confidence,
-                threshold=self.confidence_threshold,
+                f"Rejecting low-confidence vinyl match: confidence={track.confidence}, threshold={self.confidence_threshold}"
             )
             return False
 
@@ -93,19 +91,14 @@ class SourceManager:
         time_since_last_change = current_time - self.last_update_time
         if time_since_last_change < self.min_change_interval:
             logger.debug(
-                "Debouncing track change",
-                time_since_last=time_since_last_change,
-                min_interval=self.min_change_interval,
+                f"Debouncing track change: time_since_last={time_since_last_change}, min_interval={self.min_change_interval}"
             )
             return False
 
         # If no current track, accept new track
         if current_track is None:
             logger.info(
-                "Setting initial track",
-                source=source,
-                title=track.title,
-                artist=track.artist,
+                f"Setting initial track: source={source}, title={track.title}, artist={track.artist}"
             )
             self.now_playing.set_track(track)
             self.last_update_time = current_time
@@ -124,11 +117,7 @@ class SourceManager:
         # Higher priority source always wins
         if new_priority < current_priority:
             logger.info(
-                "Source priority switch",
-                from_source=current_track.source,
-                to_source=source,
-                title=track.title,
-                artist=track.artist,
+                f"Source priority switch: from_source={current_track.source}, to_source={source}, title={track.title}, artist={track.artist}"
             )
             self.now_playing.set_track(track)
             self.last_update_time = current_time
@@ -143,32 +132,21 @@ class SourceManager:
             # Only switch if current source has been inactive for hysteresis period
             if time_since_current_seen > self.hysteresis_time:
                 logger.info(
-                    "Source fallback after hysteresis",
-                    from_source=current_track.source,
-                    to_source=source,
-                    inactive_time=time_since_current_seen,
-                    title=track.title,
-                    artist=track.artist,
+                    f"Source fallback after hysteresis: from_source={current_track.source}, to_source={source}, inactive_time={time_since_current_seen}, title={track.title}, artist={track.artist}"
                 )
                 self.now_playing.set_track(track)
                 self.last_update_time = current_time
                 return True
             else:
                 logger.debug(
-                    "Hysteresis blocking source switch",
-                    from_source=current_track.source,
-                    to_source=source,
-                    time_remaining=self.hysteresis_time - time_since_current_seen,
+                    f"Hysteresis blocking source switch: from_source={current_track.source}, to_source={source}, time_remaining={self.hysteresis_time - time_since_current_seen}"
                 )
                 return False
 
         # Same priority - accept the change (different track from same source)
         if new_priority == current_priority:
             logger.info(
-                "Track change from same source",
-                source=source,
-                title=track.title,
-                artist=track.artist,
+                f"Track change from same source: source={source}, title={track.title}, artist={track.artist}"
             )
             self.now_playing.set_track(track)
             self.last_update_time = current_time

@@ -5,9 +5,9 @@ Future: faster-whisper streaming ASR.
 """
 
 from nrhof.core.event_bus import get_event_bus
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 
-logger = get_logger(__name__)
+logger = setup_logger(__name__)
 
 
 class ASR:

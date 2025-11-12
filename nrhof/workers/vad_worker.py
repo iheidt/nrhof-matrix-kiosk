@@ -2,12 +2,12 @@ import time
 
 from nrhof.core.audio_io import get_mic_stream, stream_mic_frames
 from nrhof.core.event_bus import EventType
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 from nrhof.voice.vad import create_vad
 
 from .base import BaseWorker
 
-logger = get_logger(__name__)
+logger = setup_logger(__name__)
 
 
 class VADWorker(BaseWorker):

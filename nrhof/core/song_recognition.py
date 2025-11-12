@@ -6,9 +6,9 @@ from dataclasses import dataclass
 
 from acrcloud.recognizer import ACRCloudRecognizer
 
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 
-logger = get_logger("song_recognition")
+logger = setup_logger("song_recognition")
 
 
 @dataclass
@@ -66,9 +66,9 @@ class SongRecognizer:
                     "timeout": self.timeout,
                 },
             )
-            logger.info("ACRCloud recognizer initialized", host=self.host)
+            logger.info(f"ACRCloud recognizer initialized: host={self.host}")
         except Exception as e:
-            logger.error("Failed to initialize ACRCloud recognizer", error=str(e))
+            logger.error(f"Failed to initialize ACRCloud recognizer: {e}")
             self.enabled = False
 
         # Rate limiting
@@ -119,7 +119,7 @@ class SongRecognizer:
             print(f"[ACR] Raw response: {result[:500] if isinstance(result, str) else result}")
 
             # Log raw result for debugging
-            logger.debug("ACRCloud raw result", result_type=type(result).__name__)
+            logger.debug(f"ACRCloud raw result: result_type={type(result).__name__}")
 
             # Parse result (handle both dict and string responses)
             if isinstance(result, str):
@@ -128,7 +128,7 @@ class SongRecognizer:
                 try:
                     result = json.loads(result)
                 except json.JSONDecodeError as e:
-                    logger.error("Failed to parse ACRCloud JSON", error=str(e), result=result[:200])
+                    logger.error(f"Failed to parse ACRCloud JSON: {e}, result={result[:200]}")
                     return None
 
             song_info = self._parse_result(result)
@@ -136,10 +136,7 @@ class SongRecognizer:
             if song_info:
                 self.last_recognized_song = song_info
                 logger.info(
-                    "Song recognized",
-                    title=song_info.title,
-                    artist=song_info.artist,
-                    score=song_info.score,
+                    f"Song recognized: title={song_info.title}, artist={song_info.artist}, score={song_info.score}"
                 )
 
             return song_info
@@ -149,7 +146,7 @@ class SongRecognizer:
 
             print(f"[ACR] Exception: {e}")
             print(f"[ACR] Traceback: {traceback.format_exc()}")
-            logger.error("Song recognition failed", error=str(e), traceback=traceback.format_exc())
+            logger.error(f"Song recognition failed: {e}\n{traceback.format_exc()}")
             return None
 
     def _parse_result(self, result: dict) -> SongInfo | None:
@@ -164,8 +161,7 @@ class SongRecognizer:
         try:
             # Log the result structure for debugging
             logger.debug(
-                "Parsing ACRCloud result",
-                keys=list(result.keys()) if isinstance(result, dict) else "not_dict",
+                f"Parsing ACRCloud result: keys={list(result.keys()) if isinstance(result, dict) else 'not_dict'}"
             )
 
             # Check status
@@ -173,10 +169,10 @@ class SongRecognizer:
             status_code = status.get("code")
             status_msg = status.get("msg", "unknown")
 
-            logger.debug("ACRCloud status", code=status_code, msg=status_msg)
+            logger.debug(f"ACRCloud status: code={status_code}, msg={status_msg}")
 
             if status_code != 0:
-                logger.debug("No song recognized", code=status_code, msg=status_msg)
+                logger.debug(f"No song recognized: code={status_code}, msg={status_msg}")
                 return None
 
             # Extract metadata
@@ -210,7 +206,7 @@ class SongRecognizer:
             )
 
         except Exception as e:
-            logger.error("Failed to parse ACRCloud result", error=str(e))
+            logger.error(f"Failed to parse ACRCloud result: {e}")
             return None
 
     def get_last_recognized(self) -> SongInfo | None:

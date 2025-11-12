@@ -4,9 +4,9 @@
 Future: Implement AEC to remove speaker output from mic input.
 """
 
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 
-logger = get_logger(__name__)
+logger = setup_logger(__name__)
 
 
 class AEC:

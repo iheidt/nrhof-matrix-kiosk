@@ -49,7 +49,7 @@ class SongRecognitionWorker(BaseWorker):
         if not self.enabled:
             self.logger.info("Song recognition worker not started (disabled)")
             return
-        self.logger.info("Song recognition worker started", interval=self.recognition_interval)
+        self.logger.info(f"Song recognition worker started: interval={self.recognition_interval}")
         super().start()
 
     def _worker_loop(self):
@@ -82,10 +82,7 @@ class SongRecognitionWorker(BaseWorker):
                         if song_info:
                             # Song recognized!
                             self.logger.info(
-                                "Ambient song recognized",
-                                title=song_info.title,
-                                artist=song_info.artist,
-                                score=song_info.score,
+                                f"Ambient song recognized: title={song_info.title}, artist={song_info.artist}, score={song_info.score}"
                             )
 
                             # Update app state
@@ -112,11 +109,7 @@ class SongRecognitionWorker(BaseWorker):
 
                 print(f"[SONG] Loop error: {e}")
                 print(f"[SONG] Traceback: {traceback.format_exc()}")
-                self.logger.error(
-                    "Error in song recognition loop",
-                    error=str(e),
-                    traceback=traceback.format_exc(),
-                )
+                self.logger.error(f"Error in song recognition loop: {e}\n{traceback.format_exc()}")
                 time.sleep(5.0)
 
         self.logger.info("Song recognition loop ended")
@@ -135,9 +128,7 @@ class SongRecognitionWorker(BaseWorker):
             frames_needed = int((self.sample_rate * self.audio_buffer_seconds) / samples_per_frame)
 
             self.logger.debug(
-                "Collecting audio buffer",
-                seconds=self.audio_buffer_seconds,
-                frames_needed=frames_needed,
+                f"Collecting audio buffer: seconds={self.audio_buffer_seconds}, frames_needed={frames_needed}"
             )
 
             start_time = time.time()
@@ -147,9 +138,7 @@ class SongRecognitionWorker(BaseWorker):
                 # Check timeout
                 if time.time() - start_time > timeout:
                     self.logger.warning(
-                        "Audio buffer collection timeout",
-                        frames_collected=len(frames),
-                        frames_needed=frames_needed,
+                        f"Audio buffer collection timeout: frames_collected={len(frames)}, frames_needed={frames_needed}"
                     )
                     break
 
@@ -165,9 +154,7 @@ class SongRecognitionWorker(BaseWorker):
 
             if len(frames) < frames_needed / 2:
                 self.logger.warning(
-                    "Insufficient audio frames",
-                    collected=len(frames),
-                    needed=frames_needed,
+                    f"Insufficient audio frames: collected={len(frames)}, needed={frames_needed}"
                 )
                 return None
 
@@ -190,13 +177,13 @@ class SongRecognitionWorker(BaseWorker):
                 f"[SONG] WAV: {len(wav_bytes)} bytes, {self.sample_rate}Hz, 16-bit, mono, {len(audio_data) / 2 / self.sample_rate:.1f}s",
             )
             self.logger.debug(
-                "Audio buffer collected", frames=len(frames), size_bytes=len(wav_bytes)
+                f"Audio buffer collected: frames={len(frames)}, size_bytes={len(wav_bytes)}"
             )
 
             return wav_bytes
 
         except Exception as e:
-            self.logger.error("Failed to collect audio buffer", error=str(e))
+            self.logger.error(f"Failed to collect audio buffer: {e}")
             return None
 
     def _update_app_state(self, song_info: SongInfo):
@@ -220,4 +207,4 @@ class SongRecognitionWorker(BaseWorker):
             self.app_state.update_ambient_song(track_info)
 
         except Exception as e:
-            self.logger.error("Failed to update app state", error=str(e))
+            self.logger.error(f"Failed to update app state: {e}")

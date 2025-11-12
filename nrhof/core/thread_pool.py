@@ -9,9 +9,9 @@ import threading
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 
-logger = get_logger("thread_pool")
+logger = setup_logger("thread_pool")
 
 # Global thread pool for preload operations
 # Limited to 2 concurrent threads to avoid CPU spikes during voice processing
@@ -64,7 +64,7 @@ def submit_preload_task(func: Callable, name: str | None = None, *args, **kwargs
             logger.debug(f"Completed preload task: {task_name}")
             return result
         except Exception as e:
-            logger.error(f"Preload task failed: {task_name}", error=str(e))
+            logger.error(f"Preload task failed: {task_name}: {e}")
             raise
 
     return executor.submit(_wrapped)

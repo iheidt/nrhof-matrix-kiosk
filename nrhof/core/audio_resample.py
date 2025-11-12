@@ -11,9 +11,9 @@ format: 16kHz, mono, int16 for all voice processing.
 import numpy as np
 from scipy import signal
 
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 
-logger = get_logger("audio_resample")
+logger = setup_logger("audio_resample")
 
 
 def resample_to_16k_mono_int16(

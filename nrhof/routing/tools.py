@@ -8,9 +8,9 @@ These are stub implementations that will be filled in during voice integration.
 
 from typing import Any
 
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 
-logger = get_logger("tools")
+logger = setup_logger("tools")
 
 
 # ============================================================================
@@ -24,7 +24,7 @@ def go_home(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: go_home", kwargs=kwargs)
+    logger.info(f"Tool called: go_home, kwargs={kwargs}")
     return {"ok": True, "action": "navigate", "destination": "home"}
 
 
@@ -34,7 +34,7 @@ def go_back(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: go_back", kwargs=kwargs)
+    logger.info(f"Tool called: go_back, kwargs={kwargs}")
     return {"ok": True, "action": "navigate", "destination": "back"}
 
 
@@ -48,7 +48,7 @@ def select_item(index: int | None = None, name: str | None = None, **kwargs) -> 
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: select_item", index=index, name=name, kwargs=kwargs)
+    logger.info(f"Tool called: select_item, index={index}, name={name}, kwargs={kwargs}")
     return {"ok": True, "action": "select", "index": index, "name": name}
 
 
@@ -63,7 +63,7 @@ def play_music(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: play_music", kwargs=kwargs)
+    logger.info(f"Tool called: play_music, kwargs={kwargs}")
     return {"ok": True, "action": "media", "command": "play"}
 
 
@@ -73,7 +73,7 @@ def pause_music(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: pause_music", kwargs=kwargs)
+    logger.info(f"Tool called: pause_music, kwargs={kwargs}")
     return {"ok": True, "action": "media", "command": "pause"}
 
 
@@ -83,7 +83,7 @@ def resume_music(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: resume_music", kwargs=kwargs)
+    logger.info(f"Tool called: resume_music, kwargs={kwargs}")
     return {"ok": True, "action": "media", "command": "resume"}
 
 
@@ -93,7 +93,7 @@ def next_track(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: next_track", kwargs=kwargs)
+    logger.info(f"Tool called: next_track, kwargs={kwargs}")
     return {"ok": True, "action": "media", "command": "next"}
 
 
@@ -103,7 +103,7 @@ def previous_track(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: previous_track", kwargs=kwargs)
+    logger.info(f"Tool called: previous_track, kwargs={kwargs}")
     return {"ok": True, "action": "media", "command": "previous"}
 
 
@@ -116,7 +116,7 @@ def set_volume(level: int | None = None, **kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: set_volume", level=level, kwargs=kwargs)
+    logger.info(f"Tool called: set_volume, level={level}, kwargs={kwargs}")
     return {"ok": True, "action": "media", "command": "volume", "level": level}
 
 
@@ -126,7 +126,7 @@ def volume_up(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: volume_up", kwargs=kwargs)
+    logger.info(f"Tool called: volume_up, kwargs={kwargs}")
     return {"ok": True, "action": "media", "command": "volume_up"}
 
 
@@ -136,7 +136,7 @@ def volume_down(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: volume_down", kwargs=kwargs)
+    logger.info(f"Tool called: volume_down, kwargs={kwargs}")
     return {"ok": True, "action": "media", "command": "volume_down"}
 
 
@@ -146,7 +146,7 @@ def mute(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: mute", kwargs=kwargs)
+    logger.info(f"Tool called: mute, kwargs={kwargs}")
     return {"ok": True, "action": "media", "command": "mute"}
 
 
@@ -156,7 +156,7 @@ def unmute(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: unmute", kwargs=kwargs)
+    logger.info(f"Tool called: unmute, kwargs={kwargs}")
     return {"ok": True, "action": "media", "command": "unmute"}
 
 
@@ -174,7 +174,7 @@ def search(query: str | None = None, **kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: search", query=query, kwargs=kwargs)
+    logger.info(f"Tool called: search, query={query}, kwargs={kwargs}")
     return {"ok": True, "action": "search", "query": query}
 
 
@@ -187,7 +187,7 @@ def find_band(name: str | None = None, **kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: find_band", name=name, kwargs=kwargs)
+    logger.info(f"Tool called: find_band, name={name}, kwargs={kwargs}")
     return {"ok": True, "action": "search", "type": "band", "name": name}
 
 
@@ -201,7 +201,7 @@ def find_album(name: str | None = None, artist: str | None = None, **kwargs) -> 
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: find_album", name=name, artist=artist, kwargs=kwargs)
+    logger.info(f"Tool called: find_album, name={name}, artist={artist}, kwargs={kwargs}")
     return {"ok": True, "action": "search", "type": "album", "name": name, "artist": artist}
 
 
@@ -219,7 +219,7 @@ def change_language(language: str | None = None, **kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: change_language", language=language, kwargs=kwargs)
+    logger.info(f"Tool called: change_language, language={language}, kwargs={kwargs}")
     return {"ok": True, "action": "system", "command": "language", "language": language}
 
 
@@ -229,7 +229,7 @@ def open_settings(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: open_settings", kwargs=kwargs)
+    logger.info(f"Tool called: open_settings, kwargs={kwargs}")
     return {"ok": True, "action": "navigate", "destination": "settings"}
 
 
@@ -239,7 +239,7 @@ def shutdown(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: shutdown", kwargs=kwargs)
+    logger.info(f"Tool called: shutdown, kwargs={kwargs}")
     return {"ok": True, "action": "system", "command": "shutdown"}
 
 
@@ -249,7 +249,7 @@ def restart(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: restart", kwargs=kwargs)
+    logger.info(f"Tool called: restart, kwargs={kwargs}")
     return {"ok": True, "action": "system", "command": "restart"}
 
 
@@ -264,7 +264,7 @@ def help(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: help", kwargs=kwargs)
+    logger.info(f"Tool called: help, kwargs={kwargs}")
     return {"ok": True, "action": "help"}
 
 
@@ -274,7 +274,7 @@ def what_can_you_do(**kwargs) -> dict[str, Any]:
     Returns:
         Result dict with ok status
     """
-    logger.info("Tool called: what_can_you_do", kwargs=kwargs)
+    logger.info(f"Tool called: what_can_you_do, kwargs={kwargs}")
     return {"ok": True, "action": "help", "type": "capabilities"}
 
 
@@ -353,5 +353,5 @@ def call_tool(tool_name: str, **kwargs) -> dict[str, Any]:
         result = tool(**kwargs)
         return result
     except Exception as e:
-        logger.error(f"Tool execution failed: {tool_name}", error=str(e))
+        logger.error(f"Tool execution failed: {tool_name}: {e}")
         return {"ok": False, "error": str(e)}

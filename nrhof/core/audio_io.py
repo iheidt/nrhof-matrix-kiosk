@@ -16,9 +16,9 @@ from collections.abc import Generator
 
 import numpy as np
 
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 
-logger = get_logger("audio_io")
+logger = setup_logger("audio_io")
 
 # Try to import sounddevice
 try:

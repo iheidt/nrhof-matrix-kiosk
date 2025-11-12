@@ -152,7 +152,7 @@ class WakeWordWorker(BaseWorker):
                         keyword = f"custom_{keyword_index}"
                     else:
                         keyword = self.keywords[keyword_index]
-                    self.logger.info("Wake word detected!", keyword=keyword)
+                    self.logger.info(f"Wake word detected! keyword={keyword}")
 
                     # Emit event
                     self.event_bus.emit(EventType.WAKE_WORD_DETECTED, payload={"keyword": keyword})

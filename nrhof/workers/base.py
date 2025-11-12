@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 from nrhof.core.event_bus import get_event_bus
 from nrhof.core.events import EventType
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 
 
 class BaseWorker(ABC):
@@ -30,7 +30,7 @@ class BaseWorker(ABC):
         """
         self.config = config
         self.event_bus = event_bus or get_event_bus()
-        self.logger = get_logger(logger_name or self.__class__.__name__)
+        self.logger = setup_logger(logger_name or self.__class__.__name__)
 
         # Thread management
         self._running = False
@@ -91,7 +91,7 @@ class BaseWorker(ABC):
         try:
             self._worker_loop()
         except Exception as e:
-            self.logger.error(f"Fatal error in {self.__class__.__name__}", error=str(e))
+            self.logger.error(f"Fatal error in {self.__class__.__name__}: {e}")
         finally:
             self._running = False
 

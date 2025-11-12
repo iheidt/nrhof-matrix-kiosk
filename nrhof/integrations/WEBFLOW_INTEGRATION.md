@@ -153,8 +153,8 @@ fieldData = {
 
 Usage Examples
 Fetching Filtered Bands
-from integrations.webflow_cache import WebflowCache, WebflowCacheManager
-from integrations.webflow_client import create_webflow_client
+from nrhof.integrations.webflow_cache import WebflowCache, WebflowCacheManager
+from nrhof.integrations.webflow_client import create_webflow_client
 
 # Initialize
 client = create_webflow_client(config, logger)

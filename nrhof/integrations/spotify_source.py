@@ -42,7 +42,7 @@ class SpotifySource(BaseWorker):
             self._init_spotify()
             self.logger.info("Spotify client initialized")
         except Exception as e:
-            self.logger.error("Failed to initialize Spotify client", error=str(e))
+            self.logger.error(f"Failed to initialize Spotify client: {e}")
             self.enabled = False
 
     def _init_spotify(self):
@@ -224,7 +224,7 @@ class SpotifySource(BaseWorker):
             )
 
         except Exception as e:
-            self.logger.error("Failed to parse Spotify playback", error=str(e))
+            self.logger.error(f"Failed to parse Spotify playback: {e}")
             return None
 
     def get_current_track(self) -> Track | None:
@@ -241,6 +241,6 @@ class SpotifySource(BaseWorker):
             if playback and playback.get("is_playing"):
                 return self._parse_playback(playback)
         except Exception as e:
-            self.logger.error("Error getting current track", error=str(e))
+            self.logger.error(f"Error getting current track: {e}")
 
         return None

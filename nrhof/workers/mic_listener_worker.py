@@ -9,10 +9,10 @@ import time
 
 from nrhof.core.app_state import get_app_state
 from nrhof.core.audio_io import calculate_rms, get_mic_stream, stream_mic_frames
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 from nrhof.workers.base import BaseWorker
 
-logger = get_logger("mic_listener")
+logger = setup_logger("mic_listener")
 
 
 class MicListenerWorker(BaseWorker):

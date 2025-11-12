@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Preload management - background loading of scenes, assets, and caches."""
 
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 from nrhof.core.thread_pool import create_named_thread, submit_preload_task
 from nrhof.scenes.registry import get_preload_list
 
@@ -109,7 +109,7 @@ def start_webflow_refresh(webflow_cache_manager):
     if webflow_cache_manager is None:
         return None
 
-    logger = get_logger("preload_manager")
+    logger = setup_logger("preload_manager")
 
     def _refresh():
         logger.info("Starting Webflow cache refresh in background...")

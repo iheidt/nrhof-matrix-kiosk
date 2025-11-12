@@ -7,7 +7,7 @@ import sys
 from nrhof.core.app_context import AppContext
 from nrhof.core.app_state import get_app_state
 from nrhof.core.event_bus import get_event_bus
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 from nrhof.core.source_manager import SourceManager
 from nrhof.core.voice_event_handler import init_voice_event_handler
 from nrhof.integrations.sonos_source import SonosSource
@@ -85,7 +85,7 @@ def initialize_renderer(cfg):
     Returns:
         tuple: (renderer, screen, logger)
     """
-    logger = get_logger("kiosk", cfg)
+    logger = setup_logger("kiosk")
 
     init_pygame_env()
 
@@ -93,11 +93,9 @@ def initialize_renderer(cfg):
     renderer.initialize()
     screen = renderer.get_surface()
 
-    logger.info(
-        "Renderer initialized",
-        backend=cfg.get("render.backend", "pygame"),
-        resolution=cfg.get("render.resolution"),
-    )
+    backend = cfg.get("render.backend", "pygame")
+    resolution = cfg.get("render.resolution")
+    logger.info(f"Renderer initialized: backend={backend}, resolution={resolution}")
 
     return renderer, screen, logger
 
@@ -126,7 +124,7 @@ def create_app_components(cfg, screen):
     Returns:
         dict: Dictionary of components
     """
-    logger = get_logger("app_initializer")
+    logger = setup_logger("app_initializer")
 
     # Get event bus for injection
     event_bus = get_event_bus()
@@ -191,7 +189,7 @@ def start_workers(cfg, voice_engine=None):
     """
     from nrhof.core.worker_registry import WorkerRegistry
 
-    logger = get_logger("app_initializer")
+    logger = setup_logger("app_initializer")
     config_dict = cfg
     event_bus = get_event_bus()
 

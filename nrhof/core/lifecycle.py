@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any
 
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 
 
 class LifecyclePhase(Enum):
@@ -80,8 +80,8 @@ class Hook:
             self.callback(context)
             return not self.once  # Remove if once=True
         except Exception as e:
-            logger = get_logger("lifecycle")
-            logger.error(f"Hook '{self.name}' failed", error=str(e), phase=context.phase.name)
+            logger = setup_logger("lifecycle")
+            logger.error(f"Hook '{self.name}' failed: {e}, phase={context.phase.name}")
             return True  # Keep hook even on error
 
 
@@ -90,7 +90,7 @@ class LifecycleManager:
 
     def __init__(self):
         self._hooks: dict[LifecyclePhase, list[Hook]] = {phase: [] for phase in LifecyclePhase}
-        self._logger = get_logger("lifecycle")
+        self._logger = setup_logger("lifecycle")
         self._metrics: dict[str, Any] = {
             "hooks_executed": 0,
             "hooks_failed": 0,
@@ -122,9 +122,7 @@ class LifecycleManager:
         # Sort by priority (descending)
         self._hooks[phase].sort(key=lambda h: h.priority, reverse=True)
         self._logger.debug(
-            f"Registered hook '{name}' for {phase.name}",
-            priority=priority,
-            once=once,
+            f"Registered hook '{name}' for {phase.name}: priority={priority}, once={once}"
         )
         return hook
 

@@ -79,10 +79,7 @@ class RecognitionWorker(BaseWorker):
 
                     if track:
                         self.logger.info(
-                            "Track recognized",
-                            title=track.title,
-                            artist=track.artist,
-                            confidence=track.confidence,
+                            f"Track recognized: title={track.title}, artist={track.artist}, confidence={track.confidence}"
                         )
 
                         # Check if it's the same track
@@ -163,7 +160,7 @@ class RecognitionWorker(BaseWorker):
             return np.array(buffer[:samples_needed])
 
         except Exception as e:
-            self.logger.error("Failed to collect audio buffer", error=str(e))
+            self.logger.error(f"Failed to collect audio buffer: {e}")
             return None
 
     def _recognize_audio(self, audio_buffer: np.ndarray) -> TrackInfo | None:
@@ -195,6 +192,6 @@ class RecognitionWorker(BaseWorker):
         #             confidence=result['confidence']
         #         )
         # except Exception as e:
-        #     self.logger.error("Recognition API error", error=str(e))
+        #     self.logger.error(f"Recognition API error: {e}")
 
         return None

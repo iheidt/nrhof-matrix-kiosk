@@ -114,7 +114,7 @@ def main():
 
     # Initialize renderer and get logger
     renderer, screen, logger = initialize_renderer(cfg)
-    logger.info("glow plugs engaging on NRHOF", version=__version__)
+    logger.info(f"glow plugs engaging on NRHOF (version {__version__})")
 
     # Initialize fonts
     initialize_fonts(cfg, logger)

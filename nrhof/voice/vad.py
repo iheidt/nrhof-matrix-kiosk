@@ -15,9 +15,9 @@ try:
 except ImportError:
     HAVE_WEBRTCVAD = False
 
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 
-logger = get_logger(__name__)
+logger = setup_logger(__name__)
 
 
 class VAD:
@@ -61,8 +61,7 @@ class VAD:
         # Create VAD
         self.vad = webrtcvad.Vad(aggressiveness)
         logger.info(
-            f"VAD initialized: {sample_rate}Hz, {frame_duration_ms}ms frames, "
-            f"aggressiveness={aggressiveness}, tail={tail_ms}ms"
+            f"VAD initialized: {sample_rate}Hz, {frame_duration_ms}ms frames, aggressiveness={aggressiveness}, tail={tail_ms}ms"
         )
 
         # State tracking

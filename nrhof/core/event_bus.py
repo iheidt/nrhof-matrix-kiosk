@@ -13,11 +13,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from nrhof.core.events import EventType
-from nrhof.core.logger import get_logger
+from nrhof.core.logging_utils import setup_logger
 
 __all__ = ["EventBus", "EventType", "Event", "get_event_bus"]
 
-logger = get_logger("event_bus")
+logger = setup_logger("event_bus")
 
 # Event types that should be coalesced (keep only latest)
 # These are high-frequency events where only the latest value matters

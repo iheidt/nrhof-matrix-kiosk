@@ -47,12 +47,12 @@ class SonosSource(BaseWorker):
         try:
             self._discover_speaker()
             if self.speaker:
-                self.logger.info("Sonos speaker discovered", room=self.speaker.player_name)
+                self.logger.info(f"Sonos speaker discovered: room={self.speaker.player_name}")
             else:
                 self.logger.warning("No Sonos speakers found on network")
                 self.enabled = False
         except Exception as e:
-            self.logger.error("Failed to discover Sonos speakers", error=str(e))
+            self.logger.error(f"Failed to discover Sonos speakers: {e}")
             self.enabled = False
 
     def _init_spotify(self):
@@ -80,7 +80,7 @@ class SonosSource(BaseWorker):
                 self.spotify_client = spotipy.Spotify(auth_manager=auth_manager)
                 self.logger.info("Spotify client initialized for Sonos progress tracking")
         except Exception as e:
-            self.logger.warning("Could not initialize Spotify for Sonos", error=str(e))
+            self.logger.warning(f"Could not initialize Spotify for Sonos: {e}")
 
     def _discover_speaker(self):
         """Discover Sonos speakers on local network."""
@@ -88,7 +88,7 @@ class SonosSource(BaseWorker):
         try:
             speakers = discover(timeout=10)
         except Exception as e:
-            self.logger.error("Sonos discovery failed", error=str(e))
+            self.logger.error(f"Sonos discovery failed: {e}")
             return
 
         if not speakers:
@@ -96,16 +96,16 @@ class SonosSource(BaseWorker):
 
         # Log all discovered speakers
         room_names = [s.player_name for s in speakers]
-        self.logger.info("Sonos speakers found", count=len(speakers), rooms=room_names)
+        self.logger.info(f"Sonos speakers found: count={len(speakers)}, rooms={room_names}")
 
         # If target room specified, find it
         if self.target_room:
             for speaker in speakers:
                 if speaker.player_name.lower() == self.target_room.lower():
                     self.speaker = speaker
-                    self.logger.info("Using target Sonos room", room=speaker.player_name)
+                    self.logger.info(f"Using target Sonos room: {speaker.player_name}")
                     return
-            self.logger.warning("Target room not found", target=self.target_room)
+            self.logger.warning(f"Target room not found: {self.target_room}")
 
         # Find first actively playing speaker
         for speaker in speakers:
@@ -113,12 +113,10 @@ class SonosSource(BaseWorker):
                 transport_info = speaker.get_current_transport_info()
                 if transport_info.get("current_transport_state") == "PLAYING":
                     self.speaker = speaker
-                    self.logger.info(
-                        "Using actively playing Sonos speaker", room=speaker.player_name
-                    )
+                    self.logger.info(f"Using actively playing Sonos speaker: {speaker.player_name}")
                     return
             except Exception:
-                # Optional: consider logging here, e.g., self.logger.debug("sonos parsing failed", exc_info=True)
+                # Optional: consider logging here, e.g., self.logger.debug(f"Sonos parsing failed", exc_info=True)
                 continue
 
         # Fallback to coordinator
@@ -126,13 +124,13 @@ class SonosSource(BaseWorker):
             if speaker.is_coordinator:
                 self.speaker = speaker
                 self.logger.info(
-                    "No active Sonos playback, using coordinator", room=speaker.player_name
+                    f"No active Sonos playback, using coordinator: {speaker.player_name}"
                 )
                 return
 
         # Final fallback to any speaker
         self.speaker = list(speakers)[0]
-        self.logger.info("Using first Sonos speaker", room=self.speaker.player_name)
+        self.logger.info(f"Using first Sonos speaker: {self.speaker.player_name}")
 
     def start(self):
         """Start polling Sonos."""
@@ -195,7 +193,7 @@ class SonosSource(BaseWorker):
                                             )
                                             break
                             except Exception:
-                                # Optional: consider logging here, e.g., logger.debug("sonos parsing failed", exc_info=True)
+                                # Optional: consider logging here, e.g., logger.debug(f"Sonos parsing failed", exc_info=True)
                                 continue
 
                     if active_track:
@@ -204,7 +202,7 @@ class SonosSource(BaseWorker):
                         self.source_manager.set_from("sonos", None)
 
             except Exception as e:
-                self.logger.error("Error polling Sonos", error=str(e))
+                self.logger.error(f"Error polling Sonos: {e}")
 
             # Sleep until next poll
             time.sleep(self.poll_interval)
@@ -292,7 +290,7 @@ class SonosSource(BaseWorker):
             )
 
         except Exception as e:
-            self.logger.error("Failed to parse Sonos track info", error=str(e))
+            self.logger.error(f"Failed to parse Sonos track info: {e}")
             return None
 
     def _enrich_with_spotify_progress(self, track: Track, track_info: dict):
@@ -336,10 +334,8 @@ class SonosSource(BaseWorker):
                     track.is_playing = playback.get("is_playing", True)
                     track.spotify_id = spotify_id
                     self.logger.debug(
-                        "Enriched Sonos track with Spotify progress",
-                        progress_ms=track.progress_ms,
-                        spotify_id=spotify_id,
+                        f"Enriched Sonos track with Spotify progress: progress_ms={track.progress_ms}, spotify_id={spotify_id}"
                     )
 
         except Exception as e:
-            self.logger.debug("Could not enrich with Spotify progress", error=str(e))
+            self.logger.debug(f"Could not enrich with Spotify progress: {e}")
