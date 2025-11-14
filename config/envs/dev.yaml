@@ -4,7 +4,7 @@
 
 # Render settings for development
 render:
-  fullscreen: false
+  fullscreen: false #run fullscreen for prod only
   resolution: [1280, 1024]  # Keep full resolution for dev
 
 # Audio settings
