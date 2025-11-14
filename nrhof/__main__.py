@@ -1,26 +1,17 @@
 #!/usr/bin/env python3
 import sys
 import time
-import os
-from pathlib import Path
 
 import pygame
 
 # Import version
 from nrhof.__version__ import __version__
 
-# Load environment variables from environment-specific .env file if python-dotenv is available
-# NRHOF_ENV controls which file is used:
-#   dev  -> .env.dev (default)
-#   prod -> .env.prod
-# If the env-specific file is missing, falls back to .env.
+# Load environment variables from .env if python-dotenv is available
 try:
     from dotenv import load_dotenv  # type: ignore
 
-    env_name = os.getenv("NRHOF_ENV", "dev")
-    candidate = Path(f".env.{env_name}")
-    dotenv_path = candidate if candidate.exists() else Path(".env")
-    load_dotenv(dotenv_path=dotenv_path)
+    load_dotenv()
 except Exception:
     pass
 
