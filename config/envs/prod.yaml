@@ -4,7 +4,7 @@
 
 # Render settings for production (kiosk mode)
 render:
-  fullscreen: true
+  fullscreen: false
   resolution: [1280, 1024]  # Full resolution for kiosk
 
 # Audio settings
