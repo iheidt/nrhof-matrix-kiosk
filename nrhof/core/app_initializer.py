@@ -26,6 +26,7 @@ from nrhof.workers.audio_worker import AudioWorker
 from nrhof.workers.mic_listener_worker import MicListenerWorker
 from nrhof.workers.recognition_worker import RecognitionWorker
 from nrhof.workers.song_recognition_worker import SongRecognitionWorker
+from nrhof.workers.touch_worker import TouchInputWorker
 from nrhof.workers.vad_worker import VADWorker
 from nrhof.workers.wake_word_worker import WakeWordWorker
 
@@ -217,6 +218,11 @@ def start_workers(cfg, voice_engine=None):
     vad_config = config_dict.get("vad", {})
     if vad_config.get("enabled", False):
         registry.register("vad_worker", VADWorker(event_bus, vad_config))
+
+    # Register touch worker (UPDD integration)
+    touch_config = config_dict.get("touch", {})
+    if touch_config.get("enabled", False):
+        registry.register("touch_worker", TouchInputWorker(config_dict))
 
     # Start all workers
     registry.start_all()

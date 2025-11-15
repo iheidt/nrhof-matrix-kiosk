@@ -64,20 +64,21 @@ class SongRecognitionWorker(BaseWorker):
 
                 # Check if it's time to recognize
                 if current_time - last_recognition_time >= self.recognition_interval:
-                    print(f"[SONG] Attempting recognition at {current_time:.1f}s")
+                    self.logger.debug(f"Attempting recognition at {current_time:.1f}s")
                     # Collect audio buffer
                     audio_data = self._collect_audio_buffer()
-                    print(f"[SONG] Buffer collected: {len(audio_data) if audio_data else 0} bytes")
+                    self.logger.debug(
+                        f"Buffer collected: {len(audio_data) if audio_data else 0} bytes"
+                    )
 
                     if audio_data:
                         # Attempt recognition
-                        print("[SONG] Calling ACRCloud API...")
-                        self.logger.debug("Attempting song recognition...")
+                        self.logger.debug("Calling ACRCloud API...")
                         song_info = self.recognizer.recognize_from_audio(
                             audio_data,
                             self.sample_rate,
                         )
-                        print(f"[SONG] API returned: {song_info}")
+                        self.logger.debug(f"API returned: {song_info}")
 
                         if song_info:
                             # Song recognized!
@@ -107,8 +108,6 @@ class SongRecognitionWorker(BaseWorker):
             except Exception as e:
                 import traceback
 
-                print(f"[SONG] Loop error: {e}")
-                print(f"[SONG] Traceback: {traceback.format_exc()}")
                 self.logger.error(f"Error in song recognition loop: {e}\n{traceback.format_exc()}")
                 time.sleep(5.0)
 

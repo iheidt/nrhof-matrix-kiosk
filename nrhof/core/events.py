@@ -49,6 +49,9 @@ class EventType(Enum):
     VOICE_TIMEOUT = auto()  # No speech detected within timeout
     VOICE_ERROR = auto()  # Voice system error
 
+    # Input events
+    TOUCH_EVENT = auto()  # Touch/pen input from UPDD
+
     # Scene events
     SCENE_CHANGED = auto()
 

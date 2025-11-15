@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import logging
 from collections.abc import Callable
 from enum import Enum
 
@@ -56,6 +57,7 @@ class IntentRouter:
         self.handlers: dict[str, Callable] = {}
         self.event_bus = event_bus
         self._scene_controller = None  # Injected scene controller (breaks circular dep)
+        self.logger = logging.getLogger(__name__)
 
     def set_scene_controller(self, controller):
         """Inject scene controller for navigation.
@@ -97,9 +99,9 @@ class IntentRouter:
         # Log the intent
         if slots:
             params_str = " ".join(f"{k}={v}" for k, v in slots.items())
-            print(f"Intent emitted: {key} {params_str}")
+            self.logger.debug(f"Intent emitted: {key} {params_str}")
         else:
-            print(f"Intent emitted: {key}")
+            self.logger.debug(f"Intent emitted: {key}")
 
         # Dispatch to handler if it exists
         if key in self.handlers:

@@ -2,7 +2,8 @@
 
 import pygame
 
-from nrhof.core.event_bus import EventType
+from nrhof.core.events import EventType
+from nrhof.core.gestures import GestureDetector, GestureType
 from nrhof.core.localization import get_language
 from nrhof.core.theme_loader import get_theme_loader
 from nrhof.renderers import FrameState
@@ -43,6 +44,13 @@ class MenuScene(Scene):
         self.button_start_y = 0
         self.settings_rect = None  # Store settings text rect for click detection
 
+        # Gesture detection
+        self.gesture_detector = GestureDetector(
+            swipe_threshold=100.0,  # 100px minimum swipe
+            tap_max_duration=0.3,
+            tap_max_distance=10.0,
+        )
+
         # Subscribe to wake word events
         # Get event bus from app_context if available, otherwise use global
         event_bus = getattr(self.ctx, "event_bus", None) if self.ctx else None
@@ -52,11 +60,80 @@ class MenuScene(Scene):
             event_bus = get_event_bus()
         event_bus.subscribe(EventType.WAKE_WORD_DETECTED, self._on_wake_word_detected)
 
+        # Subscribe to touch events
+        event_bus.subscribe(EventType.TOUCH_EVENT, self._on_touch_event)
+
     def _on_wake_word_detected(self, event):
         """Handle wake word detection event."""
         keyword = event.payload.get("keyword", "unknown") if event.payload else "unknown"
         print(f"[MENU] Wake word detected: {keyword}")
         # Status is now handled by VoiceEventHandler
+
+    def _on_touch_event(self, event):
+        """Handle touch events.
+
+        Args:
+            event: Event object with touch data in event.payload
+        """
+        data = event.payload
+        stylus_id = f"{data['device']}_{data.get('stylus', 0)}"
+
+        # Process gesture
+        gesture = self.gesture_detector.process_touch(
+            stylus_id,
+            data["action"],
+            data["x"],
+            data["y"],
+        )
+
+        if gesture:
+            if gesture.type == GestureType.TAP:
+                # Handle tap - check buttons and settings
+                self._handle_button_touch(gesture.end_x, gesture.end_y)
+                if self.settings_rect and self.settings_rect.collidepoint(
+                    gesture.end_x, gesture.end_y
+                ):
+                    self.manager.switch_to("settings")
+
+            elif gesture.type == GestureType.SWIPE_LEFT:
+                # Swipe left could navigate to next menu item or screen
+                # For now, just log it
+                print("Swipe left detected")
+
+            elif gesture.type == GestureType.SWIPE_RIGHT:
+                # Swipe right could navigate back
+                print("Swipe right detected")
+
+            elif gesture.type == GestureType.SWIPE_UP:
+                # Swipe up - scroll up or go to previous item
+                print("Swipe up detected")
+
+            elif gesture.type == GestureType.SWIPE_DOWN:
+                # Swipe down - scroll down or go to next item
+                print("Swipe down detected")
+
+    def _handle_button_touch(self, x, y):
+        """Check if touch hits a menu button and trigger action.
+
+        Args:
+            x: Touch x coordinate
+            y: Touch y coordinate
+        """
+        for i, rect in enumerate(self.button_rects):
+            if rect.collidepoint(x, y):
+                # Get the menu entry for this button
+                if i < len(self.entries):
+                    entry = self.entries[i]
+                    action = entry.get("action")
+                    scene = entry.get("scene")
+
+                    if action:
+                        # Execute custom action
+                        action(self.ctx)
+                    elif scene:
+                        # Navigate to scene
+                        self.manager.switch_to(scene)
+                break
 
     def on_enter(self):
         """Initialize menu display."""

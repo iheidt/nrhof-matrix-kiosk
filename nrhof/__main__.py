@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+"""NRHOF main entry point."""
+
 import sys
 import time
 

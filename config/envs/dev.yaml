@@ -15,6 +15,11 @@ audio:
 mic_listener:
   enabled: true  # Enable debug mic listener worker
 
+# Touch input (UPDD integration)
+touch:
+  enabled: true
+  log_events: true  # Log all touch events in dev
+
 # Feature flags
 flags:
   skip_intro: true  # Skip intro for faster iteration
