@@ -1,6 +1,6 @@
 # Custom Fonts
 
-Drop your custom `.ttf` or `.otf` font files here and configure them in [config.yaml](cci:7://file:///Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/config.yaml:0:0-0:0).
+Drop your custom `.ttf` or `.otf` font files here and configure them in `config/base.yaml`.
 
 ## Recommended Fonts
 
@@ -17,7 +17,7 @@ Drop your custom `.ttf` or `.otf` font files here and configure them in [config.
 
 ## Configuration
 
-Edit [config.yaml](cci:7://file:///Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/config.yaml:0:0-0:0):
+Edit `config/base.yaml`:
 
 ```yaml
 fonts:

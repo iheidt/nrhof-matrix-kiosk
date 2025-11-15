@@ -2,7 +2,7 @@
 
 ## Overview
 
-The base [Scene](cci:2://file:///Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/scenes/scene_manager.py:45:0-219:20) class provides automatic cleanup on scene exit to prevent memory leaks.
+The base `Scene` class provides automatic cleanup on scene exit to prevent memory leaks.
 
 ## Automatic Cleanup
 

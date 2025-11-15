@@ -1,15 +1,6 @@
-# NRHOF Matrix Kiosk
+# NRHOF Bot
 
-A fullscreen 1280x1024 kiosk app with Matrix-style intro, touchscreen menu, voice commands, and audio visualizations. Runs on Mac Mini (primary) or Raspberry Pi.
-
-## Features
-- **Matrix intro** - Typewriter effect with terminal aesthetic
-- **Voice commands** - Natural language control via OpenAI
-- **Audio visualizations** - Spectrum bars, waveform, Lissajous curves
-- **Music videos** - Fullscreen video playback
-- **Renderer abstraction** - Ready for Metal/Swift GPU acceleration
-- **Dual deployment** - Mac Mini (primary) or Raspberry Pi
-- **Touch & keyboard** - Large touch targets, keyboard shortcuts (1/2/3)
+A fullscreen 1280x1024 interactive bot with touchscreen menu, voice commands, and audio visualizations. Runs on Mac Mini.
 
 ## Quick Start
 
@@ -18,7 +9,7 @@ A fullscreen 1280x1024 kiosk app with Matrix-style intro, touchscreen menu, voic
 ```bash
 # Clone and setup
 git clone <repo-url>
-cd nrhof-matrix-kiosk
+cd nrhof-bot
 python3 -m venv .venv312
 source .venv312/bin/activate
 pip install -r requirements.txt
@@ -27,24 +18,13 @@ pip install -r requirements.txt
 make test                    # Windowed mode
 make test-full               # Fullscreen on secondary display
 
-# Install for kiosk use (manual start/stop)
+# Install for bot use (manual start/stop)
 make mac-install
 
-# Start/stop kiosk
+# Start/stop bot
 make mac-start               # Start fullscreen on secondary display
 make mac-stop                # Stop and return to normal use
 make mac-logs                # View logs
-```
-
-### Raspberry Pi Setup (Optional)
-
-See [Pi Deployment Guide](docs/PI_DEPLOY.md) for Pi-specific setup.
-
-```bash
-# Deploy to Pi
-make deploy                  # Push to GitHub + update Pi
-make pi-restart              # Restart Pi service
-make pi-logs                 # View Pi logs
 ```
 
 ## Requirements
@@ -83,15 +63,15 @@ Edit `config.json`:
 - If an icon is missing, a labeled placeholder is drawn.
 - SVGs are rasterized at runtime if CairoSVG is available; PNGs/JPGs also work.
 
-## Kiosk at boot with systemd
-1. Copy the project to Pi (suggested path `/home/pi/nrhof-matrix-kiosk`).
+## Bot at boot with systemd
+1. Copy the project to Pi (suggested path `/home/pi/nrhof-bot`).
 2. Install deps (see above).
 3. Install service:
 ```bash
-sudo cp service/nrhof-matrix-kiosk.service /etc/systemd/system/
+sudo cp service/nrhof-bot.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable nrhof-matrix-kiosk.service
-sudo systemctl start nrhof-matrix-kiosk.service
+sudo systemctl enable nrhof-bot.service
+sudo systemctl start nrhof-bot.service
 ```
 
 ### Optional: disable screen blanking

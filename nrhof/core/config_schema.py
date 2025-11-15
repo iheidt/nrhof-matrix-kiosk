@@ -86,7 +86,7 @@ class AppConfig(BaseModel):
 
     model_config = ConfigDict(extra="allow")  # Allow extra fields for flexibility
 
-    title: str = "NRHOF Matrix Kiosk"
+    title: str = "NRHOF bot"
     render: RenderConfig = Field(default_factory=RenderConfig)
     audio: AudioConfig = Field(default_factory=AudioConfig)
     features: FeaturesConfig = Field(default_factory=FeaturesConfig)

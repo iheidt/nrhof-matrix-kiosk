@@ -3,9 +3,9 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nrhof-matrix-kiosk"
+name = "nrhof-bot"
 version = "0.1.0"
-description = "NRHOF Matrix Kiosk Application"
+description = "NRHOF bot"
 requires-python = ">=3.12"
 
 [project.scripts]

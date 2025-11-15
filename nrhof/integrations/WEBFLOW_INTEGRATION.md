@@ -2,7 +2,7 @@
 
 ## Overview
 
-The NRHOF kiosk integrates with Webflow CMS to fetch and display band, album, and song data. This document provides everything you need to know about working with Webflow data in this project.
+The NRHOF bot integrates with Webflow CMS to fetch and display band, album, and song data. This document provides everything you need to know about working with Webflow data in this project.
 
 ## API Limits
 
@@ -16,8 +16,8 @@ The NRHOF kiosk integrates with Webflow CMS to fetch and display band, album, an
 ### Components
 
 1. **`integrations/webflow_client.py`** - API client for Webflow v2
-2. **[integrations/webflow_cache.py](cci:7://file:///Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/integrations/webflow_cache.py:0:0-0:0)** - Local caching with pagination
-3. **Cache Storage** - [runtime/webflow_cache/](cci:7://file:///Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/runtime/webflow_cache:0:0-0:0) (JSON files, gitignored)
+2. **`integrations/webflow_cache.py`** - Local caching with pagination
+3. **Cache Storage** - `runtime/webflow_cache/` (JSON files, gitignored)
 
 ### Data Flow
 App Startup → Webflow API (paginated) → Local Cache (JSON) → Scenes (instant read) ↓ 24hr refresh cycle

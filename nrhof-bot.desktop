@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=NRHOF Bot
+Comment=National Rock & Roll Hall of Fame Interactive Bot
+Exec=/home/iheidt/nrhof-bot/.venv/bin/python /home/iheidt/nrhof-bot/app.py
+Icon=/home/iheidt/nrhof-bot/assets/bot-icon.svg
+Path=/home/iheidt/nrhof-bot
+Terminal=false
+Categories=AudioVideo;Audio;Music;
+Keywords=bot;music;visualizer;nrhof;

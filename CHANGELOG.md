@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - All workers now inherit from `BaseWorker`
-- [RendererBase.render()](cci:1://file:///Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/renderers/base.py:61:4-73:12) and [present()](cci:1://file:///Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/renderers/base.py:75:4-83:12) are now optional (non-abstract)
+- RendererBase.render() and present() are now optional (non-abstract)
 - Intent handlers use dependency injection instead of direct imports
 - Font system organized with clear section comments
 
@@ -72,8 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - Previous
 
-Initial release with core kiosk functionality.
+Initial release with core bot functionality.
 
 ---
 
-[0.2.0]: https://github.com/iheidt/nrhof-matrix-kiosk/compare/v0.1.0...v0.2.0
+[0.2.0]: https://github.com/dasheidt/nrhof-bot/compare/v0.1.0...v0.2.0
