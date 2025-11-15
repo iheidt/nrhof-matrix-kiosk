@@ -203,10 +203,11 @@ def start_workers(cfg, voice_engine=None):
     registry.register("recognition_worker", RecognitionWorker(config_dict))
     registry.register("song_recognition_worker", SongRecognitionWorker(config_dict))
 
-    # Register source manager and sources
+    # Initialize source manager (not a worker, just a manager)
     source_manager = SourceManager(config_dict)
     logger.info("SourceManager initialized")
-    registry.register("source_manager", source_manager)
+
+    # Register source workers
     registry.register("spotify_source", SpotifySource(config_dict, source_manager))
     registry.register("sonos_source", SonosSource(config_dict, source_manager))
 

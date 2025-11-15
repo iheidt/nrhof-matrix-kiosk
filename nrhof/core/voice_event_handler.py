@@ -20,6 +20,7 @@ class VoiceEventHandler:
         self.event_bus.subscribe(EventType.WAKE_WORD_DETECTED, self._on_wake_word)
         self.event_bus.subscribe(EventType.VOICE_SPEECH_START, self._on_speech_start)
         self.event_bus.subscribe(EventType.VOICE_SPEECH_END, self._on_speech_end)
+        self.event_bus.subscribe(EventType.VOICE_TIMEOUT, self._on_timeout)
 
         logger.info("Voice event handler initialized")
 
@@ -64,6 +65,22 @@ class VoiceEventHandler:
             # Restore audio
             self.event_bus.emit(EventType.MIXER_UNDUCK)
             logger.info("Audio restored after voice interaction")
+
+    def _on_timeout(self, event):
+        """Handle speech timeout (no speech after wake word).
+
+        Clears status and emits MIXER_UNDUCK event.
+        """
+        if self.is_listening:
+            logger.info("Voice timeout - no speech detected")
+
+            # Clear status
+            self.app_state.clear_status()
+            self.is_listening = False
+
+            # Restore audio
+            self.event_bus.emit(EventType.MIXER_UNDUCK)
+            logger.info("Audio restored after timeout")
 
 
 # Global instance

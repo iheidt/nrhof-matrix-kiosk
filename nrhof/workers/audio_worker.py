@@ -56,6 +56,11 @@ class AudioWorker(BaseWorker):
                 # Get audio frame
                 frame = get_audio_frame()
 
+                # Skip if no frame available yet
+                if frame is None:
+                    time.sleep(0.01)
+                    continue
+
                 # Calculate RMS level
                 rms = np.sqrt(np.mean(frame**2))
                 self._last_level = rms

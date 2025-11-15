@@ -46,6 +46,8 @@ class VoiceFrontEndWorker(BaseWorker):
         self.enable_vad = voice_config.get("enable_vad", True)
         self.enable_wake_word = wake_config.get("enabled", True)
         self.vad_threshold = voice_config.get("vad_threshold", 0.5)
+        self.vad_tail_ms = voice_config.get("vad_tail_ms", 700)  # Silence before ending
+        self.speech_timeout_s = voice_config.get("speech_timeout_s", 4.0)  # Timeout after wake
         self.update_interval_ms = voice_config.get("update_interval_ms", 100)
         self.log_interval_s = voice_config.get("log_interval_s", 10)
 
@@ -66,6 +68,16 @@ class VoiceFrontEndWorker(BaseWorker):
         # VAD state tracking
         self.is_speech = False
         self.speech_start_time: float | None = None
+        self.silence_frame_count = 0
+
+        # Speech segment buffering (for ASR)
+        self.is_listening = False  # True after wake word, waiting for speech
+        self.wake_word_time: float | None = None  # Time when wake word was detected
+        self.segment_buffer: list[np.ndarray] = []  # Accumulate PCM frames for ASR
+
+        # Calculate tail frames (512 samples @ 16kHz = 32ms per frame)
+        frame_duration_ms = 32  # 512 samples at 16kHz
+        self.tail_frames = int(self.vad_tail_ms / frame_duration_ms)
 
         # Initialize Cobra VAD
         self.cobra = None
@@ -145,7 +157,7 @@ class VoiceFrontEndWorker(BaseWorker):
                 if self.cobra:
                     try:
                         voice_prob = self.cobra.process(frame_512)
-                        self._process_vad(voice_prob, current_time)
+                        self._process_vad(voice_prob, current_time, frame_512)
                     except Exception as e:
                         self.logger.error(f"Cobra VAD failed: {e}")
 
@@ -157,6 +169,20 @@ class VoiceFrontEndWorker(BaseWorker):
                             self._on_wake_word_detected(keyword_index, current_time)
                     except Exception as e:
                         self.logger.error(f"Porcupine wake word failed: {e}")
+
+            # Check for speech timeout after wake word
+            if self.is_listening and self.wake_word_time:
+                if (current_time - self.wake_word_time) > self.speech_timeout_s:
+                    self.logger.info("Speech timeout - no speech after wake word")
+
+                    # Emit timeout event (VoiceEventHandler will restore audio & clear status)
+                    self.event_bus.emit(EventType.VOICE_TIMEOUT)
+
+                    # Reset internal state
+                    self.is_listening = False
+                    self.wake_word_time = None
+                    self.silence_frame_count = 0
+                    self.segment_buffer.clear()
 
             # Update HUD audio level every update_interval_ms
             if (current_time - self.last_update_time) * 1000 >= self.update_interval_ms:
@@ -182,30 +208,61 @@ class VoiceFrontEndWorker(BaseWorker):
 
         self.logger.info("Voice front-end worker stopped")
 
-    def _process_vad(self, voice_prob: float, current_time: float):
+    def _process_vad(self, voice_prob: float, current_time: float, frame_512: np.ndarray):
         """Process VAD result and emit speech events.
 
         Args:
             voice_prob: Voice probability from Cobra (0.0 to 1.0)
             current_time: Current timestamp
+            frame_512: Current 512-sample frame (for buffering)
         """
+        # Only process VAD when listening (after wake word)
+        if not self.is_listening:
+            return
+
         is_speech_now = voice_prob >= self.vad_threshold
 
         # Detect speech start
         if is_speech_now and not self.is_speech:
             self.is_speech = True
             self.speech_start_time = current_time
+            self.silence_frame_count = 0
             self.speech_segments += 1
             self.logger.debug(f"Speech started (prob={voice_prob:.2f})")
             self.event_bus.emit(EventType.VOICE_SPEECH_START)
 
-        # Detect speech end
-        elif not is_speech_now and self.is_speech:
-            self.is_speech = False
-            if self.speech_start_time:
-                duration = (current_time - self.speech_start_time) * 1000
-                self.logger.debug(f"Speech ended (duration={duration:.0f}ms)")
-            self.event_bus.emit(EventType.VOICE_SPEECH_END)
+        # Accumulate frames during speech (with tail)
+        if self.is_speech:
+            if is_speech_now:
+                # Active speech - reset silence counter and buffer frame
+                self.silence_frame_count = 0
+                if self.is_listening:
+                    self.segment_buffer.append(frame_512.copy())
+            else:
+                # Silence during speech - increment counter but keep buffering (tail)
+                self.silence_frame_count += 1
+                if self.is_listening:
+                    self.segment_buffer.append(frame_512.copy())
+
+                # Check if tail timeout reached
+                if self.silence_frame_count >= self.tail_frames:
+                    # Speech ended after tail timeout
+                    self.is_speech = False
+                    if self.speech_start_time:
+                        duration = (current_time - self.speech_start_time) * 1000
+                        self.logger.debug(
+                            f"Speech ended (duration={duration:.0f}ms, tail={self.silence_frame_count} frames)"
+                        )
+                    self.event_bus.emit(EventType.VOICE_SPEECH_END)
+
+                    # Emit complete segment for ASR
+                    if self.is_listening and len(self.segment_buffer) > 0:
+                        self._emit_speech_segment()
+                        self.is_listening = False
+                        self.wake_word_time = None
+
+                    # Reset silence counter
+                    self.silence_frame_count = 0
 
     def _on_wake_word_detected(self, keyword_index: int, current_time: float):
         """Handle wake word detection.
@@ -218,8 +275,47 @@ class VoiceFrontEndWorker(BaseWorker):
         self.wake_word_count += 1
         self.logger.info(f"Wake word detected! keyword={keyword}")
 
+        # Reset VAD state to ensure clean capture
+        self.is_speech = False
+        self.silence_frame_count = 0
+
+        # Start listening for speech segment
+        self.is_listening = True
+        self.wake_word_time = current_time
+        self.segment_buffer.clear()
+        self.logger.debug("Started listening for speech segment (VAD state reset)")
+
         # Emit event
         self.event_bus.emit(EventType.WAKE_WORD_DETECTED, payload={"keyword": keyword})
+
+    def _emit_speech_segment(self):
+        """Emit complete speech segment for ASR processing."""
+        if not self.segment_buffer:
+            self.logger.warning("No speech segment to emit (buffer empty)")
+            return
+
+        # Concatenate all buffered frames into single array
+        segment_pcm = np.concatenate(self.segment_buffer)
+        num_samples = len(segment_pcm)
+        duration_ms = (num_samples / 16000) * 1000
+
+        # Validate PCM data for ASR
+        pcm_min = segment_pcm.min()
+        pcm_max = segment_pcm.max()
+        pcm_dtype = segment_pcm.dtype
+
+        self.logger.info(
+            f"Emitting speech segment: {num_samples} samples ({duration_ms:.0f}ms), "
+            f"dtype={pcm_dtype}, range=[{pcm_min}, {pcm_max}]"
+        )
+
+        # Emit event with PCM data
+        self.event_bus.emit(
+            EventType.VOICE_SEGMENT_READY, payload={"pcm": segment_pcm, "sample_rate": 16000}
+        )
+
+        # Clear buffer
+        self.segment_buffer.clear()
 
     def _cleanup(self):
         """Cleanup resources."""

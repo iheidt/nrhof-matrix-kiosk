@@ -40,6 +40,7 @@ class EventType(Enum):
     VOICE_COMMAND_CANCELLED = auto()  # Command cancelled by user
 
     # Voice events - Recognition
+    VOICE_SEGMENT_READY = auto()  # Complete speech segment ready for ASR
     VOICE_TRANSCRIPTION_READY = auto()  # Speech-to-text complete
     VOICE_INTENT_RECOGNIZED = auto()  # Intent extracted from transcription
 
