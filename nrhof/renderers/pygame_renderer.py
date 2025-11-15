@@ -48,7 +48,7 @@ class PygameRenderer(RendererBase):
             flags |= pygame.FULLSCREEN
 
         self.screen = pygame.display.set_mode(self.resolution, flags)
-        pygame.display.set_caption(self.config.get("title", "NRHOF Kiosk"))
+        pygame.display.set_caption(self.config.get("title", "NRHOF bot"))
 
     def get_font(
         self,

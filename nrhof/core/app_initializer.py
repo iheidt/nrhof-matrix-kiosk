@@ -86,7 +86,7 @@ def initialize_renderer(cfg):
     Returns:
         tuple: (renderer, screen, logger)
     """
-    logger = setup_logger("kiosk")
+    logger = setup_logger("bot")
 
     init_pygame_env()
 

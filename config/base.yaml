@@ -1,4 +1,4 @@
-# NRHOF Matrix Kiosk - Base Configuration
+# NRHOF bot - Base Configuration
 # Shared settings across all environments
 # Environment-specific overrides in config/envs/{env}.yaml
 # Set NRHOF_ENV=dev|prod to switch environments (default: dev)
@@ -15,7 +15,7 @@ fonts:
 render:
   backend: "pygame"          # pygame (current) | swift (future Metal renderer)
   resolution: [1280, 1024]
-  fullscreen: false           # Run in fullscreen kiosk mode
+  fullscreen: false           # Run in fullscreen mode
   display: 0                 # 0=primary display, 1=secondary display
   fps_target: 60
   # Note: Colors, fonts, and visual styling now in styles/pipboy.yaml
@@ -162,7 +162,7 @@ visualizers:
 # Logging
 logging:
   level: "DEBUG"              # DEBUG, INFO, WARNING, ERROR
-  file: "runtime/kiosk.log"
+  file: "runtime/bot.log"
   max_size_mb: 10
   backup_count: 3
   structured: true           # JSON lines format

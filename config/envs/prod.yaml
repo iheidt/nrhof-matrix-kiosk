@@ -2,10 +2,10 @@
 # Inherits from config/base.yaml and overrides specific settings
 # Activate with: NRHOF_ENV=prod
 
-# Render settings for production (kiosk mode)
+# Render settings for production (bot mode)
 render:
   fullscreen: false
-  resolution: [1280, 1024]  # Full resolution for kiosk
+  resolution: [1280, 1024]  # Full resolution for bot
 
 # Audio settings
 audio:

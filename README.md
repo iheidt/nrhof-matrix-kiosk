@@ -53,7 +53,7 @@ Edit `config.json`:
 {
   "menu": {
     "entries": [
-      {"label": "Option 1", "icon": "assets/option1.svg", "command": "chromium-browser --kiosk https://example.com"},
+      {"label": "Option 1", "icon": "assets/option1.svg", "command": "chromium-browser --fullscreen https://example.com"},
       {"label": "Option 2", "icon": "assets/option2.svg", "command": "/usr/bin/python3 /home/pi/some_app/main.py"},
       {"label": "Option 3", "icon": "assets/option3.svg", "command": "lxterminal -e htop"}
     ]
