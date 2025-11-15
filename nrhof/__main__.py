@@ -154,11 +154,16 @@ def main():
     # Start voice engine
     components["voice_engine"].start()
 
+    # CRITICAL: Preload 3D renderer BEFORE showing UI to prevent first-click lag
+    # This blocks for ~1 second but ensures smooth interaction afterward
+    print("[PRELOAD] Initializing 3D renderer (blocking to prevent UI lag)...")
+    renderer_future = start_3d_renderer_preload()
+    if renderer_future:
+        renderer_future.result()  # Block until complete
+    print("[PRELOAD] 3D renderer ready")
+
     # Start with splash screen (no transition on app start)
     components["scene_manager"].switch_to("SplashScene", use_transition=False)
-
-    # Start 3D renderer preload in background (for MenuScene D20)
-    start_3d_renderer_preload()
 
     # Start background preload
     start_preload(components["scene_manager"], components["app_context"])
