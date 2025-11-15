@@ -1,23 +1,40 @@
 #!/usr/bin/env python3
 """NRHOF main entry point."""
 
-import sys
-import time
+# Suppress Qt warnings BEFORE any imports (Panda3D/SVG loading can trigger Qt)
+import os
 
-import pygame
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+import sys  # noqa: E402
+import time  # noqa: E402
+
+import pygame  # noqa: E402
 
 # Import version
-from nrhof.__version__ import __version__
+from nrhof.__version__ import __version__  # noqa: E402
 
 # Load environment variables from .env if python-dotenv is available
 try:
     from dotenv import load_dotenv  # type: ignore
 
-    load_dotenv()
-except Exception:
+    # Find .env file relative to project root (parent of nrhof package)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)  # Parent of nrhof/
+    dotenv_path = os.path.join(project_root, ".env")
+
+    if os.path.exists(dotenv_path):
+        load_dotenv(dotenv_path)
+        print(f"[ENV] Loaded .env from: {dotenv_path}")
+    else:
+        # Fallback to current directory
+        load_dotenv()
+        print("[ENV] Loaded .env from current directory")
+except Exception as e:
+    print(f"[ENV] Could not load .env: {e}")
     pass
 
-from nrhof.core.app_initializer import (
+from nrhof.core.app_initializer import (  # noqa: E402
     apply_cli_overrides,
     create_app_components,
     initialize_fonts,
@@ -26,16 +43,20 @@ from nrhof.core.app_initializer import (
     register_all_handlers,
     start_workers,
 )
-from nrhof.core.config_loader import load_config
-from nrhof.core.event_bus import EventType, get_event_bus
-from nrhof.core.mem_probe import start_trace
-from nrhof.core.observability import get_crash_guard, get_event_tap, get_performance_monitor
-from nrhof.core.preload_manager import (
+from nrhof.core.config_loader import load_config  # noqa: E402
+from nrhof.core.event_bus import EventType, get_event_bus  # noqa: E402
+from nrhof.core.mem_probe import start_trace  # noqa: E402
+from nrhof.core.observability import (  # noqa: E402
+    get_crash_guard,
+    get_event_tap,
+    get_performance_monitor,
+)
+from nrhof.core.preload_manager import (  # noqa: E402
     start_3d_renderer_preload,
     start_preload,
     start_webflow_refresh,
 )
-from nrhof.overlays import draw_now_playing_overlay
+from nrhof.overlays import draw_now_playing_overlay  # noqa: E402
 
 
 def main():

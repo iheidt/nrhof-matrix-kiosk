@@ -43,6 +43,7 @@ class EventType(Enum):
     VOICE_SEGMENT_READY = auto()  # Complete speech segment ready for ASR
     VOICE_TRANSCRIPTION_READY = auto()  # Speech-to-text complete
     VOICE_INTENT_RECOGNIZED = auto()  # Intent extracted from transcription
+    VOICE_INTENT_RESOLVED = auto()  # Intent resolved by Rhino NLU (deterministic)
 
     # Voice events - Feedback
     VOICE_LISTENING_START = auto()  # Microphone opened, listening

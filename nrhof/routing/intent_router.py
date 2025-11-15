@@ -25,12 +25,22 @@ class Intent(str, Enum):
     RESUME = "resume"
     NEXT = "next"
     PREVIOUS = "previous"
+    RESTART_TRACK = "restart_track"
     VOLUME_UP = "volume_up"
     VOLUME_DOWN = "volume_down"
     SET_VOLUME = "set_volume"
 
+    # Video intents
+    PLAY_MUSIC_VIDEO = "play_music_video"
+    STOP_VIDEO = "stop_video"
+
     # System intents (voice-ready)
     CHANGE_LANGUAGE = "change_language"
+    CHANGE_MODE = "change_mode"
+    CHANGE_VOICE = "change_voice"
+
+    # Special feature intents
+    ROLL_FATE = "roll_fate"
 
     def __str__(self) -> str:
         """Return the string value for compatibility."""
@@ -110,3 +120,59 @@ class IntentRouter:
         else:
             # Silently ignore if handler not found
             pass
+
+    def route_voice_intent(self, intent_name: str, slots: dict):
+        """Route Rhino voice intent to appropriate app intent.
+
+        Maps Rhino intent names to Intent enum values and emits them.
+
+        Args:
+            intent_name: Intent name from Rhino (e.g., "goHome", "pauseMusic")
+            slots: Slot parameters from Rhino
+        """
+        # Map Rhino intent names to Intent enums and optional slot transformations
+        # Format: {rhino_intent: (Intent, slot_overrides)}
+        # Mapped from nrhof_picovoice.yml context file
+        intent_map = {
+            # ===== NAVIGATION INTENTS (WORKING) =====
+            "goHome": (Intent.GO_HOME, {}),
+            "goBack": (Intent.GO_BACK, {}),
+            "goToSettings": (Intent.GO_TO_SETTINGS, {}),
+            "goToNR38": (Intent.SELECT_OPTION, {"index": 0}),  # NR-38 scene
+            "goToNR18": (Intent.SELECT_OPTION, {"index": 1}),  # NR-18 (placeholder)
+            "goToVisualizers": (Intent.SELECT_OPTION, {"index": 2}),  # Visualizers scene
+            "goToFateMaker": (Intent.SELECT_OPTION, {"index": 3}),  # Fate Maker (placeholder)
+            # ===== FATE MAKER INTENTS (NOT IMPLEMENTED) =====
+            "rollFate": (Intent.ROLL_FATE, {}),  # Roll fate/reroll
+            # ===== MEDIA CONTROL INTENTS (STUBS EXIST) =====
+            "nextTrack": (Intent.NEXT, {}),
+            "previousTrack": (Intent.PREVIOUS, {}),
+            "pausePlayback": (Intent.PAUSE, {}),
+            "resumePlayback": (Intent.RESUME, {}),
+            "restartTrack": (Intent.RESTART_TRACK, {}),
+            # ===== VIDEO INTENTS (NOT IMPLEMENTED) =====
+            "playMusicVideo": (Intent.PLAY_MUSIC_VIDEO, {}),
+            "stopVideo": (Intent.STOP_VIDEO, {}),
+            # ===== SYSTEM INTENTS (PARTIAL) =====
+            "changeLanguage": (Intent.CHANGE_LANGUAGE, {}),  # Handler exists
+            "changeMode": (Intent.CHANGE_MODE, {}),  # Not implemented
+            "changeVoice": (Intent.CHANGE_VOICE, {}),  # Not implemented
+            # ===== VOLUME INTENTS (STUBS EXIST) =====
+            "increaseVolume": (Intent.VOLUME_UP, {}),
+            "decreaseVolume": (Intent.VOLUME_DOWN, {}),
+        }
+
+        # Look up the mapped intent
+        mapping = intent_map.get(intent_name)
+
+        if mapping:
+            intent, slot_overrides = mapping
+            # Merge Rhino slots with default overrides (overrides take precedence)
+            final_slots = {**slots, **slot_overrides}
+
+            self.logger.info(
+                f"Routing voice intent: {intent_name} -> {intent} " f"with slots {final_slots}"
+            )
+            self.emit(intent, **final_slots)
+        else:
+            self.logger.warning(f"No mapping found for voice intent: {intent_name}")

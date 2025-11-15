@@ -42,20 +42,19 @@ class TouchInputWorker(BaseWorker):
         self.enabled = touch_config.get("enabled", True)
         self.log_events = touch_config.get("log_events", False)
 
-        # Warn if not running from .app bundle
+        # Track if running from bundle (for deferred warning if connection fails)
+        self._running_from_bundle = False
         if self.enabled and UPDD_AVAILABLE:
             import sys
 
-            if not getattr(sys, "frozen", False) and "NRHOF.app" not in sys.argv[0]:
-                self.logger.warning(
-                    "Touch worker enabled but not running from NRHOF.app bundle. "
-                    "UPDD may not send touch events. Use 'open /Applications/NRHOF.app' instead of 'nrhof' command."
-                )
+            self._running_from_bundle = getattr(sys, "frozen", False) or "NRHOF.app" in sys.argv[0]
+
         self._digitiser_callback = None
         self._event_loop = None
         self._touch_count = 0
         self._last_log_time = 0.0
         self._connected = False
+        self._cleaned_up = False  # Guard to prevent double cleanup
 
         if not self.enabled:
             self.logger.info("Touch worker disabled by config")
@@ -85,13 +84,30 @@ class TouchInputWorker(BaseWorker):
             # Open connection (will trigger CONFIG_EVENT_CONNECT)
             upddapi.TBApiOpen()
 
-            self.logger.info("Touch worker started, waiting for UPDD connection...")
+            # Note: BaseWorker.start() already logs 'TouchInputWorker started'
+            self.logger.info("Waiting for UPDD driver connection...")
             self._last_log_time = time.time()
+            connection_start_time = time.time()
 
             # Keep event loop alive
             async def keep_alive():
+                warned_about_bundle = False
                 while self._running:
                     await asyncio.sleep(0.1)
+
+                    # Warn if not connected after 5 seconds and not running from bundle
+                    if (
+                        not warned_about_bundle
+                        and not self._connected
+                        and not self._running_from_bundle
+                    ):
+                        if time.time() - connection_start_time > 5.0:
+                            self.logger.warning(
+                                "Touch worker enabled but UPDD not connected after 5s. "
+                                "Not running from NRHOF.app bundle - UPDD may not send touch events. "
+                                "Use 'open /Applications/NRHOF.app' instead of direct execution."
+                            )
+                            warned_about_bundle = True
 
                     # Log stats every 30 seconds
                     if self.log_events:
@@ -217,6 +233,11 @@ class TouchInputWorker(BaseWorker):
 
     def _cleanup(self):
         """Cleanup UPDD callbacks and event loop."""
+        # Guard against double cleanup (called from both stop() and finally block)
+        if self._cleaned_up:
+            return
+        self._cleaned_up = True
+
         self.logger.info("Touch worker cleanup starting...")
 
         # Stop event loop first to prevent callbacks during cleanup

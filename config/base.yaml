@@ -32,16 +32,24 @@ audio:
 voice_front_end:
   enabled: true              # Enable voice front-end worker (replaces mic_listener, vad, wake_word workers)
   enable_vad: true           # Enable Cobra VAD for speech detection
-  vad_threshold: 0.5         # Voice probability threshold (0.0 to 1.0)
-  vad_tail_ms: 700           # Silence duration before ending speech segment (ms)
-  speech_timeout_s: 4.0      # Timeout if no speech after wake word (seconds)
-  update_interval_ms: 100    # How often to update audio level for HUD
+  vad_threshold: 0.4         # Voice probability threshold (0.0 to 1.0) - lowered to prevent early cutoff
+  vad_tail_ms: 800           # Tail silence for speech segment end detection
+  speech_timeout_s: 4.0      # Max time to wait for speech after wake word
+  min_post_speech_silence_ms: 800  # Minimum silence after speech before Rhino finalize
+  rhino_finalize_timeout_ms: 8000  # Max time to wait for Rhino to finalize inference
+  intent_cooldown_s: 2.0     # Cooldown window after intent resolution (prevents re-triggers during scene transitions)
   log_interval_s: 10         # How often to log stats
+  update_interval_ms: 100    # How often to update audio level for HUD
+
+  # Rhino NLU (deterministic intent recognition)
+  rhino:
+    enabled: true            # Enable Rhino for on-device intent recognition
+    context_path: assets/voice/nrhof_en_mac_v3_0_0.rhn  # Path to .rhn context file
 
 # Mic listener (legacy - replaced by voice_front_end)
 mic_listener:
   enabled: false             # Disabled (replaced by voice_front_end)
-  frame_duration_ms: 10
+  frame_duration_ms: 32      # 512 samples @ 16kHz (matches voice_front_end)
   update_interval_ms: 100
   log_interval_s: 5
   enable_koala: true

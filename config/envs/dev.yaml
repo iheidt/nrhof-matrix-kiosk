@@ -11,9 +11,9 @@ render:
 audio:
   muted: true  # Mute audio in dev to avoid noise
 
-# Mic listener for debugging
+# Mic listener (legacy - replaced by voice_front_end_worker)
 mic_listener:
-  enabled: true  # Enable debug mic listener worker
+  enabled: false  # Disabled (voice_front_end_worker handles mic processing)
 
 # Touch input (UPDD integration)
 touch:

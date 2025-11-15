@@ -69,7 +69,8 @@ class VADWorker(BaseWorker):
             logger.error("Failed to initialize mic stream")
             return
 
-        logger.info(f"VAD worker started: {self.frame_duration_ms}ms frames")
+        # Note: BaseWorker.start() already logs 'VADWorker started'
+        logger.info(f"VAD processing {self.frame_duration_ms}ms frames")
         self.last_log_time = time.time()
 
         # Stream frames and run VAD
@@ -105,7 +106,7 @@ class VADWorker(BaseWorker):
                 self.speech_count = 0
                 self.last_log_time = current_time
 
-        logger.info("VAD worker stopped")
+        # Loop exits when self._running = False (BaseWorker.stop() logs 'stopped')
 
     def _cleanup(self):
         """Cleanup resources."""

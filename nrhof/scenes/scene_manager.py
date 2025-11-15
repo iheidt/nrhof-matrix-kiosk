@@ -352,6 +352,11 @@ class SceneManager:
 
         # Skip if already transitioning
         if self._transition.active:
+            print(f"\n[SWITCH BLOCKED] Tried to switch to {name} but transition is active\n")
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.info(f"[SWITCH] Blocked - transition active (tried to switch to {name})")
             return
 
         # Skip if trying to switch to the same scene (unless it's the first scene)
@@ -367,28 +372,18 @@ class SceneManager:
         transition_direction = -1 if is_going_back else 1
 
         if use_transition and self.current_scene:
-            # Prepare to scene
+            # Prepare to scene (don't call on_enter yet - do it after transition)
             to_scene = self._cache.resume(name)
+            is_resumed = to_scene is not None
             if not to_scene:
                 to_scene = self._cache.get(name)
-                # Call on_enter for new scene
-                if self._has_lifecycle:
-                    from nrhof.core.lifecycle import LifecyclePhase
 
-                    self._lifecycle.execute(
-                        LifecyclePhase.SCENE_BEFORE_ENTER,
-                        scene_name=name,
-                        scene=to_scene,
-                    )
-                to_scene.on_enter()
-                if self._has_lifecycle:
-                    self._lifecycle.execute(
-                        LifecyclePhase.SCENE_AFTER_ENTER,
-                        scene_name=name,
-                        scene=to_scene,
-                    )
+            # Start slide transition immediately (before calling on_enter to avoid blocking)
+            print(f"\n[TRANSITION START] {self.current_scene_name} -> {name}\n")
+            import logging
 
-            # Start slide transition
+            logger = logging.getLogger(__name__)
+            logger.info(f"[SWITCH] Starting transition: {self.current_scene_name} -> {name}")
             self._transition.start(
                 self.current_scene,
                 self.current_scene_name,
@@ -397,6 +392,8 @@ class SceneManager:
                 transition_direction,
                 self.screen.get_size(),
             )
+            # Track whether scene was resumed (so we know not to call on_enter again)
+            self._transition._is_resumed_scene = is_resumed
 
         else:
             # Instant switch (no transition)
@@ -478,9 +475,42 @@ class SceneManager:
             self.switch_to("MenuScene", add_to_history=False)
 
     def handle_event(self, event: pygame.event.Event):
-        """Pass event to current scene."""
+        """Pass event to current scene.
+
+        Note: Events are blocked during transitions to prevent clicks
+        from being ignored (since switch_to() is blocked during transitions).
+        """
+        # Debug logging for mouse clicks
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            print(
+                f"\n[CLICK DEBUG] button={event.button}, pos={event.pos}, transition={self._transition.active}, scene={self.current_scene_name}\n"
+            )
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.info(
+                f"[CLICK] button={event.button}, pos={event.pos}, "
+                f"transition_active={self._transition.active}, "
+                f"scene={self.current_scene_name if self.current_scene else 'None'}"
+            )
+
+        # Block events during transitions to prevent ignored clicks
+        if self._transition.active:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.info("[CLICK] Blocked - transition active")
+            return False
+
         if self.current_scene:
-            return self.current_scene.handle_event(event)
+            handled = self.current_scene.handle_event(event)
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.info(f"[CLICK] Handled by scene: {handled}")
+            return handled
         return False
 
     def update(self, dt: float):
@@ -522,7 +552,35 @@ class SceneManager:
         self.current_scene = self._transition.to_scene
         self.current_scene_name = self._transition.to_name
 
+        # Call on_enter() NOW (after transition animation completes)
+        # This prevents blocking the UI during the transition
+        # Check if scene needs initialization (not resumed)
+        if (
+            not hasattr(self._transition, "_is_resumed_scene")
+            or not self._transition._is_resumed_scene
+        ):
+            if self._has_lifecycle:
+                from nrhof.core.lifecycle import LifecyclePhase
+
+                self._lifecycle.execute(
+                    LifecyclePhase.SCENE_BEFORE_ENTER,
+                    scene_name=self.current_scene_name,
+                    scene=self.current_scene,
+                )
+            self.current_scene.on_enter()
+            if self._has_lifecycle:
+                self._lifecycle.execute(
+                    LifecyclePhase.SCENE_AFTER_ENTER,
+                    scene_name=self.current_scene_name,
+                    scene=self.current_scene,
+                )
+
         # Complete transition (cleans up surfaces)
+        print(f"\n[TRANSITION COMPLETE] Now in {self.current_scene_name}\n")
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"[SWITCH] Transition complete: now in {self.current_scene_name}")
         self._transition.complete()
 
     def draw(self):

@@ -49,13 +49,13 @@ class SongRecognitionWorker(BaseWorker):
         if not self.enabled:
             self.logger.info("Song recognition worker not started (disabled)")
             return
-        self.logger.info(f"Song recognition worker started: interval={self.recognition_interval}")
+        # Log config details before starting
+        self.logger.info(f"Song recognition interval: {self.recognition_interval}s")
         super().start()
 
     def _worker_loop(self):
         """Main worker loop - periodically recognizes ambient music."""
-        self.logger.info("Song recognition loop started")
-
+        # Note: BaseWorker.start() already logs 'SongRecognitionWorker started'
         last_recognition_time = 0
 
         while self._running:
@@ -111,7 +111,7 @@ class SongRecognitionWorker(BaseWorker):
                 self.logger.error(f"Error in song recognition loop: {e}\n{traceback.format_exc()}")
                 time.sleep(5.0)
 
-        self.logger.info("Song recognition loop ended")
+        # Loop exits when self._running = False (BaseWorker.stop() logs 'stopped')
 
     def _collect_audio_buffer(self) -> bytes | None:
         """Collect audio buffer for recognition.

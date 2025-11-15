@@ -15,6 +15,7 @@ from nrhof.core.event_bus import EventType
 from nrhof.core.logging_utils import setup_logger
 from nrhof.voice.cobra import create_cobra
 from nrhof.voice.front_end import create_voice_pipeline
+from nrhof.voice.rhino import create_rhino
 from nrhof.voice.wake import create_porcupine
 from nrhof.workers.base import BaseWorker
 
@@ -48,6 +49,9 @@ class VoiceFrontEndWorker(BaseWorker):
         self.vad_threshold = voice_config.get("vad_threshold", 0.5)
         self.vad_tail_ms = voice_config.get("vad_tail_ms", 700)  # Silence before ending
         self.speech_timeout_s = voice_config.get("speech_timeout_s", 4.0)  # Timeout after wake
+        self.intent_cooldown_s = voice_config.get("intent_cooldown_s", 2.0)  # Cooldown after intent
+        self.min_post_speech_silence_ms = voice_config.get("min_post_speech_silence_ms", 800)
+        self.rhino_finalize_timeout_ms = voice_config.get("rhino_finalize_timeout_ms", 8000)
         self.update_interval_ms = voice_config.get("update_interval_ms", 100)
         self.log_interval_s = voice_config.get("log_interval_s", 10)
 
@@ -74,6 +78,7 @@ class VoiceFrontEndWorker(BaseWorker):
         self.is_listening = False  # True after wake word, waiting for speech
         self.wake_word_time: float | None = None  # Time when wake word was detected
         self.segment_buffer: list[np.ndarray] = []  # Accumulate PCM frames for ASR
+        self.last_intent_time: float = 0.0  # Last time an intent was resolved (for cooldown)
 
         # Calculate tail frames (512 samples @ 16kHz = 32ms per frame)
         frame_duration_ms = 32  # 512 samples at 16kHz
@@ -114,6 +119,20 @@ class VoiceFrontEndWorker(BaseWorker):
         self.wake_frame_length = self.porcupine.frame_length if self.porcupine else 512
         self.frame_buffer = np.array([], dtype=np.int16)
 
+        # Initialize Rhino NLU
+        self.rhino = None
+        rhino_config = voice_config.get("rhino", {})
+        if rhino_config.get("enabled", True):
+            context_path = rhino_config.get("context_path")
+            if context_path:
+                self.rhino = create_rhino(context_path=context_path)
+                if self.rhino:
+                    self.logger.info("Rhino NLU enabled for intent recognition")
+                else:
+                    self.logger.warning("Failed to initialize Rhino NLU")
+            else:
+                self.logger.warning("Rhino enabled but no context_path specified")
+
     def start(self):
         """Start voice front-end worker."""
         if not self.enabled:
@@ -128,12 +147,13 @@ class VoiceFrontEndWorker(BaseWorker):
             self.logger.error("Failed to initialize mic stream")
             return
 
-        self.logger.info("Voice front-end worker started")
+        # Note: BaseWorker.start() already logs 'VoiceFrontEndWorker started'
         self.last_update_time = time.time()
         self.last_log_time = time.time()
 
         # Create voice pipeline (AEC → Koala)
-        for cleaned_frame in create_voice_pipeline(enable_koala=True):
+        # Use 32ms frames (512 samples) to match mic driver and downstream processors
+        for cleaned_frame in create_voice_pipeline(enable_koala=True, frame_duration_ms=32):
             if not self._running:
                 break
 
@@ -206,7 +226,12 @@ class VoiceFrontEndWorker(BaseWorker):
                 self.speech_segments = 0
                 self.last_log_time = current_time
 
-        self.logger.info("Voice front-end worker stopped")
+            # Small sleep to prevent CPU starvation of main thread
+            # Koala yields frames at ~16-32ms intervals (256/512 samples @ 16kHz)
+            # Sleep for ~5ms to yield CPU to main thread while staying responsive
+            time.sleep(0.005)
+
+        # Note: Loop exits when self._running = False (BaseWorker.stop() logs 'stopped')
 
     def _process_vad(self, voice_prob: float, current_time: float, frame_512: np.ndarray):
         """Process VAD result and emit speech events.
@@ -289,7 +314,7 @@ class VoiceFrontEndWorker(BaseWorker):
         self.event_bus.emit(EventType.WAKE_WORD_DETECTED, payload={"keyword": keyword})
 
     def _emit_speech_segment(self):
-        """Emit complete speech segment for ASR processing."""
+        """Emit complete speech segment and process with Rhino NLU."""
         if not self.segment_buffer:
             self.logger.warning("No speech segment to emit (buffer empty)")
             return
@@ -299,20 +324,70 @@ class VoiceFrontEndWorker(BaseWorker):
         num_samples = len(segment_pcm)
         duration_ms = (num_samples / 16000) * 1000
 
-        # Validate PCM data for ASR
+        # Add explicit post-speech silence padding for Rhino finalization
+        # This ensures Rhino has enough silence to detect speech endpoint
+        post_silence_samples = int((self.min_post_speech_silence_ms / 1000) * 16000)
+        silence_padding = np.zeros(post_silence_samples, dtype=np.int16)
+        segment_pcm = np.concatenate([segment_pcm, silence_padding])
+
+        # Validate PCM data
         pcm_min = segment_pcm.min()
         pcm_max = segment_pcm.max()
         pcm_dtype = segment_pcm.dtype
 
         self.logger.info(
-            f"Emitting speech segment: {num_samples} samples ({duration_ms:.0f}ms), "
+            f"Emitting speech segment: {num_samples} samples ({duration_ms:.0f}ms) "
+            f"+ {post_silence_samples} silence samples ({self.min_post_speech_silence_ms}ms), "
             f"dtype={pcm_dtype}, range=[{pcm_min}, {pcm_max}]"
         )
 
-        # Emit event with PCM data
-        self.event_bus.emit(
-            EventType.VOICE_SEGMENT_READY, payload={"pcm": segment_pcm, "sample_rate": 16000}
-        )
+        # Process with Rhino NLU if available
+        if self.rhino:
+            try:
+                intent, slots = self.rhino.process_segment(segment_pcm, sample_rate=16000)
+
+                if intent is not None:
+                    # Check cooldown to prevent accidental re-triggers
+                    now = time.time()
+                    time_since_last_intent = now - self.last_intent_time
+
+                    if time_since_last_intent < self.intent_cooldown_s:
+                        self.logger.info(
+                            f"[Rhino] Intent '{intent}' ignored (cooldown: "
+                            f"{time_since_last_intent:.1f}s < {self.intent_cooldown_s}s)"
+                        )
+                    else:
+                        # Rhino understood the intent - emit VOICE_INTENT_RESOLVED
+                        self.logger.info(f"[Rhino] Intent resolved: {intent}")
+                        self.event_bus.emit(
+                            EventType.VOICE_INTENT_RESOLVED,
+                            payload={"intent": intent, "slots": slots},
+                        )
+                        # Update last intent time
+                        self.last_intent_time = now
+                else:
+                    # Rhino did not understand - emit segment for fallback ASR (Phase 4)
+                    self.logger.debug("[Rhino] No intent recognized")
+                    self.event_bus.emit(
+                        EventType.VOICE_SEGMENT_READY,
+                        payload={"pcm": segment_pcm, "sample_rate": 16000},
+                    )
+
+                # Reset Rhino for next utterance
+                self.rhino.reset()
+
+            except Exception as e:
+                self.logger.error(f"Rhino processing failed: {e}")
+                # Emit segment anyway for fallback
+                self.event_bus.emit(
+                    EventType.VOICE_SEGMENT_READY,
+                    payload={"pcm": segment_pcm, "sample_rate": 16000},
+                )
+        else:
+            # No Rhino - just emit segment for ASR
+            self.event_bus.emit(
+                EventType.VOICE_SEGMENT_READY, payload={"pcm": segment_pcm, "sample_rate": 16000}
+            )
 
         # Clear buffer
         self.segment_buffer.clear()
@@ -330,5 +405,11 @@ class VoiceFrontEndWorker(BaseWorker):
                 self.porcupine.cleanup()
             except Exception as e:
                 self.logger.warning(f"Error cleaning up Porcupine: {e}")
+
+        if self.rhino:
+            try:
+                self.rhino.cleanup()
+            except Exception as e:
+                self.logger.warning(f"Error cleaning up Rhino: {e}")
 
         self.logger.info("Voice front-end worker cleanup complete")

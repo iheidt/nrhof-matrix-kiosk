@@ -90,13 +90,11 @@ class WakeWordWorker(BaseWorker):
 
     def _worker_loop(self):
         """Main worker loop - continuously processes audio for wake word."""
-        self.logger.info("Wake word detection loop started")
-        self.logger.info(
-            f"Porcupine expects frame_length={self.porcupine.frame_length} samples at {self.porcupine.sample_rate}Hz",
-        )
-
+        # Note: BaseWorker.start() already logs 'WakeWordWorker started'
         frame_length = self.porcupine.frame_length
-        self.logger.info(f"Requesting {frame_length} samples per frame (native 16kHz)")
+        self.logger.info(
+            f"Porcupine expects frame_length={frame_length} samples at {self.porcupine.sample_rate}Hz"
+        )
 
         frame_count = 0
         last_log_time = time.time()
@@ -167,7 +165,7 @@ class WakeWordWorker(BaseWorker):
                 )
                 time.sleep(0.1)
 
-        self.logger.info("Wake word detection loop ended")
+        # Loop exits when self._running = False (BaseWorker.stop() logs 'stopped')
 
     def set_callback(self, callback: Callable[[str], None]):
         """Set callback function for wake word detection.

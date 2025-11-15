@@ -10,7 +10,6 @@ import sounddevice as sd
 from openai import OpenAI
 from scipy.io import wavfile
 
-from nrhof.voice.aec import AEC
 from nrhof.voice.asr import ASR
 from nrhof.voice.nlu import GrammarNLU
 from nrhof.voice.tts import TTS
@@ -25,7 +24,8 @@ class VoiceEngine:
     - Automatic Speech Recognition (ASR)
     - Natural Language Understanding (NLU)
     - Text-to-Speech (TTS)
-    - Acoustic Echo Cancellation (AEC)
+
+    Note: AEC and noise suppression are handled by VoiceFrontEndWorker.
     """
 
     def __init__(self, voice_router, ctx=None):
@@ -46,10 +46,10 @@ class VoiceEngine:
         self.duration = 2.5  # seconds
 
         # Voice pipeline components
+        # Note: AEC and Koala are handled by VoiceFrontEndWorker via create_voice_pipeline()
         self.asr = ASR(ctx)
         self.nlu = GrammarNLU()
         self.tts = TTS()
-        self.aec = AEC()
 
         # OpenAI client (optional - only if API key is set)
         api_key = os.getenv("OPENAI_API_KEY")

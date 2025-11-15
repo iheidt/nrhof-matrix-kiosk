@@ -151,7 +151,7 @@ def create_app_components(cfg, screen):
     app_state = get_app_state()
 
     # Initialize voice event handler (subscribes to wake word and VAD events)
-    init_voice_event_handler()
+    init_voice_event_handler(intent_router=intent_router)
 
     # Attach event_bus and app_state to app_context for dependency injection
     app_context.event_bus = event_bus

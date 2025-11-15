@@ -72,7 +72,8 @@ class MicListenerWorker(BaseWorker):
             logger.error("Failed to initialize mic stream")
             return
 
-        logger.info(f"Mic listener started: {self.frame_duration_ms}ms frames")
+        # Note: BaseWorker.start() already logs 'MicListenerWorker started'
+        logger.info(f"Processing {self.frame_duration_ms}ms frames")
         self.last_update_time = time.time()
         self.last_log_time = time.time()
 

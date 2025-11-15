@@ -207,7 +207,7 @@ class SonosSource(BaseWorker):
             # Sleep until next poll
             time.sleep(self.poll_interval)
 
-        self.logger.info("Sonos poll loop ended")
+        # Loop exits when self._running = False (BaseWorker.stop() logs 'stopped')
 
     def _parse_track_info(self, track_info: dict, is_playing: bool = True) -> Track | None:
         """Parse Sonos track info into Track.

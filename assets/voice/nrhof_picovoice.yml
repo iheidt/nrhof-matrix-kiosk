@@ -1,0 +1,112 @@
+context:
+  expressions:
+    goHome:
+      - main menu
+      - home
+      - go home
+    goBack:
+      - previous screen
+      - back
+      - go back
+    goToSettings:
+      - go to settings
+      - settings menu
+      - open settings
+      - settings
+    goToNR38:
+      - go to nerd rock thirty eight
+      - open nerd rock thirty eight
+      - nerd rock thirty eight
+      - N R three eight
+      - open N R thirty eight
+      - go to N R thirty eight
+      - N R thirty eight
+    goToNR18:
+      - go to nerd rock eighteen
+      - open nerd rock eighteen
+      - nerd rock eighteen
+      - go to N R eighteen
+      - open N R eighteen
+      - N R eighteen
+    goToVisualizers:
+      - go to visualizers
+      - open visualizers
+      - visualizers
+    goToFateMaker:
+      - go to fate maker
+      - open fate maker
+      - fate maker
+    rollFate:
+      - once more
+      - one more
+      - let fate decide
+      - roll it again
+      - reroll
+      - do it again
+      - tempt fate
+      - roll again
+      - roll the dice
+    nextTrack:
+      - skip track
+      - skip
+      - next track
+      - next
+    previousTrack:
+      - back one
+      - go back one
+      - previous track
+    pausePlayback:
+      - pause the music
+      - stop for a second
+      - pause playback
+      - pause
+    resumePlayback:
+      - play again
+      - keep playing
+      - continue
+      - resume
+    restartTrack:
+      - rewind
+      - from the top
+      - start over
+      - restart track
+      - restart
+    playMusicVideo:
+      - start the video
+      - play the video
+      - start the music video
+      - play music video
+    stopVideo:
+      - turn off the music video
+      - close the music video
+      - stop the music video
+      - turn off the video
+      - close the video
+      - stop the video
+    changeLanguage:
+      - japanese
+      - english
+      - switch language
+      - change language
+    changeMode:
+      - matrix mode
+      - pink mode
+      - switch mode
+      - change mode
+    changeVoice:
+      - voice three
+      - voice two
+      - voice one
+      - switch voice
+      - change voice
+    increaseVolume:
+      - volume up
+      - turn it up
+      - increase volume
+    decreaseVolume:
+      - volume down
+      - it's too loud
+      - turn it down
+      - decrease volume
+  slots: {}
+  macros: {}

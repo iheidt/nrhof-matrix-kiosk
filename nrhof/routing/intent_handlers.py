@@ -148,6 +148,11 @@ def _register_media_control_intents(intent_router: IntentRouter):
         # TODO: Implement previous track via Spotify/Sonos API
         print("[INTENT] Previous track requested (not implemented)")
 
+    def restart_track(event_bus, **slots):
+        """Restart current track from beginning."""
+        # TODO: Implement restart via Spotify/Sonos API
+        print("[INTENT] Restart track requested (not implemented)")
+
     def volume_up(event_bus, **slots):
         """Increase volume."""
         # TODO: Implement volume control
@@ -195,4 +200,34 @@ def _register_system_intents(intent_router: IntentRouter, app_context: AppContex
         else:
             print("[INTENT] Change language requested but no language specified")
 
+    def change_mode(event_bus, **slots):
+        """Change visual mode (matrix/pink)."""
+        # TODO: Implement mode switching (matrix vs pink theme)
+        print("[INTENT] Change mode requested (not implemented)")
+
+    def change_voice(event_bus, **slots):
+        """Change TTS voice."""
+        # TODO: Implement voice switching for TTS
+        print("[INTENT] Change voice requested (not implemented)")
+
+    def play_music_video(event_bus, **slots):
+        """Play music video for current track."""
+        # TODO: Implement music video playback
+        print("[INTENT] Play music video requested (not implemented)")
+
+    def stop_video(event_bus, **slots):
+        """Stop music video playback."""
+        # TODO: Implement video stop
+        print("[INTENT] Stop video requested (not implemented)")
+
+    def roll_fate(event_bus, **slots):
+        """Roll fate in Fate Maker experience."""
+        # TODO: Implement fate rolling in Fate Maker scene
+        print("[INTENT] Roll fate requested (not implemented)")
+
     intent_router.register(Intent.CHANGE_LANGUAGE, change_language)
+    intent_router.register(Intent.CHANGE_MODE, change_mode)
+    intent_router.register(Intent.CHANGE_VOICE, change_voice)
+    intent_router.register(Intent.PLAY_MUSIC_VIDEO, play_music_video)
+    intent_router.register(Intent.STOP_VIDEO, stop_video)
+    intent_router.register(Intent.ROLL_FATE, roll_fate)

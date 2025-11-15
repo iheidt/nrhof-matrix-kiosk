@@ -10,10 +10,15 @@ logger = setup_logger(__name__)
 class VoiceEventHandler:
     """Handles voice-related events (wake word, VAD, etc.)."""
 
-    def __init__(self):
-        """Initialize voice event handler."""
+    def __init__(self, intent_router=None):
+        """Initialize voice event handler.
+
+        Args:
+            intent_router: Optional IntentRouter for voice intent routing
+        """
         self.event_bus = get_event_bus()
         self.app_state = get_app_state()
+        self.intent_router = intent_router
         self.is_listening = False
 
         # Subscribe to events
@@ -21,6 +26,7 @@ class VoiceEventHandler:
         self.event_bus.subscribe(EventType.VOICE_SPEECH_START, self._on_speech_start)
         self.event_bus.subscribe(EventType.VOICE_SPEECH_END, self._on_speech_end)
         self.event_bus.subscribe(EventType.VOICE_TIMEOUT, self._on_timeout)
+        self.event_bus.subscribe(EventType.VOICE_INTENT_RESOLVED, self._on_intent_resolved)
 
         logger.info("Voice event handler initialized")
 
@@ -82,6 +88,28 @@ class VoiceEventHandler:
             self.event_bus.emit(EventType.MIXER_UNDUCK)
             logger.info("Audio restored after timeout")
 
+    def _on_intent_resolved(self, event):
+        """Handle intent resolved by Rhino NLU.
+
+        Routes intent to IntentRouter for execution.
+        """
+        if not event.payload:
+            return
+
+        intent = event.payload.get("intent")
+        slots = event.payload.get("slots", {})
+
+        logger.info(f"Intent resolved: {intent}, slots={slots}")
+
+        # Route to IntentRouter if available
+        if self.intent_router:
+            try:
+                self.intent_router.route_voice_intent(intent, slots)
+            except Exception as e:
+                logger.error(f"Failed to route voice intent: {e}")
+        else:
+            logger.warning("No IntentRouter available for voice intent routing")
+
 
 # Global instance
 _voice_event_handler = None
@@ -95,10 +123,20 @@ def get_voice_event_handler() -> VoiceEventHandler:
     return _voice_event_handler
 
 
-def init_voice_event_handler():
+def init_voice_event_handler(intent_router=None):
     """Initialize voice event handler.
+
+    Args:
+        intent_router: Optional IntentRouter for voice intent routing
 
     Call this during app startup to register event handlers.
     """
-    get_voice_event_handler()
+    global _voice_event_handler
+    if _voice_event_handler is None:
+        _voice_event_handler = VoiceEventHandler(intent_router=intent_router)
+    elif intent_router and not _voice_event_handler.intent_router:
+        # Update existing handler with intent_router if not already set
+        _voice_event_handler.intent_router = intent_router
+
     logger.info("Voice event handler registered")
+    return _voice_event_handler

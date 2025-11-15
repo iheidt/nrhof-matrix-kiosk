@@ -111,7 +111,7 @@ class SpotifySource(BaseWorker):
             # Sleep
             time.sleep(self.poll_interval)
 
-        self.logger.info("Spotify poll loop ended")
+        # Loop exits when self._running = False (BaseWorker.stop() logs 'stopped')
 
     def _parse_playback(self, playback: dict) -> Track | None:
         """Parse Spotify playback response into Track.
