@@ -15,6 +15,7 @@ psutil>=5.9.0  # System and process monitoring for performance metrics
 # git+https://github.com/acrcloud/acrcloud_sdk_python.git
 pvporcupine==3.0.2
 pvkoala==2.0.1
+pvcobra==2.0.1
 webrtcvad==2.0.10
 
 # Music sources

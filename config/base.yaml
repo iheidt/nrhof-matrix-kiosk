@@ -28,13 +28,21 @@ audio:
   music_debounce: 0.5        # Seconds before state change
   poll_interval: 0.1         # Audio monitoring interval (100ms)
 
-# Mic listener (debug worker for monitoring mic input)
+# Voice front-end (unified mic processing, VAD, wake word)
+voice_front_end:
+  enabled: true              # Enable voice front-end worker (replaces mic_listener, vad, wake_word workers)
+  enable_vad: true           # Enable Cobra VAD for speech detection
+  vad_threshold: 0.5         # Voice probability threshold (0.0 to 1.0)
+  update_interval_ms: 100    # How often to update audio level for HUD
+  log_interval_s: 10         # How often to log stats
+
+# Mic listener (legacy - replaced by voice_front_end)
 mic_listener:
-  enabled: false             # Enable mic listener worker
-  frame_duration_ms: 10      # Frame duration in ms (10ms = 160 samples at 16kHz)
-  update_interval_ms: 100    # How often to update audio level
-  log_interval_s: 5          # How often to log stats
-  enable_koala: true         # Enable Koala noise suppression (requires PICOVOICE_ACCESS_KEY)
+  enabled: false             # Disabled (replaced by voice_front_end)
+  frame_duration_ms: 10
+  update_interval_ms: 100
+  log_interval_s: 5
+  enable_koala: true
 
 # Recognition settings (placeholder for future)
 recognizer:
@@ -63,13 +71,13 @@ wake_word:
   keyword_paths: []  # Custom .ppn files (e.g., "assets/wake_words/hey-nerd.ppn")
   sensitivity: 0.75  # 0.0 (least sensitive) to 1.0 (most sensitive)
 
-# Voice Activity Detection (WebRTC VAD)
+# Voice Activity Detection (legacy WebRTC VAD - replaced by voice_front_end with Cobra)
 vad:
-  enabled: true
+  enabled: false             # Disabled (replaced by voice_front_end with Cobra VAD)
   sample_rate: 16000
-  frame_duration_ms: 10  # Must be 10, 20, or 30
-  aggressiveness: 2  # 0-3, higher = more aggressive
-  tail_ms: 700  # Silence duration before declaring speech end
+  frame_duration_ms: 10
+  aggressiveness: 2
+  tail_ms: 700
 
 # Voice control and streaming audio (reserved for future implementation)
 voice:

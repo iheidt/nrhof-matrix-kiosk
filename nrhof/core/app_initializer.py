@@ -28,6 +28,7 @@ from nrhof.workers.recognition_worker import RecognitionWorker
 from nrhof.workers.song_recognition_worker import SongRecognitionWorker
 from nrhof.workers.touch_worker import TouchInputWorker
 from nrhof.workers.vad_worker import VADWorker
+from nrhof.workers.voice_front_end_worker import VoiceFrontEndWorker
 from nrhof.workers.wake_word_worker import WakeWordWorker
 
 
@@ -200,7 +201,6 @@ def start_workers(cfg, voice_engine=None):
     # Register core workers
     registry.register("audio_worker", AudioWorker(config_dict))
     registry.register("recognition_worker", RecognitionWorker(config_dict))
-    registry.register("wake_word_worker", WakeWordWorker(config_dict))
     registry.register("song_recognition_worker", SongRecognitionWorker(config_dict))
 
     # Register source manager and sources
@@ -210,14 +210,23 @@ def start_workers(cfg, voice_engine=None):
     registry.register("spotify_source", SpotifySource(config_dict, source_manager))
     registry.register("sonos_source", SonosSource(config_dict, source_manager))
 
-    # Register optional workers (conditional)
-    mic_listener_config = config_dict.get("mic_listener", {})
-    if mic_listener_config.get("enabled", False):
-        registry.register("mic_listener_worker", MicListenerWorker(event_bus, mic_listener_config))
+    # Register voice front-end (unified mic processing, VAD, wake word)
+    voice_front_end_config = config_dict.get("voice_front_end", {})
+    if voice_front_end_config.get("enabled", True):
+        registry.register("voice_front_end_worker", VoiceFrontEndWorker(config_dict))
+    else:
+        # Legacy workers (disabled by default, replaced by voice_front_end)
+        registry.register("wake_word_worker", WakeWordWorker(config_dict))
 
-    vad_config = config_dict.get("vad", {})
-    if vad_config.get("enabled", False):
-        registry.register("vad_worker", VADWorker(event_bus, vad_config))
+        mic_listener_config = config_dict.get("mic_listener", {})
+        if mic_listener_config.get("enabled", False):
+            registry.register(
+                "mic_listener_worker", MicListenerWorker(event_bus, mic_listener_config)
+            )
+
+        vad_config = config_dict.get("vad", {})
+        if vad_config.get("enabled", False):
+            registry.register("vad_worker", VADWorker(event_bus, vad_config))
 
     # Register touch worker (UPDD integration)
     touch_config = config_dict.get("touch", {})
