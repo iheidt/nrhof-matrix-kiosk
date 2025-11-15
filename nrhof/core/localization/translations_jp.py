@@ -47,6 +47,6 @@ TRANSLATIONS_JP = {
     "band_details.album": "アルバム",
     "band_details.ep": "ep",
     "band_details.live": "ライブ",
-    "band_details.etc": "他",
+    "band_details.etc": "その他",
     "band_details.more": "もっと",
 }

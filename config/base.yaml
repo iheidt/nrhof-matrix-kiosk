@@ -33,7 +33,8 @@ mic_listener:
   enabled: false             # Enable mic listener worker
   frame_duration_ms: 10      # Frame duration in ms (10ms = 160 samples at 16kHz)
   update_interval_ms: 100    # How often to update audio level
-  log_interval_s: 5          # How often to log frame stats
+  log_interval_s: 5          # How often to log stats
+  enable_koala: true         # Enable Koala noise suppression (requires PICOVOICE_ACCESS_KEY)
 
 # Recognition settings (placeholder for future)
 recognizer:
