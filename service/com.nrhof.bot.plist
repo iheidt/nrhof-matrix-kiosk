@@ -3,19 +3,19 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.nrhof.matrix-kiosk</string>
+    <string>com.nrhof.bot</string>
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/.venv312/bin/python</string>
-        <string>/Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/app.py</string>
+        <string>/Users/nrhof/dev/nrhof-bot/.venv312/bin/python</string>
+        <string>/Users/nrhof/dev/nrhof-bot/app.py</string>
         <string>--fullscreen</string>
         <string>--display</string>
         <string>1</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk</string>
+    <string>/Users/nrhof/dev/nrhof-bot</string>
 
     <!-- RunAtLoad disabled - manually start with 'make mac-start' -->
     <key>RunAtLoad</key>
@@ -26,10 +26,10 @@
     <false/>
 
     <key>StandardOutPath</key>
-    <string>/Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/logs/kiosk.log</string>
+    <string>/Users/nrhof/dev/nrhof-bot/logs/bot.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/ianheidt/CascadeProjects/nrhof-matrix-kiosk/logs/kiosk.error.log</string>
+    <string>/Users/nrhof/dev/nrhof-bot/logs/bot.error.log</string>
 
     <key>EnvironmentVariables</key>
     <dict>

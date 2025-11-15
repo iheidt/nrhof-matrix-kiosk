@@ -14,7 +14,7 @@ OPTIONS = {
     "plist": {
         "CFBundleName": "NRHOF",
         "CFBundleDisplayName": "NRHOF",
-        "CFBundleIdentifier": "com.nrhof.robot",
+        "CFBundleIdentifier": "com.nrhof.bot",
         "CFBundleVersion": "1.0.0",
         "CFBundleShortVersionString": "1.0.0",
         "NSHighResolutionCapable": True,
