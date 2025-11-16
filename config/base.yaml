@@ -32,11 +32,11 @@ audio:
 voice_front_end:
   enabled: true              # Enable voice front-end worker (replaces mic_listener, vad, wake_word workers)
   enable_vad: true           # Enable Cobra VAD for speech detection
-  vad_threshold: 0.4         # Voice probability threshold (0.0 to 1.0) - lowered to prevent early cutoff
+  vad_threshold: 0.25         # Voice probability threshold (0.0 to 1.0) - lowered to prevent early cutoff
   vad_tail_ms: 800           # Tail silence for speech segment end detection
-  speech_timeout_s: 4.0      # Max time to wait for speech after wake word
-  min_post_speech_silence_ms: 800  # Minimum silence after speech before Rhino finalize
-  rhino_finalize_timeout_ms: 8000  # Max time to wait for Rhino to finalize inference
+  speech_timeout_s: 5.0      # Max time to wait for speech after wake word
+  min_post_speech_silence_ms: 600  # Minimum silence after speech before Rhino finalize
+  rhino_finalize_timeout_ms: 10000  # Max time to wait for Rhino to finalize inference
   intent_cooldown_s: 2.0     # Cooldown window after intent resolution (prevents re-triggers during scene transitions)
   log_interval_s: 10         # How often to log stats
   update_interval_ms: 100    # How often to update audio level for HUD
