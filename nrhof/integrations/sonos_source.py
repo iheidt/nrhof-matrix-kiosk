@@ -540,3 +540,80 @@ class SonosSource(BaseWorker):
         except Exception as e:
             self.logger.error(f"Failed to restart track: {e}")
             return False
+
+    def set_volume(self, volume_percent: int) -> bool:
+        """Set volume to specific level.
+
+        Args:
+            volume_percent: Volume level (0-100)
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.speaker:
+            self.logger.warning("Sonos not enabled or speaker not available, cannot set volume")
+            return False
+
+        try:
+            # Clamp volume to 0-100
+            volume_percent = max(0, min(100, volume_percent))
+            self.speaker.volume = volume_percent
+            self.logger.info(f"Sonos ({self.speaker.player_name}): Set volume to {volume_percent}%")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to set volume: {e}")
+            return False
+
+    def increase_volume(self, step: int = 10) -> bool:
+        """Increase volume by step amount.
+
+        Args:
+            step: Amount to increase (default: 10%)
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.speaker:
+            self.logger.warning(
+                "Sonos not enabled or speaker not available, cannot increase volume"
+            )
+            return False
+
+        try:
+            current_volume = self.speaker.volume
+            new_volume = min(100, current_volume + step)
+            self.speaker.volume = new_volume
+            self.logger.info(
+                f"Sonos ({self.speaker.player_name}): Increased volume to {new_volume}% (was {current_volume}%)"
+            )
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to increase volume: {e}")
+            return False
+
+    def decrease_volume(self, step: int = 10) -> bool:
+        """Decrease volume by step amount.
+
+        Args:
+            step: Amount to decrease (default: 10%)
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.speaker:
+            self.logger.warning(
+                "Sonos not enabled or speaker not available, cannot decrease volume"
+            )
+            return False
+
+        try:
+            current_volume = self.speaker.volume
+            new_volume = max(0, current_volume - step)
+            self.speaker.volume = new_volume
+            self.logger.info(
+                f"Sonos ({self.speaker.player_name}): Decreased volume to {new_volume}% (was {current_volume}%)"
+            )
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to decrease volume: {e}")
+            return False

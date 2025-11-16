@@ -328,13 +328,71 @@ def _register_media_intents(intent_router: IntentRouter, app_context: AppContext
 
     def volume_up(event_bus, **slots):
         """Increase volume."""
-        # TODO: Implement volume control
-        print("[INTENT] Volume up requested (not implemented)")
+        from nrhof.core.worker_registry import get_global_registry
+
+        registry = get_global_registry()
+        if not registry:
+            print("[INTENT] Volume up requested but WorkerRegistry not available")
+            return
+
+        source_manager = registry.get_source_manager()
+        if not source_manager:
+            print("[INTENT] Volume up requested but SourceManager not available")
+            return
+
+        current_source = source_manager.get_current_source()
+        print(f"[INTENT] Volume up requested (current source: {current_source})")
+
+        if current_source == "spotify":
+            spotify = registry.get("spotify_source")
+            if spotify and hasattr(spotify, "increase_volume"):
+                if spotify.increase_volume(step=10):
+                    print("[INTENT] ✓ Spotify volume increased")
+                else:
+                    print("[INTENT] ✗ Failed to increase Spotify volume")
+        elif current_source == "sonos":
+            sonos = registry.get("sonos_source")
+            if sonos and hasattr(sonos, "increase_volume"):
+                if sonos.increase_volume(step=5):  # Sonos: smaller steps
+                    print("[INTENT] ✓ Sonos volume increased")
+                else:
+                    print("[INTENT] ✗ Failed to increase Sonos volume")
+        else:
+            print(f"[INTENT] No active playback to adjust volume (source: {current_source})")
 
     def volume_down(event_bus, **slots):
         """Decrease volume."""
-        # TODO: Implement volume control
-        print("[INTENT] Volume down requested (not implemented)")
+        from nrhof.core.worker_registry import get_global_registry
+
+        registry = get_global_registry()
+        if not registry:
+            print("[INTENT] Volume down requested but WorkerRegistry not available")
+            return
+
+        source_manager = registry.get_source_manager()
+        if not source_manager:
+            print("[INTENT] Volume down requested but SourceManager not available")
+            return
+
+        current_source = source_manager.get_current_source()
+        print(f"[INTENT] Volume down requested (current source: {current_source})")
+
+        if current_source == "spotify":
+            spotify = registry.get("spotify_source")
+            if spotify and hasattr(spotify, "decrease_volume"):
+                if spotify.decrease_volume(step=10):
+                    print("[INTENT] ✓ Spotify volume decreased")
+                else:
+                    print("[INTENT] ✗ Failed to decrease Spotify volume")
+        elif current_source == "sonos":
+            sonos = registry.get("sonos_source")
+            if sonos and hasattr(sonos, "decrease_volume"):
+                if sonos.decrease_volume(step=5):  # Sonos: smaller steps
+                    print("[INTENT] ✓ Sonos volume decreased")
+                else:
+                    print("[INTENT] ✗ Failed to decrease Sonos volume")
+        else:
+            print(f"[INTENT] No active playback to adjust volume (source: {current_source})")
 
     def set_volume(event_bus, level=None, **slots):
         """Set volume to specific level.

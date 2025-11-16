@@ -337,3 +337,86 @@ class SpotifySource(BaseWorker):
         except Exception as e:
             self.logger.error(f"Failed to restart track: {e}")
             return False
+
+    def set_volume(self, volume_percent: int) -> bool:
+        """Set volume to specific level.
+
+        Args:
+            volume_percent: Volume level (0-100)
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.sp:
+            self.logger.warning("Spotify not enabled, cannot set volume")
+            return False
+
+        try:
+            # Clamp volume to 0-100
+            volume_percent = max(0, min(100, volume_percent))
+            self.sp.volume(volume_percent)
+            self.logger.info(f"Spotify: Set volume to {volume_percent}%")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to set volume: {e}")
+            return False
+
+    def increase_volume(self, step: int = 10) -> bool:
+        """Increase volume by step amount.
+
+        Args:
+            step: Amount to increase (default: 10%)
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.sp:
+            self.logger.warning("Spotify not enabled, cannot increase volume")
+            return False
+
+        try:
+            # Get current volume
+            playback = self.sp.current_playback()
+            if not playback or not playback.get("device"):
+                self.logger.warning("Cannot increase volume: No active device")
+                return False
+
+            current_volume = playback["device"].get("volume_percent", 50)
+            new_volume = min(100, current_volume + step)
+
+            self.sp.volume(new_volume)
+            self.logger.info(f"Spotify: Increased volume to {new_volume}% (was {current_volume}%)")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to increase volume: {e}")
+            return False
+
+    def decrease_volume(self, step: int = 10) -> bool:
+        """Decrease volume by step amount.
+
+        Args:
+            step: Amount to decrease (default: 10%)
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.sp:
+            self.logger.warning("Spotify not enabled, cannot decrease volume")
+            return False
+
+        try:
+            # Get current volume
+            playback = self.sp.current_playback()
+            if not playback or not playback.get("device"):
+                self.logger.warning("Cannot decrease volume: No active device")
+                return False
+
+            current_volume = playback["device"].get("volume_percent", 50)
+            new_volume = max(0, current_volume - step)
+
+            self.sp.volume(new_volume)
+            self.logger.info(f"Spotify: Decreased volume to {new_volume}% (was {current_volume}%)")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to decrease volume: {e}")
+            return False
