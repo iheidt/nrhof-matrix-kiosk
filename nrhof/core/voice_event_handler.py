@@ -27,6 +27,7 @@ class VoiceEventHandler:
         self.event_bus.subscribe(EventType.VOICE_SPEECH_END, self._on_speech_end)
         self.event_bus.subscribe(EventType.VOICE_TIMEOUT, self._on_timeout)
         self.event_bus.subscribe(EventType.VOICE_INTENT_RESOLVED, self._on_intent_resolved)
+        self.event_bus.subscribe(EventType.VOICE_INTENT_RECOGNIZED, self._on_intent_recognized)
 
         logger.info("Voice event handler initialized")
 
@@ -109,6 +110,31 @@ class VoiceEventHandler:
                 logger.error(f"Failed to route voice intent: {e}")
         else:
             logger.warning("No IntentRouter available for voice intent routing")
+
+    def _on_intent_recognized(self, event):
+        """Handle intent recognized by LLM NLU.
+
+        Routes intent to IntentRouter for execution (same as Rhino intents).
+        """
+        if not event.payload:
+            return
+
+        intent = event.payload.get("intent")
+        slots = event.payload.get("slots", {})
+        confidence = event.payload.get("confidence", 0.0)
+
+        logger.info(
+            f"Intent recognized (LLM): {intent}, confidence={confidence:.2f}, slots={slots}"
+        )
+
+        # Route to IntentRouter if available
+        if self.intent_router:
+            try:
+                self.intent_router.route_voice_intent(intent, slots)
+            except Exception as e:
+                logger.error(f"Failed to route LLM intent: {e}")
+        else:
+            logger.warning("No IntentRouter available for LLM intent routing")
 
 
 # Global instance

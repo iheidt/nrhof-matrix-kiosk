@@ -53,6 +53,13 @@ whisper:
   server_url: "http://127.0.0.1:9001"  # whisper.cpp server endpoint
   timeout: 5.0               # Request timeout in seconds
 
+# LLM NLU (Ollama - intent classification and chat)
+llm:
+  enabled: true              # Enable LLM for intent classification
+  server_url: "http://localhost:11434"  # Ollama server endpoint
+  model: "llama3.1:8b"       # Model to use (llama3.1:8b or llama3.1:70b)
+  timeout: 30.0              # Request timeout in seconds
+
 # Mic listener (legacy - replaced by voice_front_end)
 mic_listener:
   enabled: false             # Disabled (replaced by voice_front_end)

@@ -122,14 +122,25 @@ class IntentRouter:
             pass
 
     def route_voice_intent(self, intent_name: str, slots: dict):
-        """Route Rhino voice intent to appropriate app intent.
+        """Route voice intent to appropriate app intent.
 
-        Maps Rhino intent names to Intent enum values and emits them.
+        Handles three cases (in priority order):
+        1. LLM aliases (e.g., "PAUSE" → "pausePlayback") via LLM_INTENT_MAP
+        2. Rhino canonical names (e.g., "pausePlayback" → Intent.PAUSE)
+        3. Direct Intent enum names (future-proof for new intents)
 
         Args:
-            intent_name: Intent name from Rhino (e.g., "goHome", "pauseMusic")
-            slots: Slot parameters from Rhino
+            intent_name: Intent name from Rhino or LLM
+            slots: Slot parameters
         """
+        from nrhof.routing.llm_intent_map import LLM_INTENT_MAP
+
+        # Step 1: Check if it's an LLM alias that needs translation
+        if intent_name in LLM_INTENT_MAP:
+            canonical_name = LLM_INTENT_MAP[intent_name]
+            self.logger.info(f"Translating LLM alias: {intent_name} → {canonical_name}")
+            intent_name = canonical_name  # Use canonical name for next steps
+
         # Map Rhino intent names to Intent enums and optional slot transformations
         # Format: {rhino_intent: (Intent, slot_overrides)}
         # Mapped from nrhof_picovoice.yml context file

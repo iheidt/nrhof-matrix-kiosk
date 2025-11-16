@@ -24,6 +24,7 @@ from nrhof.scenes.scene_manager import SceneManager
 from nrhof.voice.engine import VoiceEngine
 from nrhof.workers.asr_worker import ASRWorker
 from nrhof.workers.audio_worker import AudioWorker
+from nrhof.workers.llm_worker import LLMWorker
 from nrhof.workers.recognition_worker import RecognitionWorker
 from nrhof.workers.song_recognition_worker import SongRecognitionWorker
 from nrhof.workers.touch_worker import TouchInputWorker
@@ -221,6 +222,11 @@ def start_workers(cfg, voice_engine=None):
     whisper_config = config_dict.get("whisper", {})
     if whisper_config.get("enabled", True):
         registry.register("asr_worker", ASRWorker(config_dict))
+
+    # Register LLM worker (Intent classification via Ollama)
+    llm_config = config_dict.get("llm", {})
+    if llm_config.get("enabled", True):
+        registry.register("llm_worker", LLMWorker(config_dict))
 
     # Register touch worker (UPDD integration)
     touch_config = config_dict.get("touch", {})
