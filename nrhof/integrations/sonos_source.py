@@ -339,3 +339,204 @@ class SonosSource(BaseWorker):
 
         except Exception as e:
             self.logger.debug(f"Could not enrich with Spotify progress: {e}")
+
+    # ===== Playback Control Methods =====
+
+    def next_track(self) -> bool:
+        """Skip to next track.
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.speaker:
+            self.logger.warning("Sonos not enabled or speaker not available, cannot skip track")
+            return False
+
+        try:
+            # Check if playing Spotify (need to use Spotify API instead of Sonos UPnP)
+            current_track_info = self.speaker.get_current_track_info()
+            uri = current_track_info.get("uri", "")
+
+            # If Spotify is playing through Sonos, try Spotify API first
+            if "spotify" in uri.lower() and self.spotify_client:
+                try:
+                    self.spotify_client.next_track()
+                    self.logger.info(
+                        f"Sonos ({self.speaker.player_name}): Skipped to next track via Spotify API"
+                    )
+                    return True
+                except Exception as spotify_error:
+                    self.logger.warning(f"Spotify API skip failed, trying Sonos: {spotify_error}")
+                    # Fall through to Sonos method
+
+            # Try Sonos native control
+            queue_size = self.speaker.queue_size
+            current_position = int(current_track_info.get("playlist_position", "0"))
+
+            # If no queue, might be radio or single track
+            if queue_size == 0:
+                # Try anyway - some Spotify Connect sessions report 0 queue but work
+                try:
+                    self.speaker.next()
+                    self.logger.info(f"Sonos ({self.speaker.player_name}): Skipped to next track")
+                    return True
+                except Exception:
+                    self.logger.warning("Cannot skip: No queue and Sonos next() failed")
+                    return False
+
+            if current_position >= queue_size:
+                self.logger.warning(
+                    f"Cannot skip: At end of queue ({current_position}/{queue_size})"
+                )
+                return False
+
+            self.speaker.next()
+            self.logger.info(f"Sonos ({self.speaker.player_name}): Skipped to next track")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to skip track: {e}")
+            return False
+
+    def previous_track(self) -> bool:
+        """Go to previous track.
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.speaker:
+            self.logger.warning(
+                "Sonos not enabled or speaker not available, cannot go to previous track"
+            )
+            return False
+
+        try:
+            # Check if playing Spotify (need to use Spotify API instead of Sonos UPnP)
+            current_track_info = self.speaker.get_current_track_info()
+            uri = current_track_info.get("uri", "")
+
+            # If Spotify is playing through Sonos, try Spotify API first
+            if "spotify" in uri.lower() and self.spotify_client:
+                try:
+                    self.spotify_client.previous_track()
+                    self.logger.info(
+                        f"Sonos ({self.speaker.player_name}): Went to previous track via Spotify API"
+                    )
+                    return True
+                except Exception as spotify_error:
+                    self.logger.warning(
+                        f"Spotify API previous failed, trying Sonos: {spotify_error}"
+                    )
+                    # Fall through to Sonos method
+
+            # Try Sonos native control
+            queue_size = self.speaker.queue_size
+            current_position = int(current_track_info.get("playlist_position", "0"))
+
+            # If no queue, might be Spotify Connect
+            if queue_size == 0:
+                # Try anyway
+                try:
+                    self.speaker.previous()
+                    self.logger.info(f"Sonos ({self.speaker.player_name}): Went to previous track")
+                    return True
+                except Exception:
+                    self.logger.warning(
+                        "Cannot go to previous: No queue and Sonos previous() failed"
+                    )
+                    return False
+
+            if current_position <= 1:
+                self.logger.warning(
+                    f"Cannot go to previous: At start of queue ({current_position})"
+                )
+                return False
+
+            self.speaker.previous()
+            self.logger.info(f"Sonos ({self.speaker.player_name}): Went to previous track")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to go to previous track: {e}")
+            return False
+
+    def pause_playback(self) -> bool:
+        """Pause current playback.
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.speaker:
+            self.logger.warning("Sonos not enabled or speaker not available, cannot pause")
+            return False
+
+        try:
+            # Check if playing Spotify
+            current_track_info = self.speaker.get_current_track_info()
+            uri = current_track_info.get("uri", "")
+
+            # If Spotify, try Spotify API first for more reliable control
+            if "spotify" in uri.lower() and self.spotify_client:
+                try:
+                    self.spotify_client.pause_playback()
+                    self.logger.info(f"Sonos ({self.speaker.player_name}): Paused via Spotify API")
+                    return True
+                except Exception as spotify_error:
+                    self.logger.warning(f"Spotify API pause failed, trying Sonos: {spotify_error}")
+                    # Fall through to Sonos method
+
+            self.speaker.pause()
+            self.logger.info(f"Sonos ({self.speaker.player_name}): Paused playback")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to pause playback: {e}")
+            return False
+
+    def resume_playback(self) -> bool:
+        """Resume/play current playback.
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.speaker:
+            self.logger.warning("Sonos not enabled or speaker not available, cannot resume")
+            return False
+
+        try:
+            # Check if playing Spotify
+            current_track_info = self.speaker.get_current_track_info()
+            uri = current_track_info.get("uri", "")
+
+            # If Spotify, try Spotify API first
+            if "spotify" in uri.lower() and self.spotify_client:
+                try:
+                    self.spotify_client.start_playback()
+                    self.logger.info(f"Sonos ({self.speaker.player_name}): Resumed via Spotify API")
+                    return True
+                except Exception as spotify_error:
+                    self.logger.warning(f"Spotify API resume failed, trying Sonos: {spotify_error}")
+                    # Fall through to Sonos method
+
+            self.speaker.play()
+            self.logger.info(f"Sonos ({self.speaker.player_name}): Resumed playback")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to resume playback: {e}")
+            return False
+
+    def restart_track(self) -> bool:
+        """Restart current track from beginning.
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.speaker:
+            self.logger.warning("Sonos not enabled or speaker not available, cannot restart track")
+            return False
+
+        try:
+            # Seek to position 0:00:00 (start of track)
+            self.speaker.seek("0:00:00")
+            self.logger.info(f"Sonos ({self.speaker.player_name}): Restarted track from beginning")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to restart track: {e}")
+            return False

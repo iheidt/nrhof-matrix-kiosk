@@ -154,7 +154,12 @@ def _register_media_intents(intent_router: IntentRouter, app_context: AppContext
                 else:
                     print("[INTENT] ✗ Failed to pause Spotify")
         elif current_source == "sonos":
-            print("[INTENT] Sonos pause not yet implemented")
+            sonos = registry.get("sonos_source")
+            if sonos and hasattr(sonos, "pause_playback"):
+                if sonos.pause_playback():
+                    print("[INTENT] ✓ Sonos playback paused")
+                else:
+                    print("[INTENT] ✗ Failed to pause Sonos")
         else:
             print(f"[INTENT] No active playback to pause (source: {current_source})")
 
@@ -183,9 +188,41 @@ def _register_media_intents(intent_router: IntentRouter, app_context: AppContext
                 else:
                     print("[INTENT] ✗ Failed to resume Spotify")
         elif current_source == "sonos":
-            print("[INTENT] Sonos resume not yet implemented")
+            sonos = registry.get("sonos_source")
+            if sonos and hasattr(sonos, "resume_playback"):
+                if sonos.resume_playback():
+                    print("[INTENT] ✓ Sonos playback resumed")
+                else:
+                    print("[INTENT] ✗ Failed to resume Sonos")
         else:
-            print(f"[INTENT] No active playback to resume (source: {current_source})")
+            # No active source - try both (handles paused state where source was cleared)
+            print("[INTENT] No active source, trying all available sources...")
+
+            resumed = False
+
+            # Try Sonos first (typically local)
+            sonos = registry.get("sonos_source")
+            if sonos and hasattr(sonos, "resume_playback"):
+                try:
+                    if sonos.resume_playback():
+                        print("[INTENT] ✓ Sonos playback resumed")
+                        resumed = True
+                except Exception as e:
+                    print(f"[INTENT] Sonos resume failed: {e}")
+
+            # Try Spotify if Sonos didn't work
+            if not resumed:
+                spotify = registry.get("spotify_source")
+                if spotify and hasattr(spotify, "resume_playback"):
+                    try:
+                        if spotify.resume_playback():
+                            print("[INTENT] ✓ Spotify playback resumed")
+                            resumed = True
+                    except Exception as e:
+                        print(f"[INTENT] Spotify resume failed: {e}")
+
+            if not resumed:
+                print("[INTENT] ✗ No playback could be resumed")
 
     def next_track(event_bus, **slots):
         """Skip to next track."""
@@ -212,7 +249,12 @@ def _register_media_intents(intent_router: IntentRouter, app_context: AppContext
                 else:
                     print("[INTENT] ✗ Failed to skip track")
         elif current_source == "sonos":
-            print("[INTENT] Sonos next not yet implemented")
+            sonos = registry.get("sonos_source")
+            if sonos and hasattr(sonos, "next_track"):
+                if sonos.next_track():
+                    print("[INTENT] ✓ Sonos skipped to next track")
+                else:
+                    print("[INTENT] ✗ Failed to skip Sonos track")
         else:
             print(f"[INTENT] No active playback to skip (source: {current_source})")
 
@@ -241,7 +283,12 @@ def _register_media_intents(intent_router: IntentRouter, app_context: AppContext
                 else:
                     print("[INTENT] ✗ Failed to go to previous track")
         elif current_source == "sonos":
-            print("[INTENT] Sonos previous not yet implemented")
+            sonos = registry.get("sonos_source")
+            if sonos and hasattr(sonos, "previous_track"):
+                if sonos.previous_track():
+                    print("[INTENT] ✓ Sonos went to previous track")
+                else:
+                    print("[INTENT] ✗ Failed to go to previous Sonos track")
         else:
             print(f"[INTENT] No active playback to go back (source: {current_source})")
 
@@ -270,7 +317,12 @@ def _register_media_intents(intent_router: IntentRouter, app_context: AppContext
                 else:
                     print("[INTENT] ✗ Failed to restart track")
         elif current_source == "sonos":
-            print("[INTENT] Sonos restart not yet implemented")
+            sonos = registry.get("sonos_source")
+            if sonos and hasattr(sonos, "restart_track"):
+                if sonos.restart_track():
+                    print("[INTENT] ✓ Sonos restarted track from beginning")
+                else:
+                    print("[INTENT] ✗ Failed to restart Sonos track")
         else:
             print(f"[INTENT] No active playback to restart (source: {current_source})")
 
