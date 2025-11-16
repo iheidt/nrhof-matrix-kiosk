@@ -49,9 +49,9 @@ class SpotifySource(BaseWorker):
         """Initialize Spotify client with OAuth."""
         spotify_config = self.config.get("spotify", {})
 
-        # Required scopes for reading playback state (including podcasts/audiobooks)
+        # Required scopes for reading playback state and controlling playback
         # Note: Spotify Free users may not have access to podcast/audiobook metadata via API
-        scope = "user-read-playback-state user-read-currently-playing user-read-playback-position"
+        scope = "user-read-playback-state user-read-currently-playing user-read-playback-position user-modify-playback-state"
 
         auth_manager = SpotifyOAuth(
             client_id=spotify_config.get("client_id"),
@@ -244,3 +244,96 @@ class SpotifySource(BaseWorker):
             self.logger.error(f"Error getting current track: {e}")
 
         return None
+
+    # ===== Playback Control Methods =====
+
+    def next_track(self) -> bool:
+        """Skip to next track.
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.sp:
+            self.logger.warning("Spotify not enabled, cannot skip track")
+            return False
+
+        try:
+            self.sp.next_track()
+            self.logger.info("Spotify: Skipped to next track")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to skip track: {e}")
+            return False
+
+    def previous_track(self) -> bool:
+        """Go to previous track.
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.sp:
+            self.logger.warning("Spotify not enabled, cannot go to previous track")
+            return False
+
+        try:
+            self.sp.previous_track()
+            self.logger.info("Spotify: Went to previous track")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to go to previous track: {e}")
+            return False
+
+    def pause_playback(self) -> bool:
+        """Pause current playback.
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.sp:
+            self.logger.warning("Spotify not enabled, cannot pause")
+            return False
+
+        try:
+            self.sp.pause_playback()
+            self.logger.info("Spotify: Paused playback")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to pause playback: {e}")
+            return False
+
+    def resume_playback(self) -> bool:
+        """Resume/play current playback.
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.sp:
+            self.logger.warning("Spotify not enabled, cannot resume")
+            return False
+
+        try:
+            self.sp.start_playback()
+            self.logger.info("Spotify: Resumed playback")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to resume playback: {e}")
+            return False
+
+    def restart_track(self) -> bool:
+        """Restart current track from beginning.
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.enabled or not self.sp:
+            self.logger.warning("Spotify not enabled, cannot restart track")
+            return False
+
+        try:
+            # Seek to position 0 (start of track)
+            self.sp.seek_track(0)
+            self.logger.info("Spotify: Restarted track from beginning")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to restart track: {e}")
+            return False

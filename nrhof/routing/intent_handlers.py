@@ -27,7 +27,7 @@ def register_all_intents(
     _register_selection_intents(intent_router, app_context)
 
     # Media control intents (voice-ready)
-    _register_media_control_intents(intent_router)
+    _register_media_intents(intent_router, app_context)
 
     # System intents (voice-ready)
     _register_system_intents(intent_router, app_context)
@@ -121,37 +121,158 @@ def _register_selection_intents(
     intent_router.register(Intent.SELECT_SUB_EXPERIENCE, select_sub_experience_handler)
 
 
-def _register_media_control_intents(intent_router: IntentRouter):
-    """Register media control intents (pause, resume, next, volume).
+def _register_media_intents(intent_router: IntentRouter, app_context: AppContext):
+    """Register media control intents (pause, play, next, etc.).
 
     All handlers use signature: handler(event_bus, **slots)
-    These are stubs ready for voice integration.
+    These handlers control Spotify/Sonos playback via WorkerRegistry.
     """
 
     def pause(event_bus, **slots):
-        """Pause current playback."""
-        # TODO: Implement pause via pygame.mixer or external player control
-        print("[INTENT] Pause requested (not implemented)")
+        """Pause playback."""
+        from nrhof.core.worker_registry import get_global_registry
+
+        registry = get_global_registry()
+        if not registry:
+            print("[INTENT] Pause requested but WorkerRegistry not available")
+            return
+
+        # Get current source
+        source_manager = registry.get_source_manager()
+        if not source_manager:
+            print("[INTENT] Pause requested but SourceManager not available")
+            return
+
+        current_source = source_manager.get_current_source()
+        print(f"[INTENT] Pause requested (current source: {current_source})")
+
+        if current_source == "spotify":
+            spotify = registry.get("spotify_source")
+            if spotify and hasattr(spotify, "pause_playback"):
+                if spotify.pause_playback():
+                    print("[INTENT] ✓ Spotify playback paused")
+                else:
+                    print("[INTENT] ✗ Failed to pause Spotify")
+        elif current_source == "sonos":
+            print("[INTENT] Sonos pause not yet implemented")
+        else:
+            print(f"[INTENT] No active playback to pause (source: {current_source})")
 
     def resume(event_bus, **slots):
-        """Resume current playback."""
-        # TODO: Implement resume via pygame.mixer or external player control
-        print("[INTENT] Resume requested (not implemented)")
+        """Resume playback."""
+        from nrhof.core.worker_registry import get_global_registry
+
+        registry = get_global_registry()
+        if not registry:
+            print("[INTENT] Resume requested but WorkerRegistry not available")
+            return
+
+        source_manager = registry.get_source_manager()
+        if not source_manager:
+            print("[INTENT] Resume requested but SourceManager not available")
+            return
+
+        current_source = source_manager.get_current_source()
+        print(f"[INTENT] Resume requested (current source: {current_source})")
+
+        if current_source == "spotify":
+            spotify = registry.get("spotify_source")
+            if spotify and hasattr(spotify, "resume_playback"):
+                if spotify.resume_playback():
+                    print("[INTENT] ✓ Spotify playback resumed")
+                else:
+                    print("[INTENT] ✗ Failed to resume Spotify")
+        elif current_source == "sonos":
+            print("[INTENT] Sonos resume not yet implemented")
+        else:
+            print(f"[INTENT] No active playback to resume (source: {current_source})")
 
     def next_track(event_bus, **slots):
         """Skip to next track."""
-        # TODO: Implement next track via Spotify/Sonos API
-        print("[INTENT] Next track requested (not implemented)")
+        from nrhof.core.worker_registry import get_global_registry
+
+        registry = get_global_registry()
+        if not registry:
+            print("[INTENT] Next track requested but WorkerRegistry not available")
+            return
+
+        source_manager = registry.get_source_manager()
+        if not source_manager:
+            print("[INTENT] Next track requested but SourceManager not available")
+            return
+
+        current_source = source_manager.get_current_source()
+        print(f"[INTENT] Next track requested (current source: {current_source})")
+
+        if current_source == "spotify":
+            spotify = registry.get("spotify_source")
+            if spotify and hasattr(spotify, "next_track"):
+                if spotify.next_track():
+                    print("[INTENT] ✓ Skipped to next track")
+                else:
+                    print("[INTENT] ✗ Failed to skip track")
+        elif current_source == "sonos":
+            print("[INTENT] Sonos next not yet implemented")
+        else:
+            print(f"[INTENT] No active playback to skip (source: {current_source})")
 
     def previous_track(event_bus, **slots):
         """Go to previous track."""
-        # TODO: Implement previous track via Spotify/Sonos API
-        print("[INTENT] Previous track requested (not implemented)")
+        from nrhof.core.worker_registry import get_global_registry
+
+        registry = get_global_registry()
+        if not registry:
+            print("[INTENT] Previous track requested but WorkerRegistry not available")
+            return
+
+        source_manager = registry.get_source_manager()
+        if not source_manager:
+            print("[INTENT] Previous track requested but SourceManager not available")
+            return
+
+        current_source = source_manager.get_current_source()
+        print(f"[INTENT] Previous track requested (current source: {current_source})")
+
+        if current_source == "spotify":
+            spotify = registry.get("spotify_source")
+            if spotify and hasattr(spotify, "previous_track"):
+                if spotify.previous_track():
+                    print("[INTENT] ✓ Went to previous track")
+                else:
+                    print("[INTENT] ✗ Failed to go to previous track")
+        elif current_source == "sonos":
+            print("[INTENT] Sonos previous not yet implemented")
+        else:
+            print(f"[INTENT] No active playback to go back (source: {current_source})")
 
     def restart_track(event_bus, **slots):
         """Restart current track from beginning."""
-        # TODO: Implement restart via Spotify/Sonos API
-        print("[INTENT] Restart track requested (not implemented)")
+        from nrhof.core.worker_registry import get_global_registry
+
+        registry = get_global_registry()
+        if not registry:
+            print("[INTENT] Restart track requested but WorkerRegistry not available")
+            return
+
+        source_manager = registry.get_source_manager()
+        if not source_manager:
+            print("[INTENT] Restart track requested but SourceManager not available")
+            return
+
+        current_source = source_manager.get_current_source()
+        print(f"[INTENT] Restart track requested (current source: {current_source})")
+
+        if current_source == "spotify":
+            spotify = registry.get("spotify_source")
+            if spotify and hasattr(spotify, "restart_track"):
+                if spotify.restart_track():
+                    print("[INTENT] ✓ Restarted track from beginning")
+                else:
+                    print("[INTENT] ✗ Failed to restart track")
+        elif current_source == "sonos":
+            print("[INTENT] Sonos restart not yet implemented")
+        else:
+            print(f"[INTENT] No active playback to restart (source: {current_source})")
 
     def volume_up(event_bus, **slots):
         """Increase volume."""
@@ -176,6 +297,7 @@ def _register_media_control_intents(intent_router: IntentRouter):
     intent_router.register(Intent.RESUME, resume)
     intent_router.register(Intent.NEXT, next_track)
     intent_router.register(Intent.PREVIOUS, previous_track)
+    intent_router.register(Intent.RESTART_TRACK, restart_track)
     intent_router.register(Intent.VOLUME_UP, volume_up)
     intent_router.register(Intent.VOLUME_DOWN, volume_down)
     intent_router.register(Intent.SET_VOLUME, set_volume)

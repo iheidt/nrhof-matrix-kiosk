@@ -186,13 +186,16 @@ def start_workers(cfg, voice_engine=None):
     Returns:
         WorkerRegistry: Registry containing all workers
     """
-    from nrhof.core.worker_registry import WorkerRegistry
+    from nrhof.core.worker_registry import WorkerRegistry, set_global_registry
 
     logger = setup_logger("app_initializer")
     config_dict = cfg
 
     # Create worker registry
     registry = WorkerRegistry()
+
+    # Set as global registry for intent handler access
+    set_global_registry(registry)
 
     # Register core workers
     registry.register("audio_worker", AudioWorker(config_dict))
@@ -201,6 +204,7 @@ def start_workers(cfg, voice_engine=None):
 
     # Initialize source manager (not a worker, just a manager)
     source_manager = SourceManager(config_dict)
+    registry.set_source_manager(source_manager)
     logger.info("SourceManager initialized")
 
     # Register source workers

@@ -6,6 +6,29 @@ from nrhof.core.logging_utils import setup_logger
 
 logger = setup_logger(__name__)
 
+# Global registry singleton
+_global_registry: "WorkerRegistry | None" = None
+
+
+def set_global_registry(registry: "WorkerRegistry") -> None:
+    """Set the global worker registry.
+
+    Args:
+        registry: WorkerRegistry instance
+    """
+    global _global_registry
+    _global_registry = registry
+    logger.debug("Global worker registry set")
+
+
+def get_global_registry() -> "WorkerRegistry | None":
+    """Get the global worker registry.
+
+    Returns:
+        WorkerRegistry instance or None if not set
+    """
+    return _global_registry
+
 
 class WorkerRegistry:
     """Registry for managing worker lifecycle with consistent hooks.
@@ -20,6 +43,7 @@ class WorkerRegistry:
     def __init__(self):
         """Initialize empty worker registry."""
         self._workers: dict[str, Any] = {}
+        self._source_manager: Any | None = None
         self._started = False
 
     def register(self, name: str, worker: Any) -> None:
@@ -124,3 +148,20 @@ class WorkerRegistry:
     def __contains__(self, name: str) -> bool:
         """Check if worker is registered."""
         return name in self._workers
+
+    def set_source_manager(self, source_manager: Any) -> None:
+        """Set the SourceManager instance.
+
+        Args:
+            source_manager: SourceManager instance
+        """
+        self._source_manager = source_manager
+        logger.debug("SourceManager registered with WorkerRegistry")
+
+    def get_source_manager(self) -> Any | None:
+        """Get the SourceManager instance.
+
+        Returns:
+            SourceManager instance or None if not set
+        """
+        return self._source_manager
