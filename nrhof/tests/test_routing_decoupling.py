@@ -52,6 +52,7 @@ def test_routing_without_scenes_import():
     import sys
 
     # Import the modules to ensure they're loaded
+    from nrhof.routing import intent_handlers  # noqa: F401
 
     # Check that scenes module is not in the routing module's dependencies
     router_module = sys.modules["nrhof.routing.intent_router"]

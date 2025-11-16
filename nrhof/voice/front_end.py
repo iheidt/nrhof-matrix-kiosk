@@ -10,15 +10,16 @@ import numpy as np
 
 from nrhof.core.audio_io import stream_mic_frames
 from nrhof.core.logging_utils import setup_logger
+from nrhof.core.voice_constants import VOICE_FRAME_DURATION_MS, VOICE_SAMPLE_RATE
 from nrhof.voice.aec import AEC
-from nrhof.voice.koala import Koala, create_koala
+from nrhof.voice.koala import Koala, KoalaFrameAdapter, create_koala
 
 logger = setup_logger(__name__)
 
 
 def create_voice_pipeline(
-    sample_rate: int = 16000,
-    frame_duration_ms: int = 32,
+    sample_rate: int = VOICE_SAMPLE_RATE,
+    frame_duration_ms: int = VOICE_FRAME_DURATION_MS,
     enable_koala: bool = True,
     koala_instance: Koala | None = None,
 ) -> Generator[np.ndarray, None, None]:
@@ -27,8 +28,8 @@ def create_voice_pipeline(
     Yields cleaned audio frames processed through AEC → Koala.
 
     Args:
-        sample_rate: Sample rate in Hz
-        frame_duration_ms: Frame duration in ms (32ms = 512 samples recommended for Rhino/Cobra/Porcupine)
+        sample_rate: Sample rate in Hz (default: 16kHz)
+        frame_duration_ms: Frame duration in ms (default: 32ms = 512 samples for Rhino/Cobra/Porcupine)
         enable_koala: Enable Koala noise suppression
         koala_instance: Optional pre-created Koala instance (if None, creates new one)
 
@@ -53,61 +54,27 @@ def create_voice_pipeline(
     if enable_koala and koala is None:
         koala = create_koala()
 
+    # Wrap Koala in frame adapter if enabled
+    koala_adapter = None
     if koala:
-        koala_frame_length = koala.frame_length
+        target_frame_size = int(sample_rate * frame_duration_ms / 1000)  # e.g., 512 for 32ms
+        koala_adapter = KoalaFrameAdapter(koala, target_frame_size=target_frame_size)
         logger.info(
-            f"Voice pipeline: AEC → Koala (input: {koala_frame_length} samples, "
-            f"output: {frame_duration_ms}ms/{int(sample_rate * frame_duration_ms / 1000)} samples)"
+            f"Voice pipeline: AEC → Koala (256 samples) → Adapter ({target_frame_size} samples)"
         )
     else:
         logger.info("Voice pipeline: AEC only (Koala disabled)")
-
-    # Frame buffering for Koala input and output
-    koala_input_buffer = np.array([], dtype=np.int16)
-    koala_output_buffer = np.array([], dtype=np.int16)
-    target_output_size = int(sample_rate * frame_duration_ms / 1000)  # e.g., 512 for 32ms
 
     # Stream mic frames and process
     for raw_frame in stream_mic_frames(frame_duration_ms=frame_duration_ms):
         # Step 1: AEC (stub pass-through for now)
         aec_frame = aec.process(raw_frame)
 
-        # Step 2: Koala noise suppression
-        if koala:
-            # Ensure frame is numpy array
-            if not isinstance(aec_frame, np.ndarray):
-                aec_frame = np.array(aec_frame, dtype=np.int16)
-
-            # Buffer incoming frames for Koala processing
-            koala_input_buffer = np.concatenate([koala_input_buffer, aec_frame])
-
-            # Process all available Koala-sized chunks
-            while len(koala_input_buffer) >= koala_frame_length:
-                # Extract frame for Koala
-                koala_input = np.ascontiguousarray(koala_input_buffer[:koala_frame_length])
-                koala_input_buffer = koala_input_buffer[koala_frame_length:]
-
-                try:
-                    # Koala processes koala_frame_length samples (e.g., 256)
-                    cleaned_chunk = koala.process(koala_input)
-
-                    # Buffer Koala output until we have target size (e.g., 512)
-                    koala_output_buffer = np.concatenate([koala_output_buffer, cleaned_chunk])
-
-                    # Yield when we have enough samples for downstream (512)
-                    while len(koala_output_buffer) >= target_output_size:
-                        output_frame = koala_output_buffer[:target_output_size]
-                        koala_output_buffer = koala_output_buffer[target_output_size:]
-                        yield output_frame
-
-                except Exception as e:
-                    logger.error(f"Koala processing failed: {e}")
-                    # Yield raw frame on error
-                    koala_output_buffer = np.concatenate([koala_output_buffer, koala_input])
-                    if len(koala_output_buffer) >= target_output_size:
-                        output_frame = koala_output_buffer[:target_output_size]
-                        koala_output_buffer = koala_output_buffer[target_output_size:]
-                        yield output_frame
+        # Step 2: Koala noise suppression with frame adaptation
+        if koala_adapter:
+            # Process through Koala adapter (handles buffering internally)
+            output_frames = koala_adapter.process(aec_frame)
+            yield from output_frames
         else:
             # No Koala, yield AEC output directly
             yield aec_frame

@@ -6,6 +6,7 @@ Processes frames through: Mic → AEC → Koala → Cobra (VAD) & Porcupine (wak
 """
 
 import time
+from enum import Enum, auto
 
 import numpy as np
 
@@ -13,6 +14,12 @@ from nrhof.core.app_state import get_app_state
 from nrhof.core.audio_io import calculate_rms, get_mic_stream
 from nrhof.core.event_bus import EventType
 from nrhof.core.logging_utils import setup_logger
+from nrhof.core.voice_constants import (
+    VOICE_FRAME_DURATION_MS,
+    VOICE_FRAME_SIZE,
+    VOICE_SAMPLE_RATE,
+    samples_from_ms,
+)
 from nrhof.voice.cobra import create_cobra
 from nrhof.voice.front_end import create_voice_pipeline
 from nrhof.voice.rhino import create_rhino
@@ -20,6 +27,22 @@ from nrhof.voice.wake import create_porcupine
 from nrhof.workers.base import BaseWorker
 
 logger = setup_logger(__name__)
+
+
+class VoiceState(Enum):
+    """Voice processing state machine.
+
+    States:
+        IDLE: Waiting for wake word
+        WAKE_DETECTED: Wake word just detected, waiting for speech
+        SPEECH_ACTIVE: Speech detected and being captured
+        SPEECH_ENDING: Speech ended, processing accumulated segment
+    """
+
+    IDLE = auto()
+    WAKE_DETECTED = auto()
+    SPEECH_ACTIVE = auto()
+    SPEECH_ENDING = auto()
 
 
 class VoiceFrontEndWorker(BaseWorker):
@@ -69,20 +92,18 @@ class VoiceFrontEndWorker(BaseWorker):
         self.last_log_time = 0.0
         self.rms_accumulator: list[float] = []
 
-        # VAD state tracking
-        self.is_speech = False
+        # State machine
+        self.state = VoiceState.IDLE
         self.speech_start_time: float | None = None
+        self.wake_word_time: float | None = None
         self.silence_frame_count = 0
 
         # Speech segment buffering (for ASR)
-        self.is_listening = False  # True after wake word, waiting for speech
-        self.wake_word_time: float | None = None  # Time when wake word was detected
         self.segment_buffer: list[np.ndarray] = []  # Accumulate PCM frames for ASR
         self.last_intent_time: float = 0.0  # Last time an intent was resolved (for cooldown)
 
-        # Calculate tail frames (512 samples @ 16kHz = 32ms per frame)
-        frame_duration_ms = 32  # 512 samples at 16kHz
-        self.tail_frames = int(self.vad_tail_ms / frame_duration_ms)
+        # Calculate tail frames
+        self.tail_frames = int(self.vad_tail_ms / VOICE_FRAME_DURATION_MS)
 
         # Initialize Cobra VAD
         self.cobra = None
@@ -114,9 +135,9 @@ class VoiceFrontEndWorker(BaseWorker):
                 self.logger.warning("Failed to initialize Porcupine")
                 self.enable_wake_word = False
 
-        # Frame buffering (Cobra/Porcupine need 512 samples, Koala outputs 256)
-        self.vad_frame_length = self.cobra.frame_length if self.cobra else 512
-        self.wake_frame_length = self.porcupine.frame_length if self.porcupine else 512
+        # Frame buffering (Cobra/Porcupine need standard frame size)
+        self.vad_frame_length = self.cobra.frame_length if self.cobra else VOICE_FRAME_SIZE
+        self.wake_frame_length = self.porcupine.frame_length if self.porcupine else VOICE_FRAME_SIZE
         self.frame_buffer = np.array([], dtype=np.int16)
 
         # Initialize Rhino NLU
@@ -124,10 +145,16 @@ class VoiceFrontEndWorker(BaseWorker):
         rhino_config = voice_config.get("rhino", {})
         if rhino_config.get("enabled", True):
             context_path = rhino_config.get("context_path")
+            debug_save_audio = rhino_config.get("debug_save_audio", False)
             if context_path:
-                self.rhino = create_rhino(context_path=context_path)
+                self.rhino = create_rhino(
+                    context_path=context_path,
+                    debug_save_audio=debug_save_audio,
+                )
                 if self.rhino:
                     self.logger.info("Rhino NLU enabled for intent recognition")
+                    if debug_save_audio:
+                        self.logger.info("Rhino debug mode: saving audio to /tmp")
                 else:
                     self.logger.warning("Failed to initialize Rhino NLU")
             else:
@@ -143,7 +170,7 @@ class VoiceFrontEndWorker(BaseWorker):
     def _worker_loop(self):
         """Main worker loop - processes voice pipeline frames."""
         # Initialize mic stream
-        if not get_mic_stream(sample_rate=16000, frame_size=512):
+        if not get_mic_stream(sample_rate=VOICE_SAMPLE_RATE, frame_size=VOICE_FRAME_SIZE):
             self.logger.error("Failed to initialize mic stream")
             return
 
@@ -152,8 +179,10 @@ class VoiceFrontEndWorker(BaseWorker):
         self.last_log_time = time.time()
 
         # Create voice pipeline (AEC → Koala)
-        # Use 32ms frames (512 samples) to match mic driver and downstream processors
-        for cleaned_frame in create_voice_pipeline(enable_koala=True, frame_duration_ms=32):
+        # Use standard frame size to match mic driver and downstream processors
+        for cleaned_frame in create_voice_pipeline(
+            enable_koala=True, frame_duration_ms=VOICE_FRAME_DURATION_MS
+        ):
             if not self._running:
                 break
 
@@ -164,14 +193,14 @@ class VoiceFrontEndWorker(BaseWorker):
             rms = calculate_rms(cleaned_frame)
             self.rms_accumulator.append(float(rms))
 
-            # Buffer frames for VAD/wake word (need 512 samples)
+            # Buffer frames for VAD/wake word
             self.frame_buffer = np.concatenate([self.frame_buffer, cleaned_frame])
 
             # Process when we have enough samples
             while len(self.frame_buffer) >= max(self.vad_frame_length, self.wake_frame_length):
-                # Extract 512 samples for processing
-                frame_512 = self.frame_buffer[:512]
-                self.frame_buffer = self.frame_buffer[512:]
+                # Extract frame for processing
+                frame_512 = self.frame_buffer[:VOICE_FRAME_SIZE]
+                self.frame_buffer = self.frame_buffer[VOICE_FRAME_SIZE:]
 
                 # Run Cobra VAD
                 if self.cobra:
@@ -191,15 +220,18 @@ class VoiceFrontEndWorker(BaseWorker):
                         self.logger.error(f"Porcupine wake word failed: {e}")
 
             # Check for speech timeout after wake word
-            if self.is_listening and self.wake_word_time:
+            if (
+                self.state in (VoiceState.WAKE_DETECTED, VoiceState.SPEECH_ACTIVE)
+                and self.wake_word_time
+            ):
                 if (current_time - self.wake_word_time) > self.speech_timeout_s:
-                    self.logger.info("Speech timeout - no speech after wake word")
+                    self.logger.info(f"Speech timeout in state {self.state.name}")
 
                     # Emit timeout event (VoiceEventHandler will restore audio & clear status)
                     self.event_bus.emit(EventType.VOICE_TIMEOUT)
 
-                    # Reset internal state
-                    self.is_listening = False
+                    # Reset to idle
+                    self._transition_to(VoiceState.IDLE)
                     self.wake_word_time = None
                     self.silence_frame_count = 0
                     self.segment_buffer.clear()
@@ -227,7 +259,7 @@ class VoiceFrontEndWorker(BaseWorker):
                 self.last_log_time = current_time
 
             # Small sleep to prevent CPU starvation of main thread
-            # Koala yields frames at ~16-32ms intervals (256/512 samples @ 16kHz)
+            # Koala yields frames at ~16-32ms intervals
             # Sleep for ~5ms to yield CPU to main thread while staying responsive
             time.sleep(0.005)
 
@@ -241,38 +273,38 @@ class VoiceFrontEndWorker(BaseWorker):
             current_time: Current timestamp
             frame_512: Current 512-sample frame (for buffering)
         """
-        # Only process VAD when listening (after wake word)
-        if not self.is_listening:
+        # Only process VAD when waiting for or capturing speech
+        if self.state == VoiceState.IDLE:
             return
 
         is_speech_now = voice_prob >= self.vad_threshold
 
-        # Detect speech start
-        if is_speech_now and not self.is_speech:
-            self.is_speech = True
-            self.speech_start_time = current_time
-            self.silence_frame_count = 0
-            self.speech_segments += 1
-            self.logger.debug(f"Speech started (prob={voice_prob:.2f})")
-            self.event_bus.emit(EventType.VOICE_SPEECH_START)
+        # State machine transitions
+        if self.state == VoiceState.WAKE_DETECTED:
+            if is_speech_now:
+                # Transition: WAKE_DETECTED → SPEECH_ACTIVE
+                self._transition_to(VoiceState.SPEECH_ACTIVE)
+                self.speech_start_time = current_time
+                self.silence_frame_count = 0
+                self.speech_segments += 1
+                self.segment_buffer.append(frame_512.copy())
+                self.logger.debug(f"Speech started (prob={voice_prob:.2f})")
+                self.event_bus.emit(EventType.VOICE_SPEECH_START)
+            # else: stay in WAKE_DETECTED, waiting for speech
 
-        # Accumulate frames during speech (with tail)
-        if self.is_speech:
+        elif self.state == VoiceState.SPEECH_ACTIVE:
             if is_speech_now:
                 # Active speech - reset silence counter and buffer frame
                 self.silence_frame_count = 0
-                if self.is_listening:
-                    self.segment_buffer.append(frame_512.copy())
+                self.segment_buffer.append(frame_512.copy())
             else:
                 # Silence during speech - increment counter but keep buffering (tail)
                 self.silence_frame_count += 1
-                if self.is_listening:
-                    self.segment_buffer.append(frame_512.copy())
+                self.segment_buffer.append(frame_512.copy())
 
                 # Check if tail timeout reached
                 if self.silence_frame_count >= self.tail_frames:
-                    # Speech ended after tail timeout
-                    self.is_speech = False
+                    # Transition: SPEECH_ACTIVE → IDLE (via processing)
                     if self.speech_start_time:
                         duration = (current_time - self.speech_start_time) * 1000
                         self.logger.debug(
@@ -281,12 +313,12 @@ class VoiceFrontEndWorker(BaseWorker):
                     self.event_bus.emit(EventType.VOICE_SPEECH_END)
 
                     # Emit complete segment for ASR
-                    if self.is_listening and len(self.segment_buffer) > 0:
+                    if len(self.segment_buffer) > 0:
                         self._emit_speech_segment()
-                        self.is_listening = False
-                        self.wake_word_time = None
 
-                    # Reset silence counter
+                    # Transition back to idle
+                    self._transition_to(VoiceState.IDLE)
+                    self.wake_word_time = None
                     self.silence_frame_count = 0
 
     def _on_wake_word_detected(self, keyword_index: int, current_time: float):
@@ -300,15 +332,12 @@ class VoiceFrontEndWorker(BaseWorker):
         self.wake_word_count += 1
         self.logger.info(f"Wake word detected! keyword={keyword}")
 
-        # Reset VAD state to ensure clean capture
-        self.is_speech = False
-        self.silence_frame_count = 0
-
-        # Start listening for speech segment
-        self.is_listening = True
+        # Transition: IDLE → WAKE_DETECTED
+        self._transition_to(VoiceState.WAKE_DETECTED)
         self.wake_word_time = current_time
+        self.silence_frame_count = 0
         self.segment_buffer.clear()
-        self.logger.debug("Started listening for speech segment (VAD state reset)")
+        self.logger.debug(f"State: {self.state.name} - waiting for speech")
 
         # Emit event
         self.event_bus.emit(EventType.WAKE_WORD_DETECTED, payload={"keyword": keyword})
@@ -322,11 +351,11 @@ class VoiceFrontEndWorker(BaseWorker):
         # Concatenate all buffered frames into single array
         segment_pcm = np.concatenate(self.segment_buffer)
         num_samples = len(segment_pcm)
-        duration_ms = (num_samples / 16000) * 1000
+        duration_ms = (num_samples / VOICE_SAMPLE_RATE) * 1000
 
         # Add explicit post-speech silence padding for Rhino finalization
         # This ensures Rhino has enough silence to detect speech endpoint
-        post_silence_samples = int((self.min_post_speech_silence_ms / 1000) * 16000)
+        post_silence_samples = samples_from_ms(self.min_post_speech_silence_ms)
         silence_padding = np.zeros(post_silence_samples, dtype=np.int16)
         segment_pcm = np.concatenate([segment_pcm, silence_padding])
 
@@ -344,7 +373,9 @@ class VoiceFrontEndWorker(BaseWorker):
         # Process with Rhino NLU if available
         if self.rhino:
             try:
-                intent, slots = self.rhino.process_segment(segment_pcm, sample_rate=16000)
+                intent, slots = self.rhino.process_segment(
+                    segment_pcm, sample_rate=VOICE_SAMPLE_RATE
+                )
 
                 if intent is not None:
                     # Check cooldown to prevent accidental re-triggers
@@ -370,23 +401,23 @@ class VoiceFrontEndWorker(BaseWorker):
                     self.logger.debug("[Rhino] No intent recognized")
                     self.event_bus.emit(
                         EventType.VOICE_SEGMENT_READY,
-                        payload={"pcm": segment_pcm, "sample_rate": 16000},
+                        payload={"pcm": segment_pcm, "sample_rate": VOICE_SAMPLE_RATE},
                     )
 
-                # Reset Rhino for next utterance
-                self.rhino.reset()
+                # Note: No need to reset here - process_segment() resets at start of next call
 
             except Exception as e:
                 self.logger.error(f"Rhino processing failed: {e}")
                 # Emit segment anyway for fallback
                 self.event_bus.emit(
                     EventType.VOICE_SEGMENT_READY,
-                    payload={"pcm": segment_pcm, "sample_rate": 16000},
+                    payload={"pcm": segment_pcm, "sample_rate": VOICE_SAMPLE_RATE},
                 )
         else:
             # No Rhino - just emit segment for ASR
             self.event_bus.emit(
-                EventType.VOICE_SEGMENT_READY, payload={"pcm": segment_pcm, "sample_rate": 16000}
+                EventType.VOICE_SEGMENT_READY,
+                payload={"pcm": segment_pcm, "sample_rate": VOICE_SAMPLE_RATE},
             )
 
         # Clear buffer
@@ -413,3 +444,13 @@ class VoiceFrontEndWorker(BaseWorker):
                 self.logger.warning(f"Error cleaning up Rhino: {e}")
 
         self.logger.info("Voice front-end worker cleanup complete")
+
+    def _transition_to(self, new_state: VoiceState):
+        """Transition to a new state with logging.
+
+        Args:
+            new_state: Target state
+        """
+        if new_state != self.state:
+            self.logger.debug(f"State transition: {self.state.name} → {new_state.name}")
+            self.state = new_state

@@ -17,6 +17,7 @@ from collections.abc import Generator
 import numpy as np
 
 from nrhof.core.logging_utils import setup_logger
+from nrhof.core.voice_constants import VOICE_FRAME_SIZE, VOICE_SAMPLE_RATE
 
 logger = setup_logger("audio_io")
 
@@ -32,8 +33,8 @@ except ImportError:
 # Global state
 _mic_stream: object | None = None
 _mic_buffer: np.ndarray | None = None
-_mic_sample_rate: int = 16000
-_mic_frame_size: int = 512
+_mic_sample_rate: int = VOICE_SAMPLE_RATE
+_mic_frame_size: int = VOICE_FRAME_SIZE
 _duck_gain_db: float = 0.0  # Current ducking gain (0 = no duck)
 _mic_lock = threading.Lock()  # Prevent race condition on mic init
 
@@ -54,7 +55,9 @@ def _mic_callback(indata, frames, time_info, status):
     _mic_buffer = indata[:, 0].copy()  # Mono channel
 
 
-def get_mic_stream(sample_rate: int = 16000, frame_size: int = 512) -> bool:
+def get_mic_stream(
+    sample_rate: int = VOICE_SAMPLE_RATE, frame_size: int = VOICE_FRAME_SIZE
+) -> bool:
     """Initialize and start microphone input stream.
 
     Args:
@@ -259,7 +262,9 @@ def calculate_rms(audio: np.ndarray) -> float:
     return float(np.sqrt(np.mean(audio_float**2)))
 
 
-def get_player_tap(sample_rate: int = 16000, frame_size: int = 512) -> np.ndarray:
+def get_player_tap(
+    sample_rate: int = VOICE_SAMPLE_RATE, frame_size: int = VOICE_FRAME_SIZE
+) -> np.ndarray:
     """Get audio being played (for AEC reference).
 
     STUB: Currently returns zeros. Will be implemented later to tap into

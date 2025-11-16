@@ -15,6 +15,11 @@ audio:
 mic_listener:
   enabled: false  # Disabled (voice_front_end_worker handles mic processing)
 
+# Voice front-end debug settings (uncomment to enable)
+# voice_front_end:
+#   rhino:
+#     debug_save_audio: true  # Save audio segments to /tmp for debugging
+
 # Touch input (UPDD integration)
 touch:
   enabled: true

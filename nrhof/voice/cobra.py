@@ -6,6 +6,7 @@ Processes audio frames at 16kHz to detect speech activity.
 import numpy as np
 
 from nrhof.core.logging_utils import setup_logger
+from nrhof.core.retry import retry
 
 logger = setup_logger(__name__)
 
@@ -81,21 +82,37 @@ class Cobra:
             logger.debug("Cobra cleaned up")
 
 
+@retry(tries=3, delay=0.5, exceptions=(Exception,))
+def _create_cobra_with_retry(access_key: str | None) -> Cobra:
+    """Create Cobra with retry on transient failures.
+
+    Args:
+        access_key: Picovoice access key
+
+    Returns:
+        Cobra instance
+
+    Raises:
+        Exception: If creation fails after retries
+    """
+    return Cobra(access_key=access_key)
+
+
 def create_cobra(access_key: str | None = None) -> Cobra | None:
-    """Create Cobra instance.
+    """Create Cobra instance with retry logic.
 
     Args:
         access_key: Optional Picovoice access key
 
     Returns:
-        Cobra instance or None if pvcobra not available
+        Cobra instance or None if pvcobra not available or creation fails
     """
     if not HAVE_COBRA:
         logger.warning("pvcobra not available, Cobra disabled")
         return None
 
     try:
-        return Cobra(access_key=access_key)
+        return _create_cobra_with_retry(access_key)
     except Exception as e:
-        logger.error(f"Failed to create Cobra: {e}")
+        logger.error(f"Failed to create Cobra after retries: {e}")
         return None

@@ -19,7 +19,7 @@ def start_3d_renderer_preload():
 
             from nrhof.renderers.model_renderer import ModelRenderer
 
-            print("[PRELOAD] Initializing 3D renderer in background...")
+            # Note: Initialization is logged by caller in __main__.py
             renderer = ModelRenderer(width=512, height=512)
 
             # Load D20 model

@@ -23,13 +23,10 @@ from nrhof.scenes.registry import register_all_scenes
 from nrhof.scenes.scene_manager import SceneManager
 from nrhof.voice.engine import VoiceEngine
 from nrhof.workers.audio_worker import AudioWorker
-from nrhof.workers.mic_listener_worker import MicListenerWorker
 from nrhof.workers.recognition_worker import RecognitionWorker
 from nrhof.workers.song_recognition_worker import SongRecognitionWorker
 from nrhof.workers.touch_worker import TouchInputWorker
-from nrhof.workers.vad_worker import VADWorker
 from nrhof.workers.voice_front_end_worker import VoiceFrontEndWorker
-from nrhof.workers.wake_word_worker import WakeWordWorker
 
 
 def init_pygame_env():
@@ -193,7 +190,6 @@ def start_workers(cfg, voice_engine=None):
 
     logger = setup_logger("app_initializer")
     config_dict = cfg
-    event_bus = get_event_bus()
 
     # Create worker registry
     registry = WorkerRegistry()
@@ -215,19 +211,6 @@ def start_workers(cfg, voice_engine=None):
     voice_front_end_config = config_dict.get("voice_front_end", {})
     if voice_front_end_config.get("enabled", True):
         registry.register("voice_front_end_worker", VoiceFrontEndWorker(config_dict))
-    else:
-        # Legacy workers (disabled by default, replaced by voice_front_end)
-        registry.register("wake_word_worker", WakeWordWorker(config_dict))
-
-        mic_listener_config = config_dict.get("mic_listener", {})
-        if mic_listener_config.get("enabled", False):
-            registry.register(
-                "mic_listener_worker", MicListenerWorker(event_bus, mic_listener_config)
-            )
-
-        vad_config = config_dict.get("vad", {})
-        if vad_config.get("enabled", False):
-            registry.register("vad_worker", VADWorker(event_bus, vad_config))
 
     # Register touch worker (UPDD integration)
     touch_config = config_dict.get("touch", {})

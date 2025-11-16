@@ -14,11 +14,20 @@ Contains:
 - Front-end (AEC → Koala pipeline)
 """
 
+from nrhof.core.voice_constants import (
+    KOALA_FRAME_SIZE,
+    VOICE_FRAME_DURATION_MS,
+    VOICE_FRAME_SIZE,
+    VOICE_SAMPLE_RATE,
+    frame_duration_ms,
+    samples_from_ms,
+)
+
 from .aec import AEC
 from .asr import ASR
 from .cobra import Cobra, create_cobra
 from .front_end import cleanup_voice_pipeline, create_voice_pipeline
-from .koala import Koala, create_koala
+from .koala import Koala, KoalaFrameAdapter, create_koala
 from .nlu import GrammarNLU
 from .rhino import RhinoNLU, create_rhino
 from .tts import TTS
@@ -39,7 +48,15 @@ __all__ = [
     "TTS",
     "AEC",
     "Koala",
+    "KoalaFrameAdapter",
     "create_koala",
     "create_voice_pipeline",
     "cleanup_voice_pipeline",
+    # Constants
+    "VOICE_SAMPLE_RATE",
+    "VOICE_FRAME_SIZE",
+    "VOICE_FRAME_DURATION_MS",
+    "KOALA_FRAME_SIZE",
+    "frame_duration_ms",
+    "samples_from_ms",
 ]

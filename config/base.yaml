@@ -45,6 +45,7 @@ voice_front_end:
   rhino:
     enabled: true            # Enable Rhino for on-device intent recognition
     context_path: assets/voice/nrhof_en_mac_v3_0_0.rhn  # Path to .rhn context file
+    debug_save_audio: false  # Save audio segments to /tmp for debugging (creates .wav files)
 
 # Mic listener (legacy - replaced by voice_front_end)
 mic_listener:

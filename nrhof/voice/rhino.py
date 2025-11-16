@@ -10,11 +10,10 @@ import os
 import numpy as np
 
 from nrhof.core.logging_utils import setup_logger
+from nrhof.core.retry import retry
+from nrhof.core.voice_constants import VOICE_SAMPLE_RATE
 
 logger = setup_logger(__name__)
-
-# Debug flag: Set to True to save audio segments for inspection
-DEBUG_SAVE_AUDIO = os.environ.get("RHINO_DEBUG_AUDIO", "false").lower() == "true"
 
 # Check if pvrhino is available
 try:
@@ -29,12 +28,18 @@ except ImportError:
 class RhinoNLU:
     """Picovoice Rhino NLU wrapper for intent recognition."""
 
-    def __init__(self, access_key: str | None = None, context_path: str | None = None):
+    def __init__(
+        self,
+        access_key: str | None = None,
+        context_path: str | None = None,
+        debug_save_audio: bool = False,
+    ):
         """Initialize Rhino NLU.
 
         Args:
             access_key: Picovoice access key (from env if None)
             context_path: Path to .rhn context file
+            debug_save_audio: If True, save audio segments to /tmp for debugging
 
         Raises:
             RuntimeError: If pvrhino not available or initialization fails
@@ -56,6 +61,7 @@ class RhinoNLU:
 
         self.access_key = access_key
         self.context_path = context_path
+        self.debug_save_audio = debug_save_audio
         self.rhino = None
 
         try:
@@ -93,7 +99,7 @@ class RhinoNLU:
 
         Args:
             pcm: Audio PCM data (int16 numpy array)
-            sample_rate: Sample rate (must be 16000Hz for Rhino)
+            sample_rate: Sample rate (must match VOICE_SAMPLE_RATE for Rhino)
 
         Returns:
             (intent_name, slots_dict) if understood
@@ -142,13 +148,13 @@ class RhinoNLU:
 
         total_frames = len(pcm_with_padding) // self.rhino.frame_length
         logger.info(
-            f"[Rhino] Processing segment: {len(pcm)} samples ({len(pcm)/16000:.2f}s) "
+            f"[Rhino] Processing segment: {len(pcm)} samples ({len(pcm)/VOICE_SAMPLE_RATE:.2f}s) "
             f"+ {padding_samples} alignment padding = {len(pcm_with_padding)} total "
             f"({total_frames} frames @ {self.rhino.frame_length} samples/frame)"
         )
 
         # Debug: Save audio to file for inspection
-        if DEBUG_SAVE_AUDIO:
+        if self.debug_save_audio:
             try:
                 import time
                 import wave
@@ -157,7 +163,7 @@ class RhinoNLU:
                 with wave.open(debug_file, "wb") as wf:
                     wf.setnchannels(1)
                     wf.setsampwidth(2)  # 16-bit
-                    wf.setframerate(16000)
+                    wf.setframerate(VOICE_SAMPLE_RATE)
                     wf.writeframes(pcm_with_padding.tobytes())
                 logger.info(f"[Rhino DEBUG] Saved audio to {debug_file}")
             except Exception as e:
@@ -191,14 +197,14 @@ class RhinoNLU:
                 # Log progress every 30 frames (~1 second)
                 if frames_processed % 30 == 0:
                     logger.debug(
-                        f"[Rhino] Processed {frames_processed} frames ({frames_processed*512/16000:.2f}s)..."
+                        f"[Rhino] Processed {frames_processed} frames ({frames_processed*512/VOICE_SAMPLE_RATE:.2f}s)..."
                     )
 
                 if is_finalized:
-                    processing_time_s = frames_processed * 512 / 16000
+                    processing_time_s = frames_processed * 512 / VOICE_SAMPLE_RATE
                     logger.info(
                         f"[Rhino] ✓ Finalized after {frames_processed} frames "
-                        f"({processing_time_s:.2f}s, {(processing_time_s/len(pcm)*16000)*100:.1f}% of audio duration)"
+                        f"({processing_time_s:.2f}s, {(processing_time_s/len(pcm)*VOICE_SAMPLE_RATE)*100:.1f}% of audio duration)"
                     )
                     break
 
@@ -218,7 +224,7 @@ class RhinoNLU:
             else:
                 logger.warning(
                     f"[Rhino] Inference not finalized after {frames_processed} frames "
-                    f"({len(pcm_with_padding)} samples, {len(pcm_with_padding)/16000:.2f}s)"
+                    f"({len(pcm_with_padding)} samples, {len(pcm_with_padding)/VOICE_SAMPLE_RATE:.2f}s)"
                 )
                 # Try to get inference anyway to see what Rhino has
                 try:
@@ -256,22 +262,57 @@ class RhinoNLU:
                 self.rhino = None
 
 
-def create_rhino(access_key: str | None = None, context_path: str | None = None) -> RhinoNLU | None:
-    """Create Rhino NLU instance.
+@retry(tries=3, delay=0.5, exceptions=(Exception,))
+def _create_rhino_with_retry(
+    access_key: str | None,
+    context_path: str | None,
+    debug_save_audio: bool,
+) -> RhinoNLU:
+    """Create Rhino with retry on transient failures.
+
+    Args:
+        access_key: Picovoice access key
+        context_path: Path to .rhn context file
+        debug_save_audio: If True, save audio segments for debugging
+
+    Returns:
+        RhinoNLU instance
+
+    Raises:
+        Exception: If creation fails after retries
+    """
+    return RhinoNLU(
+        access_key=access_key,
+        context_path=context_path,
+        debug_save_audio=debug_save_audio,
+    )
+
+
+def create_rhino(
+    access_key: str | None = None,
+    context_path: str | None = None,
+    debug_save_audio: bool = False,
+) -> RhinoNLU | None:
+    """Create Rhino NLU instance with retry logic.
 
     Args:
         access_key: Optional Picovoice access key
         context_path: Path to .rhn context file
+        debug_save_audio: If True, save audio segments to /tmp for debugging
 
     Returns:
-        RhinoNLU instance or None if pvrhino not available
+        RhinoNLU instance or None if pvrhino not available or creation fails
     """
     if not HAVE_RHINO:
         logger.warning("pvrhino not available, Rhino disabled")
         return None
 
     try:
-        return RhinoNLU(access_key=access_key, context_path=context_path)
+        return _create_rhino_with_retry(
+            access_key=access_key,
+            context_path=context_path,
+            debug_save_audio=debug_save_audio,
+        )
     except Exception as e:
-        logger.error(f"Failed to create Rhino: {e}")
+        logger.error(f"Failed to create Rhino after retries: {e}")
         return None

@@ -6,6 +6,7 @@ Detects wake words in audio frames at 16kHz.
 import numpy as np
 
 from nrhof.core.logging_utils import setup_logger
+from nrhof.core.retry import retry
 
 logger = setup_logger(__name__)
 
@@ -120,13 +121,42 @@ class Porcupine:
             logger.debug("Porcupine cleaned up")
 
 
+@retry(tries=3, delay=0.5, exceptions=(Exception,))
+def _create_porcupine_with_retry(
+    access_key: str | None,
+    keywords: list[str] | None,
+    keyword_paths: list[str] | None,
+    sensitivity: float,
+) -> Porcupine:
+    """Create Porcupine with retry on transient failures.
+
+    Args:
+        access_key: Picovoice access key
+        keywords: Built-in keyword names
+        keyword_paths: Paths to custom .ppn files
+        sensitivity: Detection sensitivity
+
+    Returns:
+        Porcupine instance
+
+    Raises:
+        Exception: If creation fails after retries
+    """
+    return Porcupine(
+        access_key=access_key,
+        keywords=keywords,
+        keyword_paths=keyword_paths,
+        sensitivity=sensitivity,
+    )
+
+
 def create_porcupine(
     access_key: str | None = None,
     keywords: list[str] | None = None,
     keyword_paths: list[str] | None = None,
     sensitivity: float = 0.5,
 ) -> Porcupine | None:
-    """Create Porcupine instance.
+    """Create Porcupine instance with retry logic.
 
     Args:
         access_key: Optional Picovoice access key
@@ -135,19 +165,19 @@ def create_porcupine(
         sensitivity: Detection sensitivity (0.0 to 1.0)
 
     Returns:
-        Porcupine instance or None if pvporcupine not available
+        Porcupine instance or None if pvporcupine not available or creation fails
     """
     if not HAVE_PORCUPINE:
         logger.warning("pvporcupine not available, Porcupine disabled")
         return None
 
     try:
-        return Porcupine(
+        return _create_porcupine_with_retry(
             access_key=access_key,
             keywords=keywords,
             keyword_paths=keyword_paths,
             sensitivity=sensitivity,
         )
     except Exception as e:
-        logger.error(f"Failed to create Porcupine: {e}")
+        logger.error(f"Failed to create Porcupine after retries: {e}")
         return None
