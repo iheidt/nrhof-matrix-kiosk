@@ -20,6 +20,10 @@ mic_listener:
 #   rhino:
 #     debug_save_audio: true  # Save audio segments to /tmp for debugging
 
+# Whisper ASR debug settings (uncomment to enable)
+# whisper:
+#   timeout: 10.0  # Longer timeout for debugging
+
 # Touch input (UPDD integration)
 touch:
   enabled: true

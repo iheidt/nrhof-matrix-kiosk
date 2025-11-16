@@ -47,6 +47,12 @@ voice_front_end:
     context_path: assets/voice/nrhof_en_mac_v3_0_0.rhn  # Path to .rhn context file
     debug_save_audio: false  # Save audio segments to /tmp for debugging (creates .wav files)
 
+# Whisper ASR (fallback when Rhino fails to recognize intent)
+whisper:
+  enabled: true              # Enable Whisper for ASR fallback
+  server_url: "http://127.0.0.1:9001"  # whisper.cpp server endpoint
+  timeout: 5.0               # Request timeout in seconds
+
 # Mic listener (legacy - replaced by voice_front_end)
 mic_listener:
   enabled: false             # Disabled (replaced by voice_front_end)

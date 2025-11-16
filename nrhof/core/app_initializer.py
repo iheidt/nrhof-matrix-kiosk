@@ -22,6 +22,7 @@ from nrhof.routing.voice_router import VoiceRouter
 from nrhof.scenes.registry import register_all_scenes
 from nrhof.scenes.scene_manager import SceneManager
 from nrhof.voice.engine import VoiceEngine
+from nrhof.workers.asr_worker import ASRWorker
 from nrhof.workers.audio_worker import AudioWorker
 from nrhof.workers.recognition_worker import RecognitionWorker
 from nrhof.workers.song_recognition_worker import SongRecognitionWorker
@@ -215,6 +216,11 @@ def start_workers(cfg, voice_engine=None):
     voice_front_end_config = config_dict.get("voice_front_end", {})
     if voice_front_end_config.get("enabled", True):
         registry.register("voice_front_end_worker", VoiceFrontEndWorker(config_dict))
+
+    # Register ASR worker (Whisper fallback when Rhino fails)
+    whisper_config = config_dict.get("whisper", {})
+    if whisper_config.get("enabled", True):
+        registry.register("asr_worker", ASRWorker(config_dict))
 
     # Register touch worker (UPDD integration)
     touch_config = config_dict.get("touch", {})
