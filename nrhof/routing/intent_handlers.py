@@ -365,14 +365,21 @@ def _register_system_intents(intent_router: IntentRouter, app_context: AppContex
     def change_language(event_bus, language=None, **slots):
         """Change application language.
 
+        Note: Without Rhino slots, all phrases ("japanese", "english", "switch language", "change language")
+        trigger this same intent. Since we can't distinguish which phrase was said, we just toggle.
+        To support setting specific languages, the .rhn file would need separate intents or slots.
+
         Args:
-            language: Language code (e.g., 'en', 'jp', 'es')
+            language: Language code (e.g., 'en', 'jp') - currently unused
         """
-        if language:
-            # TODO: Implement language change via localization service
-            print(f"[INTENT] Change language to {language} requested (not implemented)")
-        else:
-            print("[INTENT] Change language requested but no language specified")
+        from nrhof.core.localization import get_language, set_language
+
+        # Toggle between en and jp (all voice commands trigger toggle)
+        current = get_language()
+        new_lang = "jp" if current == "en" else "en"
+        set_language(new_lang)
+        lang_name = "English" if new_lang == "en" else "Japanese"
+        print(f"[INTENT] ✓ Language toggled to {lang_name}")
 
     def change_mode(event_bus, **slots):
         """Change visual mode (matrix/pink)."""
