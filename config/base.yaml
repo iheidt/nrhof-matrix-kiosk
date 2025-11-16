@@ -91,8 +91,8 @@ localization:
 wake_word:
   enabled: true  # Set to true when you have Picovoice access key in .env
   picovoice_access_key: "${PICOVOICE_ACCESS_KEY}"  # Loaded from .env
-  keywords: ["picovoice"]  # Built-in keywords: jarvis, alexa, computer, etc.
-  keyword_paths: []  # Custom .ppn files (e.g., "assets/wake_words/hey-nerd.ppn")
+  keywords: []  # Built-in keywords: jarvis, alexa, computer, etc. (empty when using custom)
+  keyword_paths: ["assets/voice/hey-nerd_en_mac_v3_0_0.ppn"]  # Custom wake word: "hey nerd"
   sensitivity: 0.75  # 0.0 (least sensitive) to 1.0 (most sensitive)
 
 # Voice Activity Detection (legacy WebRTC VAD - replaced by voice_front_end with Cobra)
